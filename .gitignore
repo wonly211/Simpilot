@@ -1,0 +1,10 @@
+/build/
+/out/
+/.vs/
+/Config/
+/Cache/
+/Log/
+__pycache__/
+*.py[cod]
+*.user
+*.suo

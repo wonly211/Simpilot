@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Simpilot application icon</title>
+  <desc id="desc">A tray-first icon based on the small-seal form of Yu: horse on the left and hand on the right.</desc>
+  <rect x="28" y="28" width="456" height="456" rx="104" fill="#12383B"/>
+  <g fill="none" stroke="#F5E9D0" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M 198 105
+         C 148 82, 111 111, 116 158
+         C 121 202, 158 222, 196 198"
+      stroke-width="40"/>
+    <path d="M 126 128 C 151 111, 181 116, 204 139" stroke-width="30"/>
+    <path d="M 125 177 C 151 165, 179 170, 203 187" stroke-width="30"/>
+    <path d="M 127 231 C 165 215, 207 219, 239 241" stroke-width="35"/>
+    <path d="M 169 238 C 145 272, 119 303, 94 329" stroke-width="33"/>
+    <path d="M 183 249 C 158 301, 130 350, 108 395" stroke-width="35"/>
+    <path d="M 201 252 C 195 306, 190 360, 190 414" stroke-width="39"/>
+    <path d="M 224 253 C 226 307, 228 361, 234 414" stroke-width="39"/>
+  </g>
+  <g fill="none" stroke="#F05D55" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M 286 126
+         C 331 110, 376 114, 404 136
+         C 405 222, 403 314, 414 411"
+      stroke-width="39"/>
+    <path d="M 286 187 C 328 173, 367 176, 400 195" stroke-width="37"/>
+    <path d="M 287 246 C 329 228, 366 230, 398 248" stroke-width="37"/>
+    <path d="M 293 248 C 286 302, 282 358, 283 414" stroke-width="41"/>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 700" role="img" aria-labelledby="title desc">
+  <title id="title">Equal-stroke vector of the ancient form of Yu</title>
+  <desc id="desc">A monoline tracing based on the manually cleaned fifth reference, preserving the horse and hand structure.</desc>
+  <g
+    fill="none"
+    stroke="#111719"
+    stroke-width="30"
+    stroke-linecap="round"
+    stroke-linejoin="round">
+    <!-- Horse: head, body and the three horizontal bones. -->
+    <path d="M 114 53 C 156 48, 207 48, 254 53"/>
+    <path d="M 114 54 C 92 63, 87 88, 87 124 L 87 226 C 89 253, 109 278, 133 297 L 166 330"/>
+    <path d="M 206 52 C 207 104, 209 158, 208 214 C 208 259, 194 298, 166 330"/>
+    <path d="M 88 133 C 140 130, 198 130, 258 133"/>
+    <path d="M 90 211 C 141 208, 195 208, 250 212"/>
+
+    <!-- Horse: tail and four descending strokes. -->
+    <path d="M 166 330 C 130 358, 88 387, 40 410"/>
+    <path d="M 168 334 C 137 384, 91 456, 41 524"/>
+    <path d="M 171 338 C 193 390, 207 440, 182 488 C 156 535, 127 579, 106 620"/>
+    <path d="M 174 339 C 207 392, 221 455, 212 522 C 205 577, 188 632, 174 680"/>
+    <path d="M 177 338 C 228 369, 259 411, 270 466 C 282 529, 278 586, 264 637"/>
+
+    <!-- Hand: outer finger and wrist, inner finger, and lower palm stroke. -->
+    <path d="M 297 178 C 343 158, 395 163, 427 195 C 451 220, 454 264, 448 304 C 442 344, 428 370, 409 384 C 399 392, 401 420, 407 452 C 418 511, 434 566, 457 609"/>
+    <path d="M 297 274 C 332 264, 365 275, 377 304 C 385 323, 384 352, 399 374"/>
+    <path d="M 298 393 C 338 406, 378 403, 409 380"/>
+  </g>
+</svg>
