@@ -97,10 +97,23 @@ constexpr std::array<std::string_view, 35> custom_hotkey_keys{
     "custom_hotkey.capture_failed", "custom_hotkey.invalid_target",
 };
 
+constexpr std::array<std::string_view, 20> about_keys{
+    "about.positioning", "about.version", "about.tagline",
+    "about.link.home", "about.link.releases", "about.link.manual",
+    "about.link.issues", "about.product_information", "about.label.system",
+    "about.value.system", "about.label.distribution", "about.value.distribution",
+    "about.label.license", "about.value.license", "about.local_data",
+    "about.third_party_summary", "about.link.license", "about.link.third_party",
+    "about.close", "about.open_failed",
+};
+
+static_assert(ui_keys.size() == static_cast<std::size_t>(UiText::calculator) + 1);
 static_assert(settings_keys.size() ==
               static_cast<std::size_t>(SettingsText::applied_text) + 1);
 static_assert(custom_hotkey_keys.size() ==
               static_cast<std::size_t>(CustomHotKeyText::invalid_target_text) + 1);
+static_assert(about_keys.size() ==
+              static_cast<std::size_t>(AboutText::open_failed_text) + 1);
 
 std::string trim(std::string value) {
     const auto first = std::find_if_not(value.begin(), value.end(), [](const unsigned char character) {
@@ -258,6 +271,10 @@ std::wstring_view Localization::text(const SettingsText text_value) const noexce
 
 std::wstring_view Localization::text(const CustomHotKeyText text_value) const noexcept {
     return text(enum_key(text_value, custom_hotkey_keys));
+}
+
+std::wstring_view Localization::text(const AboutText text_value) const noexcept {
+    return text(enum_key(text_value, about_keys));
 }
 
 std::wstring_view Localization::text(const std::string_view key) const noexcept {

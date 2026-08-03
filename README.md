@@ -5,6 +5,12 @@
 <h1 align="center">简驭 | Simpilot</h1>
 
 <p align="center">
+  <strong>简体中文</strong> |
+  <a href="README.zh-TW.md">繁體中文</a> |
+  <a href="README.en-US.md">English</a>
+</p>
+
+<p align="center">
   把常用入口和高频操作，收进一个托盘图标与一组全局热键。
 </p>
 

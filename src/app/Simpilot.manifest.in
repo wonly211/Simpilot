@@ -4,7 +4,7 @@
       name="Simpilot"
       processorArchitecture="amd64"
       type="win32"
-      version="0.12.1.0" />
+      version="@PROJECT_VERSION_MAJOR@.@PROJECT_VERSION_MINOR@.@PROJECT_VERSION_PATCH@.0" />
   <description>简驭 | Simpilot</description>
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>

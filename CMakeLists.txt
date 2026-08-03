@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.16.1 LANGUAGES CXX)
+project(Simpilot VERSION 0.17.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -49,8 +49,21 @@ target_compile_definitions(simpilot_keyboard PRIVATE
 target_compile_options(simpilot_keyboard PRIVATE /W4 /permissive- /utf-8 /EHsc)
 target_link_libraries(simpilot_keyboard PUBLIC simpilot_core user32)
 
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/Simpilot.manifest.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Simpilot.manifest"
+    @ONLY
+)
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/SimpilotVersion.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/SimpilotVersion.rc"
+    @ONLY
+)
+
 add_executable(simpilot WIN32
     resources/Simpilot.rc
+    "${CMAKE_CURRENT_BINARY_DIR}/SimpilotVersion.rc"
+    src/app/about_window.cpp
     src/app/custom_hotkey_dialog.cpp
     src/app/launch_menu_renderer.cpp
     src/app/main.cpp
@@ -59,7 +72,7 @@ add_executable(simpilot WIN32
     src/app/menu_theme.cpp
     src/app/program_selection_dialog.cpp
     src/app/settings_window.cpp
-    src/app/Simpilot.manifest
+    "${CMAKE_CURRENT_BINARY_DIR}/Simpilot.manifest"
     src/app/toggle_switch.cpp
     src/app/tray_application.cpp
 )
@@ -74,7 +87,8 @@ target_compile_definitions(simpilot PRIVATE
     SIMPILOT_VERSION=L\"${PROJECT_VERSION}\"
 )
 target_compile_options(simpilot PRIVATE /W4 /permissive- /utf-8 /EHsc)
-target_link_libraries(simpilot PRIVATE simpilot_keyboard comctl32 comdlg32 shell32 user32)
+target_link_libraries(simpilot PRIVATE
+    simpilot_keyboard comctl32 comdlg32 shell32 shcore user32)
 set_target_properties(simpilot PROPERTIES OUTPUT_NAME "Simpilot")
 
 set(EVERYTHING_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/Everything")
@@ -217,6 +231,28 @@ if(BUILD_TESTING)
              COMMAND simpilot_program_selection_dialog_test)
     set_tests_properties(simpilot_program_selection_dialog_test PROPERTIES TIMEOUT 10)
 
+    add_executable(simpilot_about_window_test
+        resources/Simpilot.rc
+        "${CMAKE_CURRENT_BINARY_DIR}/Simpilot.manifest"
+        tests/about_window_test.cpp
+        src/app/about_window.cpp
+    )
+    target_include_directories(simpilot_about_window_test PRIVATE
+        include
+        resources
+        src/app
+    )
+    target_compile_definitions(simpilot_about_window_test PRIVATE
+        UNICODE _UNICODE NOMINMAX
+        WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_about_window_test PRIVATE
+        /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_about_window_test PRIVATE
+        simpilot_core comctl32 gdi32 shell32 shcore user32 version)
+    add_dependencies(simpilot_about_window_test simpilot)
+    add_test(NAME simpilot_about_window_test COMMAND simpilot_about_window_test)
+    set_tests_properties(simpilot_about_window_test PROPERTIES TIMEOUT 10)
+
 endif()
 
 install(TARGETS simpilot RUNTIME DESTINATION .)
@@ -229,6 +265,7 @@ install(FILES
     DESTINATION Languages
 )
 install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"
     "${CMAKE_CURRENT_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"
     DESTINATION .
 )

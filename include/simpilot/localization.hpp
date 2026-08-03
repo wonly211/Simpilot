@@ -70,6 +70,29 @@ enum class CustomHotKeyText {
     invalid_target_text,
 };
 
+enum class AboutText {
+    positioning_text,
+    version_text,
+    tagline_text,
+    home_link_text,
+    releases_link_text,
+    manual_link_text,
+    issues_link_text,
+    product_information_text,
+    system_label_text,
+    system_value_text,
+    distribution_label_text,
+    distribution_value_text,
+    license_label_text,
+    license_value_text,
+    local_data_text,
+    third_party_summary_text,
+    license_link_text,
+    third_party_link_text,
+    close_text,
+    open_failed_text,
+};
+
 class Localization final {
 public:
     explicit Localization(UiLanguage language,
@@ -85,6 +108,7 @@ public:
     [[nodiscard]] std::wstring_view text(UiText text) const noexcept;
     [[nodiscard]] std::wstring_view text(SettingsText text) const noexcept;
     [[nodiscard]] std::wstring_view text(CustomHotKeyText text) const noexcept;
+    [[nodiscard]] std::wstring_view text(AboutText text) const noexcept;
     [[nodiscard]] std::wstring_view text(std::string_view key) const noexcept;
     [[nodiscard]] static std::string_view language_code(UiLanguage language) noexcept;
     [[nodiscard]] static std::filesystem::path default_resource_directory();

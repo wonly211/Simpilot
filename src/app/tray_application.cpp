@@ -1,5 +1,6 @@
 #include "tray_application.hpp"
 
+#include "about_window.hpp"
 #include "resource.h"
 #include "settings_window.hpp"
 #include "menu_theme.hpp"
@@ -372,11 +373,8 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         } else if (identifier == settings_command) {
             show_settings();
         } else if (identifier == about_command) {
-            const auto version = std::wstring(SIMPILOT_VERSION);
-            const auto about_message = format_localized(
-                localization_, "ui.about_message", version);
-            MessageBoxW(window, about_message.c_str(), localization_.text(UiText::about).data(),
-                        MB_OK | MB_ICONINFORMATION);
+            AboutWindow::show_modal(instance_, window, localization_, executable_path_,
+                                    std::wstring(SIMPILOT_VERSION));
         } else if (identifier == exit_command) {
             DestroyWindow(window);
         } else if (const auto found = command_entries_.find(identifier); found != command_entries_.end()) {

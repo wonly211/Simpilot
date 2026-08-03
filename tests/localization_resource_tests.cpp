@@ -76,6 +76,17 @@ int wmain() {
         const auto english = load_catalog(
             language_directory / L"en-US.json", locales[0]);
         require(!english.keys.empty(), "English language resource is not empty");
+        const std::array required_about_keys{
+            "about.positioning", "about.version", "about.tagline",
+            "about.link.home", "about.link.releases", "about.link.manual",
+            "about.link.issues", "about.product_information", "about.label.system",
+            "about.value.system", "about.label.distribution", "about.value.distribution",
+            "about.label.license", "about.value.license", "about.local_data",
+            "about.third_party_summary", "about.link.license",
+            "about.link.third_party", "about.close", "about.open_failed"};
+        for (const auto key : required_about_keys) {
+            require(english.keys.contains(key), "English About resource is complete");
+        }
 
         for (std::size_t index = 1; index < locales.size(); ++index) {
             const auto locale = std::string(locales[index]);
