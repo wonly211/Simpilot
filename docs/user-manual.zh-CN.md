@@ -1,6 +1,6 @@
 # 简驭 | Simpilot 用户手册
 
-适用版本：0.16.0
+适用版本：0.16.1
 
 简驭 | Simpilot 是一款常驻 Windows 托盘的快捷启动器和全局热键管理器。它可以把常用应用、文件夹、文件和网址整理成分层菜单，也可以通过全局热键直接打开指定目标，并在程序运行期间屏蔽选定的 Windows 快捷键。
 
@@ -16,7 +16,7 @@
 
 简驭采用便携方式发布，不需要安装程序。
 
-1. 从 [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载 `Simpilot-0.16.0-win-x64.zip`。
+1. 从 [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载 `Simpilot-0.16.1-win-x64.zip`。
 2. 将压缩包完整解压到一个固定目录。
 3. 确保 `Simpilot.exe`、`Everything` 和 `Languages` 目录保持在原有相对位置。
 4. 双击 `Simpilot.exe`。
@@ -41,7 +41,7 @@ Languages/
 发布页同时提供 `.sha256` 校验文件。如需核对下载内容，可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash .\Simpilot-0.16.0-win-x64.zip -Algorithm SHA256
+Get-FileHash .\Simpilot-0.16.1-win-x64.zip -Algorithm SHA256
 ```
 
 将结果与 `.sha256` 文件中的值比较。当前发布包尚未进行数字签名；若 Windows SmartScreen 首次运行时提示未知发布者，请先确认文件来自本仓库的正式 Release，并完成校验后再决定是否运行。
