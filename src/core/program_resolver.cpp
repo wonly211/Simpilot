@@ -81,21 +81,7 @@ std::optional<std::filesystem::path> ProgramResolver::resolve(const std::wstring
     }
 
     if (search_ && search_->available()) {
-        auto candidates = search_->find_exact_file_name(value.filename().wstring());
-        candidates.erase(
-            std::remove_if(candidates.begin(), candidates.end(), [](const ProgramCandidate& candidate) {
-                std::error_code error;
-                return !std::filesystem::is_regular_file(candidate.path, error);
-            }),
-            candidates.end());
-        std::sort(candidates.begin(), candidates.end(), [](const ProgramCandidate& left,
-                                                           const ProgramCandidate& right) {
-            if (left.version != right.version) return left.version > right.version;
-            if (left.last_write_time != right.last_write_time) {
-                return left.last_write_time > right.last_write_time;
-            }
-            return lowercase(left.path.wstring()) < lowercase(right.path.wstring());
-        });
+        auto candidates = find_candidates(executable);
         if (candidates.empty()) return std::nullopt;
 
         auto selected = candidates.front().path;
@@ -114,6 +100,29 @@ std::optional<std::filesystem::path> ProgramResolver::resolve(const std::wstring
         return selected;
     }
     return std::nullopt;
+}
+
+std::vector<ProgramCandidate> ProgramResolver::find_candidates(
+    const std::wstring& executable) const {
+    if (!search_ || !search_->available() || executable.empty()) return {};
+    const std::filesystem::path value(executable);
+    if (value.has_parent_path()) return {};
+    auto candidates = search_->find_exact_file_name(value.filename().wstring());
+    candidates.erase(
+        std::remove_if(candidates.begin(), candidates.end(), [](const ProgramCandidate& candidate) {
+            std::error_code error;
+            return !std::filesystem::is_regular_file(candidate.path, error);
+        }),
+        candidates.end());
+    std::sort(candidates.begin(), candidates.end(), [](const ProgramCandidate& left,
+                                                       const ProgramCandidate& right) {
+        if (left.version != right.version) return left.version > right.version;
+        if (left.last_write_time != right.last_write_time) {
+            return left.last_write_time > right.last_write_time;
+        }
+        return lowercase(left.path.wstring()) < lowercase(right.path.wstring());
+    });
+    return candidates;
 }
 
 MenuResolutionService::MenuResolutionService(ProgramResolver resolver) : resolver_(std::move(resolver)) {}

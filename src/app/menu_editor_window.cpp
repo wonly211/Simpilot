@@ -42,6 +42,7 @@ constexpr int browse_identifier = 304;
 constexpr int arguments_identifier = 305;
 constexpr int administrator_identifier = 306;
 constexpr int splitter_identifier = 307;
+constexpr int reselect_program_identifier = 308;
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -109,10 +110,14 @@ std::optional<MenuEditorWindow::ElementLocation> find_location_in(
 MenuEditorWindow::MenuEditorWindow(
     const HINSTANCE instance, const HWND parent, const UiLanguage language,
     std::filesystem::path main_menu_path, std::filesystem::path second_menu_path,
-    DiagnosticSink diagnostic_sink, DirtySink dirty_sink)
+    DiagnosticSink diagnostic_sink, DirtySink dirty_sink,
+    ProgramResolutionLookup resolution_lookup,
+    ProgramResolutionReselect resolution_reselect)
     : instance_(instance), parent_(parent), language_(language), localization_(language),
       paths_{std::move(main_menu_path), std::move(second_menu_path)},
-      diagnostic_sink_(std::move(diagnostic_sink)), dirty_sink_(std::move(dirty_sink)) {}
+      diagnostic_sink_(std::move(diagnostic_sink)), dirty_sink_(std::move(dirty_sink)),
+      resolution_lookup_(std::move(resolution_lookup)),
+      resolution_reselect_(std::move(resolution_reselect)) {}
 
 MenuEditorWindow::~MenuEditorWindow() {
     if (window_) DestroyWindow(window_);
@@ -244,6 +249,16 @@ void MenuEditorWindow::create_controls() {
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(browse_identifier)), instance_, nullptr);
+    resolved_path_label_ = create_label(text("menu_editor.resolved_path"));
+    resolved_path_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
+        WS_CHILD | ES_AUTOHSCROLL | ES_READONLY,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    reselect_program_button_ = CreateWindowW(L"BUTTON",
+        text("menu_editor.reselect_program"),
+        WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
+        0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(reselect_program_identifier)),
+        instance_, nullptr);
     arguments_label_ = create_label(text("menu_editor.arguments"));
     arguments_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
@@ -289,6 +304,8 @@ void MenuEditorWindow::refresh_localized_text() {
                  type_selection == CB_ERR ? 0 : type_selection, 0);
     SetWindowTextW(target_label_, text("menu_editor.target"));
     SetWindowTextW(browse_button_, text("menu_editor.browse"));
+    SetWindowTextW(resolved_path_label_, text("menu_editor.resolved_path"));
+    SetWindowTextW(reselect_program_button_, text("menu_editor.reselect_program"));
     SetWindowTextW(arguments_label_, text("menu_editor.arguments"));
     SetWindowTextW(administrator_checkbox_, text("menu_editor.run_as_administrator"));
     SetWindowTextW(add_category_button_, text("menu_editor.add_category"));
@@ -318,7 +335,8 @@ void MenuEditorWindow::update_fonts() {
     set_font(detail_title_, section_font_);
     const std::array controls{main_menu_button_, second_menu_button_, tree_, name_label_, name_edit_, access_key_label_,
         access_key_edit_, type_label_, type_combo_, target_label_, target_edit_,
-        browse_button_, arguments_label_, arguments_edit_, administrator_checkbox_,
+        browse_button_, resolved_path_label_, resolved_path_edit_,
+        reselect_program_button_, arguments_label_, arguments_edit_, administrator_checkbox_,
         add_item_button_, add_category_button_, add_separator_button_, delete_button_,
         move_up_button_, move_down_button_, decrease_level_button_, increase_level_button_};
     for (const auto control : controls) set_font(control, font_);
@@ -328,6 +346,7 @@ void MenuEditorWindow::update_fonts() {
 }
 
 void MenuEditorWindow::layout_controls(const int width, const int height) {
+    if (width <= 0 || height <= 0) return;
     const auto layout_dpi = std::min(dpi_, std::max(dpi_ * 2 / 3,
         static_cast<UINT>(std::max(1, height) * 96 / 500)));
     const auto scale = [layout_dpi](const int value) {
@@ -381,7 +400,7 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
 
     MoveWindow(detail_title_, right_x, content_top, right_width, scale(30), TRUE);
     const auto field_height = scale(34);
-    const auto browse_width = scale(92);
+    const auto browse_width = scale(112);
     auto row_y = content_top + scale(42);
     const auto place_field = [&](const HWND label, const HWND control, const HWND browse) {
         MoveWindow(label, right_x, row_y, right_width, scale(22), TRUE);
@@ -401,6 +420,10 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
     MoveWindow(type_combo_, right_x, row_y, right_width, scale(180), TRUE);
     row_y += field_height + scale(12);
     place_field(target_label_, target_edit_, browse_button_);
+    if (IsWindowVisible(resolved_path_label_)) {
+        place_field(resolved_path_label_, resolved_path_edit_,
+            IsWindowVisible(reselect_program_button_) ? reselect_program_button_ : nullptr);
+    }
     place_field(arguments_label_, arguments_edit_, nullptr);
     MoveWindow(administrator_checkbox_, right_x, row_y, right_width, scale(32), TRUE);
     MoveWindow(delete_button_, right_x, content_bottom - button_height,
@@ -637,6 +660,37 @@ void MenuEditorWindow::update_type_controls() {
     ShowWindow(arguments_edit_, application ? SW_SHOW : SW_HIDE);
     ShowWindow(administrator_checkbox_, application ? SW_SHOW : SW_HIDE);
     ShowWindow(browse_button_, entry && type != 3 ? SW_SHOW : SW_HIDE);
+    update_resolution_controls();
+}
+
+void MenuEditorWindow::update_resolution_controls() {
+    const auto entry = dynamic_cast<MenuEntry*>(selected_element()) != nullptr;
+    const auto type = std::max<LRESULT>(0, SendMessageW(type_combo_, CB_GETCURSEL, 0, 0));
+    const auto executable = trim(control_text(target_edit_));
+    const std::filesystem::path value(executable);
+    const auto eligible = resolution_lookup_ && entry && type == 0
+        && !executable.empty() && executable.find(L':') == std::wstring::npos
+        && executable.find(L'%') == std::wstring::npos
+        && !value.is_absolute() && !value.has_parent_path();
+    if (!eligible) {
+        ShowWindow(resolved_path_label_, SW_HIDE);
+        ShowWindow(resolved_path_edit_, SW_HIDE);
+        ShowWindow(reselect_program_button_, SW_HIDE);
+        SetWindowTextW(resolved_path_edit_, L"");
+    } else {
+        const auto resolution = resolution_lookup_(executable);
+        SetWindowTextW(resolved_path_edit_, resolution.path
+            ? resolution.path->c_str() : text("menu_editor.resolution_unavailable"));
+        ShowWindow(resolved_path_label_, SW_SHOW);
+        ShowWindow(resolved_path_edit_, SW_SHOW);
+        ShowWindow(reselect_program_button_,
+            resolution.can_reselect && resolution_reselect_ ? SW_SHOW : SW_HIDE);
+    }
+    if (window_) {
+        RECT client{};
+        GetClientRect(window_, &client);
+        layout_controls(client.right, client.bottom);
+    }
 }
 
 void MenuEditorWindow::apply_detail_changes() {
@@ -667,6 +721,7 @@ void MenuEditorWindow::apply_detail_changes() {
     }
     mark_dirty();
     update_tree_item(selected);
+    update_resolution_controls();
 }
 
 void MenuEditorWindow::browse_target() {
@@ -709,6 +764,16 @@ void MenuEditorWindow::browse_target() {
         .lpstrDefExt = type == 0 ? L"exe" : nullptr,
     };
     if (GetOpenFileNameW(&dialog)) SetWindowTextW(target_edit_, path.data());
+}
+
+void MenuEditorWindow::reselect_program() {
+    if (!resolution_reselect_) return;
+    const auto executable = trim(control_text(target_edit_));
+    if (executable.empty()) return;
+    const auto owner = GetAncestor(window_, GA_ROOT);
+    if (resolution_reselect_(owner ? owner : window_, executable)) {
+        update_resolution_controls();
+    }
 }
 
 void MenuEditorWindow::add_item() {
@@ -1129,6 +1194,10 @@ LRESULT MenuEditorWindow::handle_message(
         }
         if (identifier == browse_identifier && notification == BN_CLICKED) {
             browse_target();
+            return 0;
+        }
+        if (identifier == reselect_program_identifier && notification == BN_CLICKED) {
+            reselect_program();
             return 0;
         }
         if (notification != BN_CLICKED) return 0;

@@ -35,6 +35,8 @@ public:
     using ApplySink = std::function<bool(const AppSettings&)>;
     using MenuChangeSink = std::function<std::vector<MenuIconTarget>()>;
     using LanguageChangeSink = std::function<void(UiLanguage)>;
+    using ProgramResolutionLookup = MenuEditorWindow::ProgramResolutionLookup;
+    using ProgramResolutionReselect = MenuEditorWindow::ProgramResolutionReselect;
 
     [[nodiscard]] static std::optional<AppSettings> show_modal(
         HINSTANCE instance, HWND owner, const AppSettings& current,
@@ -44,7 +46,9 @@ public:
         std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
         IconChangeSink icon_change_sink = {},
         ApplySink apply_sink = {}, MenuChangeSink menu_change_sink = {},
-        LanguageChangeSink language_change_sink = {});
+        LanguageChangeSink language_change_sink = {},
+        ProgramResolutionLookup resolution_lookup = {},
+        ProgramResolutionReselect resolution_reselect = {});
 
 private:
     SettingsWindow(HINSTANCE instance, HWND owner, AppSettings current,
@@ -56,7 +60,9 @@ private:
                    std::filesystem::path icon_cache_directory,
                    IconChangeSink icon_change_sink, ApplySink apply_sink,
                    MenuChangeSink menu_change_sink,
-                   LanguageChangeSink language_change_sink);
+                   LanguageChangeSink language_change_sink,
+                   ProgramResolutionLookup resolution_lookup,
+                   ProgramResolutionReselect resolution_reselect);
 
     [[nodiscard]] std::optional<AppSettings> run();
     void create_controls();
@@ -123,6 +129,8 @@ private:
     ApplySink apply_sink_;
     MenuChangeSink menu_change_sink_;
     LanguageChangeSink language_change_sink_;
+    ProgramResolutionLookup resolution_lookup_;
+    ProgramResolutionReselect resolution_reselect_;
     std::vector<MenuIconTarget> menu_icon_targets_;
     std::filesystem::path config_directory_;
     std::filesystem::path icon_cache_directory_;

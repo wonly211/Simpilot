@@ -218,10 +218,17 @@ int TrayApplication::run() {
         .lpszClassName = tray_window_class_name,
     };
     RegisterClassW(&window_class);
-    window_ = CreateWindowExW(0, tray_window_class_name, localization_.text(UiText::app_title).data(), 0,
-                              0, 0, 0, 0, HWND_MESSAGE, nullptr, instance_, this);
-    if (!window_) throw std::runtime_error("Unable to create message window");
+    window_ = CreateWindowExW(WS_EX_TOOLWINDOW,
+                              tray_window_class_name,
+                              localization_.text(UiText::app_title).data(), 0,
+                              0, 0, 0, 0, nullptr, nullptr, instance_, this);
+    if (!window_) throw std::runtime_error("Unable to create tray host window");
 
+    taskbar_created_message_ = RegisterWindowMessageW(L"TaskbarCreated");
+    if (taskbar_created_message_ == 0) {
+        logger_.write(std::format(L"TaskbarCreated registration failed error={}",
+                                  GetLastError()));
+    }
     add_tray_icon();
     if (!keyboard_manager_.start(window_, effective_windows_hotkey_blocking_state(settings_))) {
         logger_.write(std::format(L"Keyboard hook could not start error={}",
@@ -272,6 +279,11 @@ LRESULT CALLBACK TrayApplication::window_procedure(HWND window, UINT message, WP
 }
 
 LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+    if (taskbar_created_message_ != 0 && message == taskbar_created_message_) {
+        logger_.write(L"Windows Explorer taskbar recreated; restoring tray icon");
+        add_tray_icon();
+        return 0;
+    }
     if (message == WM_MEASUREITEM) {
         auto* measurement = reinterpret_cast<MEASUREITEMSTRUCT*>(lparam);
         if (measurement && launch_menu_renderer_.measure(*measurement)) return TRUE;
@@ -298,12 +310,13 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         show_launch_menu(1);
         return 0;
     }
-    if (message == tray_callback_message && lparam == WM_LBUTTONUP) {
+    const auto tray_event = LOWORD(lparam);
+    if (message == tray_callback_message && tray_event == WM_LBUTTONUP) {
         show_launch_menu(1);
         return 0;
     }
     if (message == tray_callback_message
-        && (lparam == WM_RBUTTONUP || lparam == WM_CONTEXTMENU)) {
+        && (tray_event == WM_RBUTTONUP || tray_event == WM_CONTEXTMENU)) {
         show_context_menu();
         return 0;
     }
@@ -458,7 +471,7 @@ bool TrayApplication::reload_menu(const bool notify_on_failure) noexcept {
 }
 
 void TrayApplication::show_launch_menu(const int menu_number) {
-    if (reload_in_progress_ || menu_active_ || settings_window_open_) return;
+    if (reload_in_progress_ || menu_active_) return;
     const auto* selected_document = menu_number == 2 ? secondary_document_.get() : document_.get();
     if (!selected_document) {
         MessageBeep(MB_ICONWARNING);
@@ -591,7 +604,6 @@ void TrayApplication::show_settings() {
     if (settings_window_open_) return;
     (void)MenuThemeController::apply(MenuTheme::light);
     settings_window_open_ = true;
-    unregister_global_hotkeys();
     (void)SettingsWindow::show_modal(
         instance_, nullptr, settings_, localization_.language(), keyboard_manager_,
         [this](const HotKeyGesture& gesture) {
@@ -608,10 +620,44 @@ void TrayApplication::show_settings() {
             (void)reload_menu(true);
             return collect_menu_icon_targets();
         },
-        [this](const UiLanguage language) { set_language(language); });
+        [this](const UiLanguage language) { set_language(language); },
+        [this](const std::wstring_view executable) {
+            MenuEditorWindow::ProgramResolutionInfo result;
+            const auto value = std::wstring(executable);
+            if (const auto system_path = ProgramResolver().resolve(value)) {
+                result.path = *system_path;
+                return result;
+            }
+            result.path = program_cache_.find(value);
+            result.can_reselect = everything_search_ != nullptr;
+            return result;
+        },
+        [this](const HWND owner, const std::wstring_view executable)
+            -> std::optional<std::filesystem::path> {
+            const auto value = std::wstring(executable);
+            const auto candidates = ProgramResolver(everything_search_.get())
+                .find_candidates(value);
+            if (candidates.empty()) {
+                MessageBoxW(owner,
+                    localization_.text("menu_editor.reselect_failed").data(),
+                    localization_.text(UiText::app_title).data(),
+                    MB_OK | MB_ICONWARNING);
+                return std::nullopt;
+            }
+            auto selected = candidates.front().path;
+            if (candidates.size() > 1) {
+                const auto requested = ProgramSelectionDialog::show_modal(
+                    instance_, owner, localization_.language(), value, candidates);
+                if (!requested) return std::nullopt;
+                selected = *requested;
+            }
+            program_cache_.store(value, selected);
+            logger_.write(std::format(L"program resolution changed executable={} path={}",
+                                      value, selected.wstring()));
+            (void)reload_menu(true);
+            return selected;
+        });
     settings_window_open_ = false;
-    keyboard_manager_.update(effective_windows_hotkey_blocking_state(settings_));
-    register_global_hotkeys();
 }
 
 bool TrayApplication::apply_settings(const AppSettings& updated) {
@@ -624,10 +670,12 @@ bool TrayApplication::apply_settings(const AppSettings& updated) {
         return false;
     }
 
+    unregister_global_hotkeys();
     const auto menu_theme_changed = settings_.menu_theme != updated.menu_theme;
     settings_ = updated;
     if (menu_theme_changed) logger_.write(L"popup menu theme preference updated");
     keyboard_manager_.update(effective_windows_hotkey_blocking_state(settings_));
+    register_global_hotkeys();
     logger_.write(L"settings saved; keyboard hook updated");
     if (!StartupRegistration::apply(settings_.start_with_windows, executable_path_)) {
         logger_.write(L"startup registration update failed");
@@ -669,7 +717,6 @@ std::vector<MenuIconTarget> TrayApplication::collect_menu_icon_targets() const {
 }
 
 void TrayApplication::register_global_hotkeys() {
-    if (settings_window_open_) return;
     const auto register_binding = [this](const int identifier, const HotKeyBinding& binding,
                                          const std::wstring_view name) {
         if (binding.gesture && !keyboard_manager_.register_binding(identifier, binding)) {
@@ -858,7 +905,15 @@ void TrayApplication::add_tray_icon() {
     tray_icon_.uCallbackMessage = tray_callback_message;
     tray_icon_.hIcon = LoadIconW(instance_, MAKEINTRESOURCEW(IDI_SIMPILOT));
     wcsncpy_s(tray_icon_.szTip, localization_.text(UiText::app_title).data(), _TRUNCATE);
-    Shell_NotifyIconW(NIM_ADD, &tray_icon_);
+    if (!Shell_NotifyIconW(NIM_ADD, &tray_icon_)) {
+        logger_.write(std::format(L"tray icon registration failed error={}", GetLastError()));
+        return;
+    }
+    tray_icon_.uVersion = NOTIFYICON_VERSION_4;
+    if (!Shell_NotifyIconW(NIM_SETVERSION, &tray_icon_)) {
+        logger_.write(std::format(L"tray icon version update failed error={}", GetLastError()));
+    }
+    tray_icon_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
 }
 
 void TrayApplication::update_tray_text() {

@@ -212,6 +212,10 @@
     "menu_editor.invalid_entry": "The menu contains an invalid name or target and cannot be saved.",
     "menu_editor.external_change_confirm": "The configuration files were changed by another program while the editor was open. Overwrite those changes?",
     "menu_editor.save_failed": "The menu configuration could not be saved. See Log\\Simpilot.log.",
+    "menu_editor.resolved_path": "Current resolved path",
+    "menu_editor.resolution_unavailable": "No available path found",
+    "menu_editor.reselect_program": "Reselect...",
+    "menu_editor.reselect_failed": "Everything could not find this program. Verify that the default instance and its database are available.",
 
     "program_selection.window_title": "简驭 | Simpilot - Select program",
     "program_selection.prompt": "Multiple copies of {} were found. Select the program to use.",

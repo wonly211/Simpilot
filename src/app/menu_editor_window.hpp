@@ -21,6 +21,15 @@ public:
     using DiagnosticSink = std::function<void(std::wstring_view)>;
     using DirtySink = std::function<void()>;
 
+    struct ProgramResolutionInfo {
+        std::optional<std::filesystem::path> path;
+        bool can_reselect = false;
+    };
+
+    using ProgramResolutionLookup = std::function<ProgramResolutionInfo(std::wstring_view)>;
+    using ProgramResolutionReselect = std::function<std::optional<std::filesystem::path>(
+        HWND, std::wstring_view)>;
+
     struct ElementLocation {
         MenuCategory* parent = nullptr;
         std::size_t index = 0;
@@ -30,7 +39,9 @@ public:
     MenuEditorWindow(HINSTANCE instance, HWND parent, UiLanguage language,
         std::filesystem::path main_menu_path,
         std::filesystem::path second_menu_path,
-        DiagnosticSink diagnostic_sink = {}, DirtySink dirty_sink = {});
+        DiagnosticSink diagnostic_sink = {}, DirtySink dirty_sink = {},
+        ProgramResolutionLookup resolution_lookup = {},
+        ProgramResolutionReselect resolution_reselect = {});
     ~MenuEditorWindow();
 
     MenuEditorWindow(const MenuEditorWindow&) = delete;
@@ -53,9 +64,11 @@ private:
     void insert_tree_children(HTREEITEM parent_item, MenuCategory& category);
     void update_selection();
     void update_type_controls();
+    void update_resolution_controls();
     void apply_detail_changes();
     void update_tree_item(MenuElement* element);
     void browse_target();
+    void reselect_program();
     [[nodiscard]] MenuElement* selected_element() const;
     [[nodiscard]] std::optional<ElementLocation> find_location(MenuElement* element) const;
     [[nodiscard]] std::pair<MenuCategory*, std::size_t> insertion_location() const;
@@ -95,6 +108,8 @@ private:
     std::array<std::unique_ptr<MenuDocument>, 2> documents_;
     DiagnosticSink diagnostic_sink_;
     DirtySink dirty_sink_;
+    ProgramResolutionLookup resolution_lookup_;
+    ProgramResolutionReselect resolution_reselect_;
     HWND window_ = nullptr;
     HWND main_menu_button_ = nullptr;
     HWND second_menu_button_ = nullptr;
@@ -110,6 +125,9 @@ private:
     HWND target_label_ = nullptr;
     HWND target_edit_ = nullptr;
     HWND browse_button_ = nullptr;
+    HWND resolved_path_label_ = nullptr;
+    HWND resolved_path_edit_ = nullptr;
+    HWND reselect_program_button_ = nullptr;
     HWND arguments_label_ = nullptr;
     HWND arguments_edit_ = nullptr;
     HWND administrator_checkbox_ = nullptr;

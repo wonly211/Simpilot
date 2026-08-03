@@ -374,6 +374,7 @@ void KeyboardManager::unregister_all() noexcept {
 }
 
 bool KeyboardManager::probe_available(const HotKeyGesture& gesture) const noexcept {
+    if (std::ranges::find(used_gestures_, gesture) != used_gestures_.end()) return true;
     if (!RegisterHotKey(target_window_, probe_identifier,
                         gesture.modifiers | MOD_NOREPEAT,
                         gesture.virtual_key)) {

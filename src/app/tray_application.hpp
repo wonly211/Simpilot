@@ -80,6 +80,7 @@ private:
     std::unordered_map<UINT, const MenuEntry*> command_entries_;
     std::unordered_map<int, std::size_t> custom_hotkey_entries_;
     UINT next_command_id_ = 1000;
+    UINT taskbar_created_message_ = 0;
     bool settings_window_open_ = false;
     bool settings_pending_ = false;
     bool menu_active_ = false;

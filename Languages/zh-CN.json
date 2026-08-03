@@ -212,6 +212,10 @@
     "menu_editor.invalid_entry": "菜单包含无效的名称或目标，无法保存。",
     "menu_editor.external_change_confirm": "编辑期间配置文件已被其他程序修改。是否仍要覆盖这些更改？",
     "menu_editor.save_failed": "无法保存菜单配置。请查看 Log\\Simpilot.log。",
+    "menu_editor.resolved_path": "当前解析路径",
+    "menu_editor.resolution_unavailable": "未找到可用路径",
+    "menu_editor.reselect_program": "重新选择...",
+    "menu_editor.reselect_failed": "Everything 未找到该程序。请确认默认实例及数据库可用。",
 
     "program_selection.window_title": "简驭 | Simpilot - 选择程序",
     "program_selection.prompt": "找到多个“{}”，请选择要使用的程序。",

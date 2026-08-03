@@ -231,6 +231,9 @@ void resolver_falls_back_to_everything_search() {
         {newer, 2, std::filesystem::last_write_time(newer)},
     };
     const simpilot::ProgramResolver resolver(&search);
+    const auto candidates = resolver.find_candidates(L"simpilot-search-only.exe");
+    require(candidates.size() == 2 && candidates.front().path == newer,
+            "Expose valid Everything candidates in resolver order");
     const auto result = resolver.resolve(L"simpilot-search-only.exe");
     std::filesystem::remove_all(root);
     require(result && *result == newer, "Everything fallback and candidate ordering");
@@ -292,12 +295,19 @@ void program_resolution_cache_persists_and_removes_stale_entries() {
         / (L"simpilot-cache-test-" + std::to_wstring(GetCurrentProcessId()));
     std::filesystem::create_directories(root);
     const auto program = root / L"\u5de5\u5177.exe";
+    const auto replacement = root / L"replacement.exe";
     const auto cache_file = root / L"program-cache.tsv";
     std::ofstream(program).put('\0');
+    std::ofstream(replacement).put('\0');
     {
         simpilot::ProgramResolutionCache cache(cache_file);
         cache.store(L" Tool.EXE ", program);
         require_equal(cache.size(), std::size_t{1}, "Cache stores one entry");
+        cache.store(L"tool.exe", replacement);
+        const auto replaced = cache.find(L"TOOL.EXE");
+        require(replaced && std::filesystem::equivalent(*replaced, replacement),
+                "Cache replaces a previous program selection");
+        require_equal(cache.size(), std::size_t{1}, "Cache replacement keeps one entry");
     }
     {
         std::ifstream stream(cache_file, std::ios::binary);
@@ -309,9 +319,9 @@ void program_resolution_cache_persists_and_removes_stale_entries() {
     {
         simpilot::ProgramResolutionCache cache(cache_file);
         const auto cached = cache.find(L"tool.exe");
-        require(cached && std::filesystem::equivalent(*cached, program),
+        require(cached && std::filesystem::equivalent(*cached, replacement),
                 "Cache persists UTF-8 paths and case-insensitive keys");
-        std::filesystem::remove(program);
+        std::filesystem::remove(replacement);
         require(!cache.find(L"TOOL.EXE"), "Cache removes missing paths");
         require_equal(cache.size(), std::size_t{0}, "Stale cache entry removed");
     }

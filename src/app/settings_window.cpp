@@ -132,14 +132,18 @@ std::optional<AppSettings> SettingsWindow::show_modal(
     std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
     IconChangeSink icon_change_sink,
     ApplySink apply_sink, MenuChangeSink menu_change_sink,
-    LanguageChangeSink language_change_sink) {
+    LanguageChangeSink language_change_sink,
+    ProgramResolutionLookup resolution_lookup,
+    ProgramResolutionReselect resolution_reselect) {
     SettingsWindow window(instance, owner, current, language, keyboard_manager,
                           std::move(availability_probe), std::move(diagnostic_sink),
                           std::move(menu_icon_targets), std::move(config_directory),
                           std::move(icon_cache_directory),
                           std::move(icon_change_sink), std::move(apply_sink),
                           std::move(menu_change_sink),
-                          std::move(language_change_sink));
+                          std::move(language_change_sink),
+                          std::move(resolution_lookup),
+                          std::move(resolution_reselect));
     return window.run();
 }
 
@@ -153,7 +157,9 @@ SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
                                std::filesystem::path icon_cache_directory,
                                IconChangeSink icon_change_sink, ApplySink apply_sink,
                                MenuChangeSink menu_change_sink,
-                               LanguageChangeSink language_change_sink)
+                               LanguageChangeSink language_change_sink,
+                               ProgramResolutionLookup resolution_lookup,
+                               ProgramResolutionReselect resolution_reselect)
     : instance_(instance), owner_(owner), settings_(std::move(current)), language_(language),
       localization_(language),
       keyboard_manager_(keyboard_manager),
@@ -163,6 +169,8 @@ SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
       apply_sink_(std::move(apply_sink)),
       menu_change_sink_(std::move(menu_change_sink)),
       language_change_sink_(std::move(language_change_sink)),
+      resolution_lookup_(std::move(resolution_lookup)),
+      resolution_reselect_(std::move(resolution_reselect)),
       menu_icon_targets_(std::move(menu_icon_targets)),
       config_directory_(std::move(config_directory)),
       icon_cache_directory_(std::move(icon_cache_directory)),
@@ -459,7 +467,7 @@ void SettingsWindow::create_controls() {
         instance_, window_, language_, config_directory_ / L"Simpilot.ini",
         config_directory_ / L"Simpilot2.ini",
         [this](const std::wstring_view message) { diagnose(message); },
-        [this] { mark_dirty(); });
+        [this] { mark_dirty(); }, resolution_lookup_, resolution_reselect_);
     if (!menu_editor_->create()) menu_editor_.reset();
     save_button_ = CreateWindowW(L"BUTTON", text(save_text),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,

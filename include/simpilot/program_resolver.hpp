@@ -37,6 +37,8 @@ public:
                              ProgramResolutionCache* cache = nullptr,
                              ProgramCandidateSelector candidate_selector = {});
     [[nodiscard]] std::optional<std::filesystem::path> resolve(const std::wstring& executable) const;
+    [[nodiscard]] std::vector<ProgramCandidate> find_candidates(
+        const std::wstring& executable) const;
 
 private:
     const IProgramSearch* search_;

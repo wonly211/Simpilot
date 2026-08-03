@@ -212,6 +212,10 @@
     "menu_editor.invalid_entry": "選單包含無效的名稱或目標，因此無法儲存。",
     "menu_editor.external_change_confirm": "編輯期間設定檔已由其他程式修改。仍要覆寫這些變更嗎？",
     "menu_editor.save_failed": "無法儲存選單設定。請查看 Log\\Simpilot.log。",
+    "menu_editor.resolved_path": "目前解析路徑",
+    "menu_editor.resolution_unavailable": "找不到可用路徑",
+    "menu_editor.reselect_program": "重新選擇...",
+    "menu_editor.reselect_failed": "Everything 找不到該程式。請確認預設執行個體及資料庫可用。",
 
     "program_selection.window_title": "简驭 | Simpilot - 選擇程式",
     "program_selection.prompt": "找到多個「{}」，請選擇要使用的程式。",
