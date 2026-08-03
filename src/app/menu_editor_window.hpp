@@ -39,12 +39,14 @@ public:
     [[nodiscard]] bool create();
     void set_bounds(int x, int y, int width, int height) const;
     void set_visible(bool visible) const;
+    void set_language(UiLanguage language);
     [[nodiscard]] bool apply();
     [[nodiscard]] bool dirty() const noexcept;
 
 private:
     void load_documents();
     void create_controls();
+    void refresh_localized_text();
     void update_fonts();
     void layout_controls(int width, int height);
     void rebuild_tree(MenuElement* selection = nullptr);
@@ -71,6 +73,7 @@ private:
     [[nodiscard]] std::optional<std::wstring> read_source(
         const std::filesystem::path& path) const;
     void diagnose(std::wstring_view message) const noexcept;
+    [[nodiscard]] const wchar_t* text(std::string_view key) const noexcept;
 
     static LRESULT CALLBACK window_procedure(HWND window, UINT message,
                                              WPARAM wparam, LPARAM lparam);
@@ -86,6 +89,7 @@ private:
     HINSTANCE instance_;
     HWND parent_;
     UiLanguage language_;
+    Localization localization_;
     std::array<std::filesystem::path, 2> paths_;
     std::array<std::optional<std::wstring>, 2> original_sources_;
     std::array<std::unique_ptr<MenuDocument>, 2> documents_;

@@ -23,7 +23,6 @@ namespace simpilot {
 namespace {
 
 constexpr auto editor_class_name = L"Simpilot.MenuEditorWindow";
-constexpr auto product_name = L"\u7b80\u9a6d | Simpilot";
 constexpr int main_menu_identifier = 100;
 constexpr int tree_identifier = 101;
 constexpr int second_menu_identifier = 102;
@@ -43,11 +42,6 @@ constexpr int browse_identifier = 304;
 constexpr int arguments_identifier = 305;
 constexpr int administrator_identifier = 306;
 constexpr int splitter_identifier = 307;
-
-const wchar_t* tr(const UiLanguage language, const wchar_t* chinese,
-                  const wchar_t* english) noexcept {
-    return language == UiLanguage::simplified_chinese ? chinese : english;
-}
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -116,7 +110,7 @@ MenuEditorWindow::MenuEditorWindow(
     const HINSTANCE instance, const HWND parent, const UiLanguage language,
     std::filesystem::path main_menu_path, std::filesystem::path second_menu_path,
     DiagnosticSink diagnostic_sink, DirtySink dirty_sink)
-    : instance_(instance), parent_(parent), language_(language),
+    : instance_(instance), parent_(parent), language_(language), localization_(language),
       paths_{std::move(main_menu_path), std::move(second_menu_path)},
       diagnostic_sink_(std::move(diagnostic_sink)), dirty_sink_(std::move(dirty_sink)) {}
 
@@ -132,9 +126,8 @@ bool MenuEditorWindow::create() {
     } catch (const std::exception&) {
         diagnose(L"menu editor load failed");
         MessageBoxW(parent_,
-            tr(language_, L"\u65e0\u6cd5\u8bfb\u53d6\u5feb\u6377\u542f\u52a8\u83dc\u5355\u3002\u8bf7\u68c0\u67e5 UTF-8 \u7f16\u7801\u548c\u914d\u7f6e\u683c\u5f0f\u3002",
-               L"The quick-launch menus could not be read. Check their UTF-8 encoding and configuration format."),
-            product_name, MB_OK | MB_ICONERROR);
+            text("menu_editor.load_failed"),
+            localization_.text(UiText::app_title).data(), MB_OK | MB_ICONERROR);
         return false;
     }
     INITCOMMONCONTROLSEX common_controls{
@@ -167,6 +160,13 @@ void MenuEditorWindow::set_visible(const bool visible) const {
     if (window_) ShowWindow(window_, visible ? SW_SHOW : SW_HIDE);
 }
 
+void MenuEditorWindow::set_language(const UiLanguage language) {
+    if (language_ == language) return;
+    language_ = language;
+    localization_.set_language(language);
+    refresh_localized_text();
+}
+
 bool MenuEditorWindow::dirty() const noexcept {
     return dirty_;
 }
@@ -182,12 +182,12 @@ void MenuEditorWindow::load_documents() {
 void MenuEditorWindow::create_controls() {
     dpi_ = GetDpiForWindow(window_);
     main_menu_button_ = CreateWindowW(L"BUTTON",
-        tr(language_, L"\u4e3b\u83dc\u5355", L"Main menu"),
+        text("menu_editor.main_menu"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTORADIOBUTTON | BS_PUSHLIKE | WS_GROUP,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(main_menu_identifier)), instance_, nullptr);
     second_menu_button_ = CreateWindowW(L"BUTTON",
-        tr(language_, L"\u7b2c\u4e8c\u83dc\u5355", L"Second menu"),
+        text("menu_editor.second_menu"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTORADIOBUTTON | BS_PUSHLIKE,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(second_menu_identifier)), instance_, nullptr);
@@ -210,47 +210,47 @@ void MenuEditorWindow::create_controls() {
         return CreateWindowW(L"STATIC", text, WS_CHILD | WS_VISIBLE,
             0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     };
-    name_label_ = create_label(tr(language_, L"\u540d\u79f0", L"Name"));
+    name_label_ = create_label(text("menu_editor.name"));
     name_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(name_identifier)), instance_, nullptr);
-    access_key_label_ = create_label(tr(language_, L"\u83dc\u5355\u5feb\u6377\u952e\uff08\u53ef\u9009\uff09", L"Menu access key (optional)"));
+    access_key_label_ = create_label(text("menu_editor.access_key"));
     access_key_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(access_key_identifier)), instance_, nullptr);
     SendMessageW(access_key_edit_, EM_SETLIMITTEXT, 1, 0);
-    type_label_ = create_label(tr(language_, L"\u64cd\u4f5c\u7c7b\u578b", L"Action type"));
+    type_label_ = create_label(text("menu_editor.action_type"));
     type_combo_ = CreateWindowW(WC_COMBOBOXW, L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(type_identifier)), instance_, nullptr);
     const std::array<const wchar_t*, 4> types{
-        tr(language_, L"\u6253\u5f00\u5e94\u7528", L"Open application"),
-        tr(language_, L"\u6253\u5f00\u6587\u4ef6\u5939", L"Open folder"),
-        tr(language_, L"\u6253\u5f00\u6587\u4ef6", L"Open file"),
-        tr(language_, L"\u6253\u5f00\u7f51\u5740", L"Open website")};
+        text("menu_editor.open_application"),
+        text("menu_editor.open_folder"),
+        text("menu_editor.open_file"),
+        text("menu_editor.open_website")};
     for (const auto* type : types) {
         SendMessageW(type_combo_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(type));
     }
     SendMessageW(type_combo_, CB_SETMINVISIBLE, static_cast<WPARAM>(types.size()), 0);
-    target_label_ = create_label(tr(language_, L"\u76ee\u6807", L"Target"));
+    target_label_ = create_label(text("menu_editor.target"));
     target_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(target_identifier)), instance_, nullptr);
-    browse_button_ = CreateWindowW(L"BUTTON", tr(language_, L"\u6d4f\u89c8...", L"Browse..."),
+    browse_button_ = CreateWindowW(L"BUTTON", text("menu_editor.browse"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(browse_identifier)), instance_, nullptr);
-    arguments_label_ = create_label(tr(language_, L"\u53c2\u6570\uff08\u53ef\u9009\uff09", L"Arguments (optional)"));
+    arguments_label_ = create_label(text("menu_editor.arguments"));
     arguments_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(arguments_identifier)), instance_, nullptr);
     administrator_checkbox_ = CreateWindowW(L"BUTTON",
-        tr(language_, L"\u4ee5\u7ba1\u7406\u5458\u8eab\u4efd\u8fd0\u884c", L"Run as administrator"),
+        text("menu_editor.run_as_administrator"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
         0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(administrator_identifier)), instance_, nullptr);
@@ -259,16 +259,51 @@ void MenuEditorWindow::create_controls() {
             0, 0, 0, 0, window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(identifier)),
             instance_, nullptr);
     };
-    add_category_button_ = create_button(tr(language_, L"\u6dfb\u52a0\u5206\u7c7b", L"Add category"), add_category_identifier);
-    add_item_button_ = create_button(tr(language_, L"\u6dfb\u52a0\u542f\u52a8\u9879", L"Add item"), add_item_identifier);
-    add_separator_button_ = create_button(tr(language_, L"\u6dfb\u52a0\u5206\u9694\u7ebf", L"Add separator"), add_separator_identifier);
-    delete_button_ = create_button(tr(language_, L"\u5220\u9664", L"Delete"), delete_identifier);
-    move_up_button_ = create_button(tr(language_, L"\u4e0a\u79fb", L"Move up"), move_up_identifier);
-    move_down_button_ = create_button(tr(language_, L"\u4e0b\u79fb", L"Move down"), move_down_identifier);
-    increase_level_button_ = create_button(tr(language_, L"\u5347\u7ea7", L"Promote"), increase_level_identifier);
-    decrease_level_button_ = create_button(tr(language_, L"\u964d\u7ea7", L"Demote"), decrease_level_identifier);
+    add_category_button_ = create_button(text("menu_editor.add_category"), add_category_identifier);
+    add_item_button_ = create_button(text("menu_editor.add_item"), add_item_identifier);
+    add_separator_button_ = create_button(text("menu_editor.add_separator"), add_separator_identifier);
+    delete_button_ = create_button(text("menu_editor.delete"), delete_identifier);
+    move_up_button_ = create_button(text("menu_editor.move_up"), move_up_identifier);
+    move_down_button_ = create_button(text("menu_editor.move_down"), move_down_identifier);
+    increase_level_button_ = create_button(text("menu_editor.promote"), increase_level_identifier);
+    decrease_level_button_ = create_button(text("menu_editor.demote"), decrease_level_identifier);
     update_fonts();
     rebuild_tree();
+}
+
+void MenuEditorWindow::refresh_localized_text() {
+    if (!window_) return;
+    SetWindowTextW(main_menu_button_, text("menu_editor.main_menu"));
+    SetWindowTextW(second_menu_button_, text("menu_editor.second_menu"));
+    SetWindowTextW(name_label_, text("menu_editor.name"));
+    SetWindowTextW(access_key_label_, text("menu_editor.access_key"));
+    SetWindowTextW(type_label_, text("menu_editor.action_type"));
+    const auto type_selection = SendMessageW(type_combo_, CB_GETCURSEL, 0, 0);
+    SendMessageW(type_combo_, CB_RESETCONTENT, 0, 0);
+    for (const auto key : {"menu_editor.open_application", "menu_editor.open_folder",
+                           "menu_editor.open_file", "menu_editor.open_website"}) {
+        SendMessageW(type_combo_, CB_ADDSTRING, 0,
+                     reinterpret_cast<LPARAM>(text(key)));
+    }
+    SendMessageW(type_combo_, CB_SETCURSEL,
+                 type_selection == CB_ERR ? 0 : type_selection, 0);
+    SetWindowTextW(target_label_, text("menu_editor.target"));
+    SetWindowTextW(browse_button_, text("menu_editor.browse"));
+    SetWindowTextW(arguments_label_, text("menu_editor.arguments"));
+    SetWindowTextW(administrator_checkbox_, text("menu_editor.run_as_administrator"));
+    SetWindowTextW(add_category_button_, text("menu_editor.add_category"));
+    SetWindowTextW(add_item_button_, text("menu_editor.add_item"));
+    SetWindowTextW(add_separator_button_, text("menu_editor.add_separator"));
+    SetWindowTextW(delete_button_, text("menu_editor.delete"));
+    SetWindowTextW(move_up_button_, text("menu_editor.move_up"));
+    SetWindowTextW(move_down_button_, text("menu_editor.move_down"));
+    SetWindowTextW(increase_level_button_, text("menu_editor.promote"));
+    SetWindowTextW(decrease_level_button_, text("menu_editor.demote"));
+    update_selection();
+    RECT client{};
+    GetClientRect(window_, &client);
+    layout_controls(client.right, client.bottom);
+    InvalidateRect(window_, nullptr, TRUE);
 }
 
 void MenuEditorWindow::update_fonts() {
@@ -531,20 +566,20 @@ void MenuEditorWindow::update_selection() {
     SendMessageW(administrator_checkbox_, BM_SETCHECK, BST_UNCHECKED, 0);
     if (!selected) {
         SetWindowTextW(detail_title_,
-            tr(language_, L"\u9009\u62e9\u4e00\u4e2a\u9879\u76ee\u4ee5\u7f16\u8f91", L"Select an item to edit"));
+            text("menu_editor.select_item"));
     } else if (root) {
         SetWindowTextW(detail_title_, active_menu_ == 0
-            ? tr(language_, L"\u4e3b\u83dc\u5355", L"Main menu")
-            : tr(language_, L"\u7b2c\u4e8c\u83dc\u5355", L"Second menu"));
+            ? text("menu_editor.main_menu")
+            : text("menu_editor.second_menu"));
     } else if (category) {
-        SetWindowTextW(detail_title_, tr(language_, L"\u5206\u7c7b", L"Category"));
+        SetWindowTextW(detail_title_, text("menu_editor.category"));
         SetWindowTextW(name_edit_, category->name.c_str());
         if (category->access_key) {
             const std::wstring access_key(1, *category->access_key);
             SetWindowTextW(access_key_edit_, access_key.c_str());
         }
     } else if (entry) {
-        SetWindowTextW(detail_title_, tr(language_, L"\u542f\u52a8\u9879", L"Launch item"));
+        SetWindowTextW(detail_title_, text("menu_editor.launch_item"));
         SetWindowTextW(name_edit_, entry->display_name.c_str());
         if (entry->access_key) {
             const std::wstring access_key(1, *entry->access_key);
@@ -563,7 +598,7 @@ void MenuEditorWindow::update_selection() {
         SendMessageW(administrator_checkbox_, BM_SETCHECK,
             entry->run_as_administrator ? BST_CHECKED : BST_UNCHECKED, 0);
     } else {
-        SetWindowTextW(detail_title_, tr(language_, L"\u5206\u9694\u7ebf", L"Separator"));
+        SetWindowTextW(detail_title_, text("menu_editor.separator"));
     }
     updating_details_ = false;
     update_type_controls();
@@ -592,10 +627,10 @@ void MenuEditorWindow::update_type_controls() {
     }
     const auto type = std::max<LRESULT>(0, SendMessageW(type_combo_, CB_GETCURSEL, 0, 0));
     const std::array<const wchar_t*, 4> target_labels{
-        tr(language_, L"\u5e94\u7528\u8def\u5f84", L"Application path"),
-        tr(language_, L"\u6587\u4ef6\u5939\u8def\u5f84", L"Folder path"),
-        tr(language_, L"\u6587\u4ef6\u8def\u5f84", L"File path"),
-        tr(language_, L"\u7f51\u5740", L"Website URL")};
+        text("menu_editor.application_path"),
+        text("menu_editor.folder_path"),
+        text("menu_editor.file_path"),
+        text("menu_editor.website_url")};
     SetWindowTextW(target_label_, target_labels[static_cast<std::size_t>(type)]);
     const auto application = entry && type == 0;
     ShowWindow(arguments_label_, application ? SW_SHOW : SW_HIDE);
@@ -639,7 +674,7 @@ void MenuEditorWindow::browse_target() {
     if (type == 1) {
         BROWSEINFOW information{
             .hwndOwner = window_,
-            .lpszTitle = tr(language_, L"\u9009\u62e9\u6587\u4ef6\u5939", L"Choose folder"),
+            .lpszTitle = text("menu_editor.choose_folder"),
             .ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE,
         };
         const auto item = SHBrowseForFolderW(&information);
@@ -652,13 +687,22 @@ void MenuEditorWindow::browse_target() {
     std::array<wchar_t, 32768> path{};
     const auto current = control_text(target_edit_);
     wcsncpy_s(path.data(), path.size(), current.c_str(), _TRUNCATE);
-    const wchar_t application_filter[] =
-        L"Applications (*.exe;*.lnk;*.cmd;*.bat)\0*.exe;*.lnk;*.cmd;*.bat\0All files (*.*)\0*.*\0\0";
-    const wchar_t file_filter[] = L"All files (*.*)\0*.*\0\0";
+    std::wstring application_filter = text("file_dialog.applications_shortcuts_scripts");
+    application_filter.push_back(L'\0');
+    application_filter.append(L"*.exe;*.lnk;*.cmd;*.bat");
+    application_filter.push_back(L'\0');
+    application_filter.append(text("file_dialog.all_files"));
+    application_filter.push_back(L'\0');
+    application_filter.append(L"*.*");
+    application_filter.append(2, L'\0');
+    std::wstring file_filter = text("file_dialog.all_files");
+    file_filter.push_back(L'\0');
+    file_filter.append(L"*.*");
+    file_filter.append(2, L'\0');
     OPENFILENAMEW dialog{
         .lStructSize = sizeof(dialog),
         .hwndOwner = window_,
-        .lpstrFilter = type == 0 ? application_filter : file_filter,
+        .lpstrFilter = type == 0 ? application_filter.c_str() : file_filter.c_str(),
         .lpstrFile = path.data(),
         .nMaxFile = static_cast<DWORD>(path.size()),
         .Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
@@ -670,7 +714,7 @@ void MenuEditorWindow::browse_target() {
 void MenuEditorWindow::add_item() {
     auto [parent, index] = insertion_location();
     auto item = std::make_unique<MenuEntry>(
-        tr(language_, L"\u65b0\u542f\u52a8\u9879", L"New launch item"), L"",
+        text("menu_editor.new_launch_item"), L"",
         MenuEntryKind::command, 0, false);
     auto* selection = item.get();
     parent->children.insert(parent->children.begin() + static_cast<std::ptrdiff_t>(index),
@@ -684,7 +728,7 @@ void MenuEditorWindow::add_item() {
 void MenuEditorWindow::add_category() {
     auto [parent, index] = insertion_location();
     auto category = std::make_unique<MenuCategory>(
-        tr(language_, L"\u65b0\u5206\u7c7b", L"New category"));
+        text("menu_editor.new_category"));
     auto* selection = category.get();
     parent->children.insert(parent->children.begin() + static_cast<std::ptrdiff_t>(index),
                             std::move(category));
@@ -711,9 +755,9 @@ void MenuEditorWindow::delete_selected() {
     const auto* category = dynamic_cast<const MenuCategory*>(selected);
     if (category && !category->children.empty()
         && MessageBoxW(window_,
-            tr(language_, L"\u5220\u9664\u8be5\u5206\u7c7b\u4e5f\u4f1a\u5220\u9664\u5176\u4e2d\u7684\u6240\u6709\u5185\u5bb9\u3002\u662f\u5426\u7ee7\u7eed\uff1f",
-               L"Deleting this category also deletes everything inside it. Continue?"),
-            product_name, MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return;
+            text("menu_editor.delete_category_confirm"),
+            localization_.text(UiText::app_title).data(),
+            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return;
     auto* parent = location->parent;
     parent->children.erase(parent->children.begin()
         + static_cast<std::ptrdiff_t>(location->index));
@@ -805,9 +849,8 @@ bool MenuEditorWindow::apply() {
                          active_menu_ == 1 ? BST_CHECKED : BST_UNCHECKED, 0);
             rebuild_tree(invalid);
             MessageBoxW(window_,
-                tr(language_, L"\u83dc\u5355\u5305\u542b\u65e0\u6548\u7684\u540d\u79f0\u6216\u76ee\u6807\uff0c\u65e0\u6cd5\u4fdd\u5b58\u3002",
-                   L"The menu contains an invalid name or target and cannot be saved."),
-                product_name, MB_OK | MB_ICONWARNING);
+                text("menu_editor.invalid_entry"),
+                localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
             SetFocus(dynamic_cast<MenuEntry*>(invalid) ? target_edit_ : name_edit_);
             return false;
         }
@@ -825,10 +868,9 @@ bool MenuEditorWindow::apply() {
     }
     if (changed_externally
         && MessageBoxW(window_,
-            tr(language_,
-               L"\u7f16\u8f91\u671f\u95f4\u914d\u7f6e\u6587\u4ef6\u5df2\u88ab\u5176\u4ed6\u7a0b\u5e8f\u4fee\u6539\u3002\u662f\u5426\u4ecd\u8981\u8986\u76d6\u8fd9\u4e9b\u66f4\u6539\uff1f",
-               L"The configuration files were changed by another program while the editor was open. Overwrite those changes?"),
-            product_name, MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return false;
+            text("menu_editor.external_change_confirm"),
+            localization_.text(UiText::app_title).data(),
+            MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return false;
     std::array<bool, 2> written{};
     try {
         const auto main_text = MenuWriter::serialize(*documents_[0]);
@@ -863,9 +905,8 @@ bool MenuEditorWindow::apply() {
         }
         diagnose(L"menu editor save failed");
         MessageBoxW(window_,
-            tr(language_, L"\u65e0\u6cd5\u4fdd\u5b58\u83dc\u5355\u914d\u7f6e\u3002\u8bf7\u67e5\u770b Log\\Simpilot.log\u3002",
-               L"The menu configuration could not be saved. See Log\\Simpilot.log."),
-            product_name, MB_OK | MB_ICONERROR);
+            text("menu_editor.save_failed"),
+            localization_.text(UiText::app_title).data(), MB_OK | MB_ICONERROR);
         return false;
     }
 }
@@ -889,6 +930,10 @@ void MenuEditorWindow::diagnose(const std::wstring_view message) const noexcept 
         diagnostic_sink_(message);
     } catch (...) {
     }
+}
+
+const wchar_t* MenuEditorWindow::text(const std::string_view key) const noexcept {
+    return localization_.text(key).data();
 }
 
 LRESULT CALLBACK MenuEditorWindow::window_procedure(

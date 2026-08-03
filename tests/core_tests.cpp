@@ -14,6 +14,7 @@
 
 #include <Windows.h>
 
+#include <array>
 #include <filesystem>
 #include <chrono>
 #include <condition_variable>
@@ -426,7 +427,16 @@ void bundled_everything_sdk_exports_load() {
 void localization_switches_and_persists_language() {
     const auto root = std::filesystem::temp_directory_path()
         / (L"simpilot-language-test-" + std::to_wstring(GetCurrentProcessId()));
+    std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
+
+    const auto default_language = simpilot::Localization::load(root);
+    require(default_language.language() == simpilot::UiLanguage::simplified_chinese,
+            "Missing language preference defaults to Simplified Chinese");
+    simpilot::write_configuration_text(root / L"language.txt", L"invalid-locale\n");
+    const auto invalid_language = simpilot::Localization::load(root);
+    require(invalid_language.language() == simpilot::UiLanguage::simplified_chinese,
+            "Invalid language preference defaults to Simplified Chinese");
 
     simpilot::Localization localization(simpilot::UiLanguage::simplified_chinese);
     require_equal(std::wstring(localization.text(simpilot::UiText::exit)),
@@ -439,6 +449,60 @@ void localization_switches_and_persists_language() {
     simpilot::Localization english(simpilot::UiLanguage::english);
     require_equal(std::wstring(english.text(simpilot::UiText::reload_menu)),
                   std::wstring(L"Reload menu"), "English UI text");
+
+    constexpr std::array supported_languages{
+        simpilot::UiLanguage::english,
+        simpilot::UiLanguage::simplified_chinese,
+        simpilot::UiLanguage::traditional_chinese,
+    };
+    for (const auto language : supported_languages) {
+        const simpilot::Localization catalog(language);
+        for (int value = 0;
+             value <= static_cast<int>(simpilot::UiText::calculator); ++value) {
+            require(catalog.text(static_cast<simpilot::UiText>(value))
+                        != L"[missing translation]",
+                    "Every general UI resource key is translated");
+        }
+        for (int value = 0;
+             value <= static_cast<int>(simpilot::SettingsText::applied_text); ++value) {
+            require(catalog.text(static_cast<simpilot::SettingsText>(value))
+                        != L"[missing translation]",
+                    "Every settings resource key is translated");
+        }
+        for (int value = 0;
+             value <= static_cast<int>(simpilot::CustomHotKeyText::invalid_target_text);
+             ++value) {
+            require(catalog.text(static_cast<simpilot::CustomHotKeyText>(value))
+                        != L"[missing translation]",
+                    "Every custom hotkey resource key is translated");
+        }
+    }
+
+    simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
+    require_equal(std::wstring(traditional.text(simpilot::UiText::exit)),
+                  std::wstring(L"\u7d50\u675f"), "Traditional Chinese UI text");
+    require(traditional.save(root), "Save Traditional Chinese preference");
+    const auto reloaded_traditional = simpilot::Localization::load(root);
+    require(reloaded_traditional.language() == simpilot::UiLanguage::traditional_chinese,
+            "Load Traditional Chinese preference");
+    require_equal(std::string(simpilot::Localization::language_code(
+                      simpilot::UiLanguage::traditional_chinese)),
+                  std::string("zh-TW"), "Traditional Chinese language code");
+
+    const auto fallback_resources = root / L"fallback" / L"Languages";
+    simpilot::write_configuration_text(
+        fallback_resources / L"en-US.json",
+        LR"({"locale":"en-US","strings":{"test.fallback":"English fallback"}})");
+    simpilot::write_configuration_text(
+        fallback_resources / L"zh-TW.json", L"{ invalid JSON");
+    const simpilot::Localization fallback(
+        simpilot::UiLanguage::traditional_chinese, fallback_resources);
+    require_equal(std::wstring(fallback.text("test.fallback")),
+                  std::wstring(L"English fallback"),
+                  "Malformed selected catalog falls back to English");
+    require_equal(std::wstring(fallback.text("test.missing")),
+                  std::wstring(L"[missing translation]"),
+                  "Missing English key uses non-empty safety text");
     std::filesystem::remove_all(root);
 }
 

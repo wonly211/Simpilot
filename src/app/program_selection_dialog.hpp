@@ -28,6 +28,7 @@ private:
     void update_font();
     void layout_controls(int width, int height);
     void accept_selection();
+    [[nodiscard]] const wchar_t* text(std::string_view key) const noexcept;
 
     static LRESULT CALLBACK window_procedure(
         HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -35,7 +36,7 @@ private:
 
     HINSTANCE instance_;
     HWND owner_;
-    UiLanguage language_;
+    Localization localization_;
     std::wstring executable_;
     const std::vector<ProgramCandidate>& candidates_;
     HWND window_ = nullptr;

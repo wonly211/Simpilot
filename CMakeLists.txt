@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.15.0 LANGUAGES CXX)
+project(Simpilot VERSION 0.16.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -27,6 +27,7 @@ add_library(simpilot_core STATIC
     src/core/variable_expander.cpp
 )
 target_include_directories(simpilot_core PUBLIC include)
+target_include_directories(simpilot_core SYSTEM PRIVATE third_party)
 target_compile_definitions(simpilot_core PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(simpilot_core PRIVATE /W4 /permissive- /utf-8 /EHsc)
 target_link_libraries(simpilot_core PUBLIC advapi32 shell32 ole32 user32 version)
@@ -88,6 +89,21 @@ foreach(component IN LISTS EVERYTHING_COMPONENTS)
         message(FATAL_ERROR "Missing Everything release component: ${component}")
     endif()
 endforeach()
+
+set(SIMPILOT_LANGUAGE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Languages")
+set(SIMPILOT_LANGUAGE_RESOURCE_FILES
+    en-US.json
+    zh-CN.json
+    zh-TW.json
+)
+foreach(resource IN LISTS SIMPILOT_LANGUAGE_RESOURCE_FILES)
+    if(NOT EXISTS "${SIMPILOT_LANGUAGE_RESOURCE_DIR}/${resource}")
+        message(FATAL_ERROR "Missing language resource: ${resource}")
+    endif()
+endforeach()
+list(TRANSFORM SIMPILOT_LANGUAGE_RESOURCE_FILES
+     PREPEND "${SIMPILOT_LANGUAGE_RESOURCE_DIR}/"
+     OUTPUT_VARIABLE SIMPILOT_LANGUAGE_RESOURCE_PATHS)
 list(TRANSFORM EVERYTHING_COMPONENTS
      PREPEND "${EVERYTHING_SOURCE_DIR}/"
      OUTPUT_VARIABLE EVERYTHING_COMPONENT_PATHS)
@@ -103,6 +119,17 @@ foreach(component IN LISTS EVERYTHING_COMPONENTS)
                 "$<TARGET_FILE_DIR:simpilot>/Everything/${component}"
     )
 endforeach()
+add_custom_command(TARGET simpilot POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:simpilot>/Languages"
+    COMMENT "Preparing JSON language resources"
+)
+foreach(resource IN LISTS SIMPILOT_LANGUAGE_RESOURCE_FILES)
+    add_custom_command(TARGET simpilot POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SIMPILOT_LANGUAGE_RESOURCE_DIR}/${resource}"
+                "$<TARGET_FILE_DIR:simpilot>/Languages/${resource}"
+    )
+endforeach()
 
 include(CTest)
 if(BUILD_TESTING)
@@ -113,6 +140,18 @@ if(BUILD_TESTING)
     target_link_libraries(simpilot_core_tests PRIVATE simpilot_core)
     add_dependencies(simpilot_core_tests simpilot)
     add_test(NAME simpilot_core_tests COMMAND simpilot_core_tests)
+
+    add_executable(simpilot_localization_resource_tests
+        tests/localization_resource_tests.cpp
+    )
+    target_include_directories(simpilot_localization_resource_tests PRIVATE third_party)
+    target_compile_definitions(simpilot_localization_resource_tests PRIVATE
+        UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+    target_compile_options(simpilot_localization_resource_tests PRIVATE
+        /W4 /permissive- /utf-8 /EHsc)
+    add_dependencies(simpilot_localization_resource_tests simpilot)
+    add_test(NAME simpilot_localization_resource_tests
+             COMMAND simpilot_localization_resource_tests)
 
     add_executable(simpilot_windows_hotkey_blocker_tests
         tests/windows_hotkey_blocker_tests.cpp
@@ -184,6 +223,10 @@ install(TARGETS simpilot RUNTIME DESTINATION .)
 install(FILES
     ${EVERYTHING_COMPONENT_PATHS}
     DESTINATION Everything
+)
+install(FILES
+    ${SIMPILOT_LANGUAGE_RESOURCE_PATHS}
+    DESTINATION Languages
 )
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/THIRD-PARTY-NOTICES.txt"

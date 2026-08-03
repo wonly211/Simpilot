@@ -25,6 +25,7 @@ constexpr int cancel_identifier = 2;
 constexpr int apply_identifier = 3;
 constexpr int startup_identifier = 10;
 constexpr int menu_theme_identifier = 11;
+constexpr int language_identifier = 12;
 constexpr int built_in_hotkey_switch_base_identifier = 20;
 constexpr int edit_base_identifier = 100;
 constexpr int clear_base_identifier = 200;
@@ -51,14 +52,69 @@ void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
 }
 
-std::wstring windows_error_message(const DWORD error) {
+template <typename... Args>
+std::wstring format_localized(const Localization& localization,
+                              const std::string_view key, Args&&... args) {
+    return std::vformat(localization.text(key),
+                        std::make_wformat_args(args...));
+}
+
+int language_combo_index(const UiLanguage language) noexcept {
+    switch (language) {
+    case UiLanguage::simplified_chinese: return 0;
+    case UiLanguage::traditional_chinese: return 1;
+    case UiLanguage::english: return 2;
+    }
+    return 0;
+}
+
+UiLanguage language_from_combo_index(const LRESULT index) noexcept {
+    return index == 1 ? UiLanguage::traditional_chinese
+        : index == 2 ? UiLanguage::english
+                     : UiLanguage::simplified_chinese;
+}
+
+int measured_navigation_width(const HWND navigation, const HFONT font,
+                              const UINT horizontal_dpi) {
+    const auto minimum = MulDiv(188, horizontal_dpi, 96);
+    const auto maximum = MulDiv(260, horizontal_dpi, 96);
+    if (!navigation || !font) return minimum;
+    auto measured = minimum;
+    if (const auto dc = GetDC(navigation)) {
+        const auto previous = SelectObject(dc, font);
+        const auto count = static_cast<int>(SendMessageW(navigation, LB_GETCOUNT, 0, 0));
+        for (int index = 0; index < count; ++index) {
+            const auto length = static_cast<int>(
+                SendMessageW(navigation, LB_GETTEXTLEN, index, 0));
+            if (length <= 0) continue;
+            std::wstring value(static_cast<std::size_t>(length) + 1, L'\0');
+            SendMessageW(navigation, LB_GETTEXT, index,
+                         reinterpret_cast<LPARAM>(value.data()));
+            SIZE extent{};
+            if (GetTextExtentPoint32W(dc, value.data(), length, &extent)) {
+                measured = std::max(measured,
+                    static_cast<int>(extent.cx) + MulDiv(48, horizontal_dpi, 96));
+            }
+        }
+        SelectObject(dc, previous);
+        ReleaseDC(navigation, dc);
+    }
+    return std::clamp(measured, minimum, maximum);
+}
+
+std::wstring windows_error_message(const DWORD error, const UiLanguage language) {
     wchar_t* buffer = nullptr;
+    const auto language_id = language == UiLanguage::traditional_chinese
+        ? MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL)
+        : language == UiLanguage::simplified_chinese
+            ? MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED)
+            : MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US);
     const auto length = FormatMessageW(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM
             | FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, error, 0, reinterpret_cast<wchar_t*>(&buffer), 0, nullptr);
+        nullptr, error, language_id, reinterpret_cast<wchar_t*>(&buffer), 0, nullptr);
     std::wstring result = length != 0 && buffer
-        ? std::wstring(buffer, length) : L"Unknown Windows error";
+        ? std::wstring(buffer, length) : std::wstring{};
     if (buffer) LocalFree(buffer);
     while (!result.empty() && (result.back() == L'\r' || result.back() == L'\n')) {
         result.pop_back();
@@ -75,13 +131,15 @@ std::optional<AppSettings> SettingsWindow::show_modal(
     DiagnosticSink diagnostic_sink, std::vector<MenuIconTarget> menu_icon_targets,
     std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
     IconChangeSink icon_change_sink,
-    ApplySink apply_sink, MenuChangeSink menu_change_sink) {
+    ApplySink apply_sink, MenuChangeSink menu_change_sink,
+    LanguageChangeSink language_change_sink) {
     SettingsWindow window(instance, owner, current, language, keyboard_manager,
                           std::move(availability_probe), std::move(diagnostic_sink),
                           std::move(menu_icon_targets), std::move(config_directory),
                           std::move(icon_cache_directory),
                           std::move(icon_change_sink), std::move(apply_sink),
-                          std::move(menu_change_sink));
+                          std::move(menu_change_sink),
+                          std::move(language_change_sink));
     return window.run();
 }
 
@@ -94,14 +152,17 @@ SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
                                std::filesystem::path config_directory,
                                std::filesystem::path icon_cache_directory,
                                IconChangeSink icon_change_sink, ApplySink apply_sink,
-                               MenuChangeSink menu_change_sink)
+                               MenuChangeSink menu_change_sink,
+                               LanguageChangeSink language_change_sink)
     : instance_(instance), owner_(owner), settings_(std::move(current)), language_(language),
+      localization_(language),
       keyboard_manager_(keyboard_manager),
       availability_probe_(std::move(availability_probe)),
       diagnostic_sink_(std::move(diagnostic_sink)),
       icon_change_sink_(std::move(icon_change_sink)),
       apply_sink_(std::move(apply_sink)),
       menu_change_sink_(std::move(menu_change_sink)),
+      language_change_sink_(std::move(language_change_sink)),
       menu_icon_targets_(std::move(menu_icon_targets)),
       config_directory_(std::move(config_directory)),
       icon_cache_directory_(std::move(icon_cache_directory)),
@@ -227,9 +288,8 @@ void SettingsWindow::create_controls() {
             0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
                 static_cast<INT_PTR>(clear_base_identifier + index)),
             instance_, nullptr);
-        const auto accessible_name = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"启用{}热键", field_name(index))
-            : std::format(L"Enable {} hotkey", field_name(index));
+        const auto accessible_name = format_localized(
+            localization_, "settings.enable_hotkey", field_name(index));
         built_in_hotkey_switches_[index] = toggle_switch::create(
             instance_, window_, built_in_hotkey_switch_base_identifier
                 + static_cast<int>(index), accessible_name,
@@ -242,6 +302,21 @@ void SettingsWindow::create_controls() {
             static_cast<INT_PTR>(startup_identifier)), instance_, nullptr);
     SendMessageW(startup_checkbox_, BM_SETCHECK,
                  settings_.start_with_windows ? BST_CHECKED : BST_UNCHECKED, 0);
+    language_label_ = CreateWindowW(L"STATIC", text("settings.display_language"),
+        WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    language_combo_ = CreateWindowW(WC_COMBOBOXW, L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(language_identifier)), instance_, nullptr);
+    SendMessageW(language_combo_, CB_ADDSTRING, 0,
+                 reinterpret_cast<LPARAM>(localization_.text(UiText::simplified_chinese).data()));
+    SendMessageW(language_combo_, CB_ADDSTRING, 0,
+                 reinterpret_cast<LPARAM>(localization_.text(UiText::traditional_chinese).data()));
+    SendMessageW(language_combo_, CB_ADDSTRING, 0,
+                 reinterpret_cast<LPARAM>(localization_.text(UiText::english).data()));
+    SendMessageW(language_combo_, CB_SETMINVISIBLE, 3, 0);
+    SendMessageW(language_combo_, CB_SETCURSEL, language_combo_index(language_), 0);
     menu_theme_label_ = CreateWindowW(L"STATIC", text(menu_theme_text),
         WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
@@ -285,9 +360,9 @@ void SettingsWindow::create_controls() {
     built_in_hotkeys_section_ = CreateWindowW(L"STATIC", text(built_in_hotkeys_section_text),
         WS_CHILD, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     const std::array built_in_headers{
-        language_ == UiLanguage::simplified_chinese ? L"功能" : L"Function",
+        text("settings.global_hotkeys.column.function"),
         text(custom_hotkey_column_text),
-        language_ == UiLanguage::simplified_chinese ? L"操作" : L"Action",
+        text("settings.global_hotkeys.column.command"),
         text(custom_enabled_column_text),
     };
     for (std::size_t index = 0; index < built_in_hotkey_headers_.size(); ++index) {
@@ -404,6 +479,140 @@ void SettingsWindow::create_controls() {
     update_apply_enabled();
 }
 
+void SettingsWindow::refresh_localized_text() {
+    SetWindowTextW(window_, text(title_text));
+    const auto selected_navigation = selected_page_;
+    SendMessageW(navigation_, LB_RESETCONTENT, 0, 0);
+    for (const auto identifier : {general_tab_text, quick_launch_tab_text,
+                                  menu_icons_tab_text, custom_hotkeys_tab_text,
+                                  system_hotkeys_tab_text}) {
+        SendMessageW(navigation_, LB_ADDSTRING, 0,
+                     reinterpret_cast<LPARAM>(text(identifier)));
+    }
+    SendMessageW(navigation_, LB_SETCURSEL, selected_navigation, 0);
+
+    SetWindowTextW(title_, text(heading_text));
+    SetWindowTextW(general_scope_, text(general_scope_text));
+    SetWindowTextW(startup_section_, text(startup_section_text));
+    SetWindowTextW(appearance_section_, text(appearance_section_text));
+    SetWindowTextW(startup_checkbox_, text(startup_text));
+    SetWindowTextW(language_label_, text("settings.display_language"));
+    SendMessageW(language_combo_, CB_RESETCONTENT, 0, 0);
+    for (const auto identifier : {UiText::simplified_chinese,
+                                  UiText::traditional_chinese,
+                                  UiText::english}) {
+        SendMessageW(language_combo_, CB_ADDSTRING, 0,
+                     reinterpret_cast<LPARAM>(localization_.text(identifier).data()));
+    }
+    SendMessageW(language_combo_, CB_SETCURSEL, language_combo_index(language_), 0);
+    SetWindowTextW(menu_theme_label_, text(menu_theme_text));
+    const auto theme_selection = SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0);
+    SendMessageW(menu_theme_combo_, CB_RESETCONTENT, 0, 0);
+    for (const auto identifier : {system_theme_text, light_theme_text, dark_theme_text}) {
+        SendMessageW(menu_theme_combo_, CB_ADDSTRING, 0,
+                     reinterpret_cast<LPARAM>(text(identifier)));
+    }
+    SendMessageW(menu_theme_combo_, CB_SETCURSEL,
+                 theme_selection == CB_ERR ? 0 : theme_selection, 0);
+
+    SetWindowTextW(windows_hotkey_heading_, text(system_hotkeys_heading_text));
+    SetWindowTextW(windows_hotkey_scope_, text(system_hotkeys_scope_text));
+    SetWindowTextW(windows_hotkey_runtime_, text(system_hotkeys_runtime_text));
+    SetWindowTextW(custom_hotkey_heading_, text(custom_hotkeys_heading_text));
+    SetWindowTextW(custom_hotkey_scope_, text(custom_hotkeys_scope_text));
+    SetWindowTextW(built_in_hotkeys_section_, text(built_in_hotkeys_section_text));
+    SetWindowTextW(custom_hotkeys_section_, text(custom_hotkeys_section_text));
+    SetWindowTextW(hint_, text(hint_text));
+    const std::array built_in_headers{
+        text("settings.global_hotkeys.column.function"),
+        text(custom_hotkey_column_text),
+        text("settings.global_hotkeys.column.command"),
+        text(custom_enabled_column_text),
+    };
+    for (std::size_t index = 0; index < built_in_hotkey_headers_.size(); ++index) {
+        SetWindowTextW(built_in_hotkey_headers_[index], built_in_headers[index]);
+        SetWindowTextW(labels_[index], field_name(index));
+        SetWindowTextW(clear_buttons_[index], text(clear_text));
+        const auto accessible_name = format_localized(
+            localization_, "settings.enable_hotkey", field_name(index));
+        SetWindowTextW(built_in_hotkey_switches_[index], accessible_name.c_str());
+        update_binding_text(index);
+    }
+    for (std::size_t visual_index = 0; visual_index < visible_windows_hotkey_count;
+         ++visual_index) {
+        const auto index = windows_hotkey_index_from_visual(visual_index);
+        const auto label = windows_hotkey_label(index);
+        SetWindowTextW(windows_hotkey_switches_[index], label.c_str());
+    }
+
+    LVCOLUMNW column{.mask = LVCF_TEXT};
+    const std::array custom_columns{
+        text(custom_enabled_column_text), text(custom_hotkey_column_text),
+        text(custom_action_column_text), text(custom_target_column_text),
+    };
+    for (int index = 0; index < static_cast<int>(custom_columns.size()); ++index) {
+        column.pszText = const_cast<wchar_t*>(custom_columns[static_cast<std::size_t>(index)]);
+        ListView_SetColumn(custom_hotkey_list_, index, &column);
+    }
+    SetWindowTextW(custom_hotkey_add_button_, text(add_text));
+    SetWindowTextW(custom_hotkey_edit_button_, text(edit_text));
+    SetWindowTextW(custom_hotkey_delete_button_, text(delete_text));
+    const auto custom_selection = selected_custom_hotkey_index();
+    refresh_custom_hotkey_list(custom_selection);
+
+    SetWindowTextW(menu_icon_heading_, text(menu_icons_heading_text));
+    SetWindowTextW(menu_icon_scope_, text(menu_icons_scope_text));
+    const std::array icon_columns{
+        text(menu_icon_menu_column_text), text(menu_icon_name_column_text),
+        text(menu_icon_target_column_text), text(menu_icon_source_column_text),
+    };
+    for (int index = 0; index < static_cast<int>(icon_columns.size()); ++index) {
+        column.pszText = const_cast<wchar_t*>(icon_columns[static_cast<std::size_t>(index)]);
+        ListView_SetColumn(menu_icon_list_, index, &column);
+    }
+    SetWindowTextW(menu_icon_select_button_, text(select_icon_text));
+    SetWindowTextW(menu_icon_restore_button_, text(restore_auto_icon_text));
+    const auto icon_selection = selected_menu_icon_index();
+    refresh_menu_icon_list(icon_selection);
+
+    SetWindowTextW(menu_editor_heading_, text(quick_launch_heading_text));
+    SetWindowTextW(menu_editor_scope_, text(quick_launch_scope_text));
+    if (menu_editor_) menu_editor_->set_language(language_);
+    SetWindowTextW(save_button_, text(save_text));
+    SetWindowTextW(apply_button_, text(apply_text));
+    SetWindowTextW(cancel_button_, text(cancel_text));
+    SetWindowTextW(status_, L"");
+
+    RECT client{};
+    GetClientRect(window_, &client);
+    layout_controls(client.right, client.bottom);
+    update_page_visibility();
+    InvalidateRect(window_, nullptr, TRUE);
+}
+
+void SettingsWindow::change_language(const UiLanguage language) {
+    if (language_ == language) return;
+    const auto old_main_menu = std::wstring(localization_.text("ui.menu_one"));
+    const auto old_second_menu = std::wstring(localization_.text(UiText::menu_two));
+    const auto old_both_menus = old_main_menu + L" / " + old_second_menu;
+    language_ = language;
+    localization_.set_language(language);
+    const auto new_main_menu = std::wstring(localization_.text("ui.menu_one"));
+    const auto new_second_menu = std::wstring(localization_.text(UiText::menu_two));
+    const auto new_both_menus = new_main_menu + L" / " + new_second_menu;
+    for (auto& target : menu_icon_targets_) {
+        if (target.menu_name == old_main_menu) {
+            target.menu_name = new_main_menu;
+        } else if (target.menu_name == old_second_menu) {
+            target.menu_name = new_second_menu;
+        } else if (target.menu_name == old_both_menus) {
+            target.menu_name = new_both_menus;
+        }
+    }
+    if (language_change_sink_) language_change_sink_(language);
+    refresh_localized_text();
+}
+
 void SettingsWindow::update_fonts() {
     const auto old_font = font_;
     const auto old_section_font = section_font_;
@@ -425,6 +634,8 @@ void SettingsWindow::update_fonts() {
     set_font(startup_section_, section_font_);
     set_font(appearance_section_, section_font_);
     set_font(startup_checkbox_, font_);
+    set_font(language_label_, font_);
+    set_font(language_combo_, font_);
     set_font(menu_theme_label_, font_);
     set_font(menu_theme_combo_, font_);
     set_font(hint_, font_);
@@ -476,7 +687,8 @@ void SettingsWindow::layout_controls(const int width, const int height) {
     const auto wide = [horizontal_dpi](const int value) {
         return MulDiv(value, horizontal_dpi, 96);
     };
-    const auto navigation_width = wide(188);
+    const auto navigation_width = measured_navigation_width(
+        navigation_, font_, horizontal_dpi);
     const auto bottom_height = scale(64);
     const auto content_x = navigation_width + wide(28);
     const auto content_width = std::max(1, width - content_x - wide(28));
@@ -516,9 +728,13 @@ void SettingsWindow::layout_controls(const int width, const int height) {
                content_width, scale(32), TRUE);
     MoveWindow(appearance_section_, content_x, body_top + scale(104),
                content_width, scale(28), TRUE);
-    MoveWindow(menu_theme_label_, content_x, body_top + scale(142),
+    MoveWindow(language_label_, content_x, body_top + scale(142),
                label_width - scale(8), control_height, TRUE);
-    MoveWindow(menu_theme_combo_, edit_x, body_top + scale(142),
+    MoveWindow(language_combo_, edit_x, body_top + scale(142),
+               std::min(wide(280), edit_width), scale(180), TRUE);
+    MoveWindow(menu_theme_label_, content_x, body_top + scale(188),
+               label_width - scale(8), control_height, TRUE);
+    MoveWindow(menu_theme_combo_, edit_x, body_top + scale(188),
                std::min(wide(280), edit_width), scale(180), TRUE);
 
     MoveWindow(custom_hotkey_heading_, content_x, page_title_y,
@@ -646,6 +862,8 @@ void SettingsWindow::update_page_visibility() {
     ShowWindow(startup_section_, general_command);
     ShowWindow(appearance_section_, general_command);
     ShowWindow(startup_checkbox_, general_command);
+    ShowWindow(language_label_, general_command);
+    ShowWindow(language_combo_, general_command);
     ShowWindow(menu_theme_label_, general_command);
     ShowWindow(menu_theme_combo_, general_command);
 
@@ -872,11 +1090,10 @@ bool SettingsWindow::commit_custom_hotkey(
     for (std::size_t index = 0; gesture_changed && index < fixed_bindings.size(); ++index) {
         auto* binding_value = fixed_bindings[index].first;
         if (!binding_value->gesture || *binding_value->gesture != gesture) continue;
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} 已由“{}”使用。是否清除原设置并改为此自定义操作？",
-                          gesture.display_text(), fixed_bindings[index].second)
-            : std::format(L"{} is already used by '{}'. Clear that assignment and use this custom action?",
-                          gesture.display_text(), fixed_bindings[index].second);
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.builtin_to_custom",
+            gesture_text, fixed_bindings[index].second);
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return false;
         clear_fixed[index] = true;
@@ -893,9 +1110,9 @@ bool SettingsWindow::commit_custom_hotkey(
         }
     }
     if (duplicate_index) {
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} 已存在自定义操作。是否替换原操作？", gesture.display_text())
-            : std::format(L"A custom action already uses {}. Replace it?", gesture.display_text());
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.custom_duplicate", gesture_text);
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return false;
     }
@@ -904,11 +1121,9 @@ bool SettingsWindow::commit_custom_hotkey(
     if (gesture_changed && is_supported_windows_letter_hotkey(gesture)) {
         candidate.binding.force_override = true;
     } else if (gesture_changed && availability_probe_ && !availability_probe_(gesture)) {
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} 已被 Windows 或其他程序注册。是否尝试强制覆盖？",
-                          gesture.display_text())
-            : std::format(L"{} is registered by Windows or another application. Try to force an override?",
-                          gesture.display_text());
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.registered", gesture_text);
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) return false;
         candidate.binding.force_override = true;
@@ -952,10 +1167,7 @@ bool SettingsWindow::commit_custom_hotkey(
 void SettingsWindow::delete_selected_custom_hotkey() {
     const auto index = selected_custom_hotkey_index();
     if (!index) return;
-    const auto message = language_ == UiLanguage::simplified_chinese
-        ? L"确定要删除选中的自定义全局热键吗？"
-        : L"Delete the selected custom global hotkey?";
-    if (MessageBoxW(window_, message, text(title_text),
+    if (MessageBoxW(window_, text("settings.custom_hotkeys.delete_confirm"), text(title_text),
                     MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES) return;
     read_windows_hotkey_controls();
     settings_.custom_global_hotkeys.erase(settings_.custom_global_hotkeys.begin()
@@ -971,8 +1183,7 @@ void SettingsWindow::refresh_windows_hotkey_linkage() {
         const auto required = global_hotkey_requires_windows_blocking(settings_, index);
         auto label = windows_hotkey_label(index);
         if (required) {
-            label += language_ == UiLanguage::simplified_chinese
-                ? L"（由全局热键启用）" : L" (enabled by a global hotkey)";
+            label += text("settings.windows_shortcuts.linked_suffix");
         }
         SetWindowTextW(toggle, label.c_str());
         SendMessageW(toggle, BM_SETCHECK,
@@ -1007,19 +1218,18 @@ void SettingsWindow::begin_capture(const std::size_t index) {
                 handle_capture_result(index, result);
             })) {
         const auto error = keyboard_manager_.last_error();
+        const auto error_message = windows_error_message(error, language_);
         diagnose(std::format(L"hotkey capture activation failed error={} message=\"{}\"",
-                             error, windows_error_message(error)));
+                             error, error_message));
         capturing_.reset();
         update_binding_text(index);
         SetWindowTextW(status_, text(capture_failed_text));
-        const auto detail = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"无法启用专用键盘线程的录制状态。\n\nWindows 错误 {}：{}\n\n"
-                          L"详细信息已写入 Log\\Simpilot.log。",
-                          error, windows_error_message(error))
-            : std::format(L"The dedicated keyboard thread could not enter capture mode.\n\n"
-                          L"Windows error {}: {}\n\n"
-                          L"Details were written to Log\\Simpilot.log.",
-                          error, windows_error_message(error));
+        const auto visible_error_message = error_message.empty()
+            ? std::wstring(text("settings.unknown_windows_error"))
+            : error_message;
+        const auto detail = format_localized(
+            localization_, "settings.capture.start_failed_detail",
+            error, visible_error_message);
         MessageBoxW(window_, detail.c_str(), text(title_text), MB_OK | MB_ICONERROR);
         return;
     }
@@ -1059,11 +1269,10 @@ void SettingsWindow::complete_capture(const std::size_t index,
     std::array<bool, 4> clear_built_in{};
     for (std::size_t other = 0; other < capture_buttons_.size(); ++other) {
         if (other == index || !binding(other).gesture || *binding(other).gesture != gesture) continue;
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} \u5df2\u7531\u201c{}\u201d\u4f7f\u7528\u3002\u662f\u5426\u8986\u76d6\u539f\u8bbe\u7f6e\uff1f",
-                          gesture.display_text(), field_name(other))
-            : std::format(L"{} is already used by '{}'. Override the existing assignment?",
-                          gesture.display_text(), field_name(other));
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.builtin_duplicate",
+            gesture_text, field_name(other));
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) {
             cancel_capture();
@@ -1080,11 +1289,9 @@ void SettingsWindow::complete_capture(const std::size_t index,
     if (custom != settings_.custom_global_hotkeys.end()) {
         custom_index = static_cast<std::size_t>(
             std::distance(settings_.custom_global_hotkeys.begin(), custom));
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} 已由一个自定义全局热键使用。是否删除原自定义热键并改为此固定热键？",
-                          gesture.display_text())
-            : std::format(L"{} is used by a custom global hotkey. Delete it and use this fixed hotkey?",
-                          gesture.display_text());
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.custom_to_builtin", gesture_text);
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) {
             cancel_capture();
@@ -1096,11 +1303,9 @@ void SettingsWindow::complete_capture(const std::size_t index,
     if (is_supported_windows_letter_hotkey(gesture)) {
         new_binding.force_override = true;
     } else if (availability_probe_ && !availability_probe_(gesture)) {
-        const auto message = language_ == UiLanguage::simplified_chinese
-            ? std::format(L"{} \u5df2\u88ab Windows \u6216\u5176\u4ed6\u7a0b\u5e8f\u6ce8\u518c\u3002\u662f\u5426\u5c1d\u8bd5\u5f3a\u5236\u8986\u76d6\uff1f\n\n\u6ce8\u610f\uff1aCtrl+Alt+Del \u7b49\u5b89\u5168\u7ec4\u5408\u65e0\u6cd5\u8986\u76d6\u3002",
-                          gesture.display_text())
-            : std::format(L"{} is registered by Windows or another application. Try to force an override?\n\nSecurity combinations such as Ctrl+Alt+Del cannot be overridden.",
-                          gesture.display_text());
+        const auto gesture_text = gesture.display_text();
+        const auto message = format_localized(
+            localization_, "settings.conflict.registered_security", gesture_text);
         if (MessageBoxW(window_, message.c_str(), text(title_text),
                         MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) {
             cancel_capture();
@@ -1165,7 +1370,7 @@ void SettingsWindow::clear_binding(const std::size_t index) {
 
 void SettingsWindow::update_binding_text(const std::size_t index) {
     const auto value = hotkey_capture_button_text(
-        binding(index).gesture, capturing_ && *capturing_ == index, language_);
+        binding(index).gesture, capturing_ && *capturing_ == index, localization_);
     SetWindowTextW(capture_buttons_[index], value.c_str());
 }
 
@@ -1209,30 +1414,11 @@ const wchar_t* SettingsWindow::field_name(const std::size_t index) const noexcep
 }
 
 std::wstring SettingsWindow::windows_hotkey_label(const std::size_t index) const {
-    static constexpr std::array chinese{
-        L"快速设置", L"聚焦通知区域", L"Copilot 或搜索", L"显示或隐藏桌面",
-        L"文件资源管理器", L"反馈中心", L"Xbox 游戏栏", L"语音输入",
-        L"Windows 设置", L"Recall（受支持设备）", L"投放", L"锁定电脑",
-        L"最小化所有窗口", L"通知中心和日历", L"锁定屏幕方向", L"投影模式",
-        L"搜索", L"运行", L"搜索", L"切换任务栏应用", L"辅助功能设置",
-        L"剪贴板历史记录", L"小组件", L"快捷链接菜单", L"混合现实输入切换",
-        L"贴靠布局",
-    };
-    static constexpr std::array english{
-        L"Quick Settings", L"Focus notification area", L"Copilot or Search",
-        L"Show or hide desktop", L"File Explorer", L"Feedback Hub",
-        L"Xbox Game Bar", L"Voice typing", L"Windows Settings",
-        L"Recall (supported devices)", L"Cast", L"Lock PC",
-        L"Minimize all windows", L"Notification Center and calendar",
-        L"Lock screen orientation", L"Project display mode", L"Search", L"Run",
-        L"Search", L"Cycle taskbar apps", L"Accessibility settings",
-        L"Clipboard history", L"Widgets", L"Quick Link menu",
-        L"Mixed Reality input switching", L"Snap layouts",
-    };
     const auto letter = static_cast<wchar_t>(L'A' + index);
-    const auto* description = language_ == UiLanguage::simplified_chinese
-        ? chinese[index] : english[index];
-    return std::format(L"Win+{}  —  {}", letter, description);
+    std::string key = "settings.windows_shortcuts.";
+    key.push_back(static_cast<char>('a' + index));
+    return format_localized(localization_, "settings.windows_shortcuts.label",
+                            letter, localization_.text(key));
 }
 
 void SettingsWindow::diagnose(const std::wstring_view message) const noexcept {
@@ -1408,7 +1594,11 @@ bool SettingsWindow::apply_current() {
 }
 
 const wchar_t* SettingsWindow::text(const SettingsText identifier) const noexcept {
-    return Localization(language_).text(identifier).data();
+    return localization_.text(identifier).data();
+}
+
+const wchar_t* SettingsWindow::text(const std::string_view key) const noexcept {
+    return localization_.text(key).data();
 }
 
 LRESULT CALLBACK SettingsWindow::window_procedure(
@@ -1443,7 +1633,8 @@ LRESULT SettingsWindow::handle_message(const UINT message,
             settings_visual_style::high_contrast_enabled()
                 ? GetSysColor(COLOR_3DSHADOW) : RGB(213, 217, 221));
         const auto previous = SelectObject(dc, pen);
-        const auto navigation_x = MulDiv(188, horizontal_dpi, 96);
+        const auto navigation_x = measured_navigation_width(
+            navigation_, font_, horizontal_dpi);
         const auto bottom_y = client.bottom - MulDiv(64, layout_dpi, 96);
         MoveToEx(dc, navigation_x, client.top, nullptr);
         LineTo(dc, navigation_x, bottom_y);
@@ -1613,6 +1804,11 @@ LRESULT SettingsWindow::handle_message(const UINT message,
             settings_.menu_theme = static_cast<MenuTheme>(std::max<LRESULT>(0,
                 SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0)));
             mark_dirty();
+            return 0;
+        }
+        if (identifier == language_identifier && notification == CBN_SELCHANGE) {
+            change_language(language_from_combo_index(
+                SendMessageW(language_combo_, CB_GETCURSEL, 0, 0)));
             return 0;
         }
         if (identifier >= windows_hotkey_base_identifier

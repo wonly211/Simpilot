@@ -48,6 +48,7 @@ private:
     void save();
     [[nodiscard]] std::filesystem::path resolved_target() const;
     [[nodiscard]] const wchar_t* text(CustomHotKeyText identifier) const noexcept;
+    [[nodiscard]] const wchar_t* text(std::string_view key) const noexcept;
     void diagnose_capture(std::wstring_view reason) const noexcept;
 
     static LRESULT CALLBACK window_procedure(
@@ -55,7 +56,7 @@ private:
     LRESULT handle_message(UINT message, WPARAM wparam, LPARAM lparam);
     HINSTANCE instance_;
     HWND owner_;
-    UiLanguage language_;
+    Localization localization_;
     KeyboardManager& keyboard_manager_;
     std::filesystem::path config_directory_;
     DiagnosticSink diagnostic_sink_;

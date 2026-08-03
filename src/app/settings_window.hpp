@@ -34,6 +34,7 @@ public:
     using IconChangeSink = std::function<void()>;
     using ApplySink = std::function<bool(const AppSettings&)>;
     using MenuChangeSink = std::function<std::vector<MenuIconTarget>()>;
+    using LanguageChangeSink = std::function<void(UiLanguage)>;
 
     [[nodiscard]] static std::optional<AppSettings> show_modal(
         HINSTANCE instance, HWND owner, const AppSettings& current,
@@ -42,7 +43,8 @@ public:
         DiagnosticSink diagnostic_sink, std::vector<MenuIconTarget> menu_icon_targets,
         std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
         IconChangeSink icon_change_sink = {},
-        ApplySink apply_sink = {}, MenuChangeSink menu_change_sink = {});
+        ApplySink apply_sink = {}, MenuChangeSink menu_change_sink = {},
+        LanguageChangeSink language_change_sink = {});
 
 private:
     SettingsWindow(HINSTANCE instance, HWND owner, AppSettings current,
@@ -53,10 +55,13 @@ private:
                    std::filesystem::path config_directory,
                    std::filesystem::path icon_cache_directory,
                    IconChangeSink icon_change_sink, ApplySink apply_sink,
-                   MenuChangeSink menu_change_sink);
+                   MenuChangeSink menu_change_sink,
+                   LanguageChangeSink language_change_sink);
 
     [[nodiscard]] std::optional<AppSettings> run();
     void create_controls();
+    void refresh_localized_text();
+    void change_language(UiLanguage language);
     void update_fonts();
     void layout_controls(int width, int height);
     void update_page_visibility();
@@ -91,6 +96,7 @@ private:
     [[nodiscard]] const wchar_t* field_name(std::size_t index) const noexcept;
     [[nodiscard]] std::wstring windows_hotkey_label(std::size_t index) const;
     [[nodiscard]] const wchar_t* text(SettingsText identifier) const noexcept;
+    [[nodiscard]] const wchar_t* text(std::string_view key) const noexcept;
     void diagnose(std::wstring_view message) const noexcept;
     [[nodiscard]] bool apply_current();
     void mark_dirty();
@@ -109,12 +115,14 @@ private:
     HWND window_ = nullptr;
     AppSettings settings_;
     UiLanguage language_;
+    Localization localization_;
     KeyboardManager& keyboard_manager_;
     AvailabilityProbe availability_probe_;
     DiagnosticSink diagnostic_sink_;
     IconChangeSink icon_change_sink_;
     ApplySink apply_sink_;
     MenuChangeSink menu_change_sink_;
+    LanguageChangeSink language_change_sink_;
     std::vector<MenuIconTarget> menu_icon_targets_;
     std::filesystem::path config_directory_;
     std::filesystem::path icon_cache_directory_;
@@ -145,6 +153,8 @@ private:
     HWND startup_checkbox_ = nullptr;
     HWND menu_theme_label_ = nullptr;
     HWND menu_theme_combo_ = nullptr;
+    HWND language_label_ = nullptr;
+    HWND language_combo_ = nullptr;
     HWND windows_hotkey_heading_ = nullptr;
     HWND windows_hotkey_scope_ = nullptr;
     HWND windows_hotkey_runtime_ = nullptr;

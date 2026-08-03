@@ -64,7 +64,7 @@ CustomHotKeyDialog::CustomHotKeyDialog(
     KeyboardManager& keyboard_manager, std::filesystem::path config_directory,
     const CustomGlobalHotKey* initial,
     DiagnosticSink diagnostic_sink)
-    : instance_(instance), owner_(owner), language_(language),
+    : instance_(instance), owner_(owner), localization_(language),
       keyboard_manager_(keyboard_manager),
       config_directory_(std::move(config_directory)),
       diagnostic_sink_(std::move(diagnostic_sink)),
@@ -381,7 +381,7 @@ void CustomHotKeyDialog::handle_capture_result(
 }
 
 void CustomHotKeyDialog::update_capture_button() {
-    const auto label = hotkey_capture_button_text(gesture_, capturing_, language_);
+    const auto label = hotkey_capture_button_text(gesture_, capturing_, localization_);
     SetWindowTextW(capture_button_, label.c_str());
 }
 
@@ -426,13 +426,23 @@ void CustomHotKeyDialog::browse_target() {
     std::array<wchar_t, 32768> path{};
     const auto current = control_text(program_edit_);
     wcsncpy_s(path.data(), path.size(), current.c_str(), _TRUNCATE);
-    const wchar_t application_filter[] = L"Applications (*.exe)\0*.exe\0All files (*.*)\0*.*\0\0";
-    const wchar_t file_filter[] = L"All files (*.*)\0*.*\0\0";
     const auto application = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 0;
+    std::wstring application_filter = text("file_dialog.applications");
+    application_filter.push_back(L'\0');
+    application_filter.append(L"*.exe");
+    application_filter.push_back(L'\0');
+    application_filter.append(text("file_dialog.all_files"));
+    application_filter.push_back(L'\0');
+    application_filter.append(L"*.*");
+    application_filter.append(2, L'\0');
+    std::wstring file_filter = text("file_dialog.all_files");
+    file_filter.push_back(L'\0');
+    file_filter.append(L"*.*");
+    file_filter.append(2, L'\0');
     OPENFILENAMEW dialog{
         .lStructSize = sizeof(dialog),
         .hwndOwner = window_,
-        .lpstrFilter = application ? application_filter : file_filter,
+        .lpstrFilter = application ? application_filter.c_str() : file_filter.c_str(),
         .lpstrFile = path.data(),
         .nMaxFile = static_cast<DWORD>(path.size()),
         .Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR,
@@ -510,7 +520,11 @@ void CustomHotKeyDialog::save() {
 const wchar_t* CustomHotKeyDialog::text(const CustomHotKeyText identifier) const noexcept {
     const auto actual = initial_ && identifier == window_title_text ? edit_window_title_text
         : initial_ && identifier == title_text ? edit_title_text : identifier;
-    return Localization(language_).text(actual).data();
+    return localization_.text(actual).data();
+}
+
+const wchar_t* CustomHotKeyDialog::text(const std::string_view key) const noexcept {
+    return localization_.text(key).data();
 }
 
 LRESULT CALLBACK CustomHotKeyDialog::window_procedure(

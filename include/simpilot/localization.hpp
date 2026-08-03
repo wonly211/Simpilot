@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <memory>
 #include <string_view>
 
 namespace simpilot {
@@ -8,6 +9,7 @@ namespace simpilot {
 enum class UiLanguage {
     english,
     simplified_chinese,
+    traditional_chinese,
 };
 
 enum class UiText {
@@ -26,6 +28,7 @@ enum class UiText {
     language,
     english,
     simplified_chinese,
+    traditional_chinese,
     exit,
     configuration_header,
     common,
@@ -69,9 +72,12 @@ enum class CustomHotKeyText {
 
 class Localization final {
 public:
-    explicit Localization(UiLanguage language);
+    explicit Localization(UiLanguage language,
+                          std::filesystem::path resource_directory = {});
 
-    [[nodiscard]] static Localization load(const std::filesystem::path& config_directory);
+    [[nodiscard]] static Localization load(
+        const std::filesystem::path& config_directory,
+        std::filesystem::path resource_directory = {});
     [[nodiscard]] bool save(const std::filesystem::path& config_directory) const noexcept;
 
     [[nodiscard]] UiLanguage language() const noexcept;
@@ -79,12 +85,15 @@ public:
     [[nodiscard]] std::wstring_view text(UiText text) const noexcept;
     [[nodiscard]] std::wstring_view text(SettingsText text) const noexcept;
     [[nodiscard]] std::wstring_view text(CustomHotKeyText text) const noexcept;
+    [[nodiscard]] std::wstring_view text(std::string_view key) const noexcept;
     [[nodiscard]] static std::string_view language_code(UiLanguage language) noexcept;
+    [[nodiscard]] static std::filesystem::path default_resource_directory();
 
 private:
-    [[nodiscard]] static UiLanguage detect_windows_language() noexcept;
+    struct ResourceBundle;
 
     UiLanguage language_;
+    std::shared_ptr<const ResourceBundle> resources_;
 };
 
 } // namespace simpilot

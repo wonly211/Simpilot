@@ -28,7 +28,7 @@
 - 第二菜单热键直接弹出 `Simpilot2.ini`，无需先经过主菜单的“菜单 2”子菜单。
 - 左键点击托盘图标只显示快捷启动菜单；右键点击只显示设置、配置维护、Everything、语言和退出等管理入口。
 - 支持当前用户登录 Windows 后自动启动，不需要管理员权限。
-- 支持简体中文和英文界面。首次运行跟随 Windows 显示语言，托盘菜单可即时切换。
+- 内建简体中文、繁体中文和英文界面，默认使用简体中文。可在托盘菜单或“设置 > 常规 > 外观”中即时切换，无需重启。
 - 使用 Per-Monitor V2 DPI 感知，保证不同缩放比例显示器上的菜单文字清晰。
 
 ## 构建
@@ -45,7 +45,7 @@ cmake --build --preset package-release
 发布包生成于：
 
 ```text
-build/vs2022-x64/Simpilot-0.15.0-win-x64.zip
+build/vs2022-x64/Simpilot-0.16.0-win-x64.zip
 ```
 
 发布目录：
@@ -58,6 +58,10 @@ Everything/
   Everything64.dll
   Everything.lng
   Everything.ini
+Languages/
+  en-US.json
+  zh-CN.json
+  zh-TW.json
 ```
 
 Everything 组件不会嵌入 `Simpilot.exe`，也不会在运行时下载或释放。
@@ -86,7 +90,9 @@ Log/
 Config/language.txt
 ```
 
-内容为 `zh-CN` 或 `en-US`。删除该文件后，下一次启动将重新跟随 Windows 显示语言。
+内容为 `zh-CN`、`zh-TW` 或 `en-US`。缺少该文件或内容无效时使用默认的简体中文。
+
+三种内建语言统一使用 `Languages/*.json` 资源。当前语言缺少某个文本或资源文件无法读取时，逐项回退到英文；英文仍缺少该文本时显示明确的缺译标记，不会静默显示空白。资源格式、键集合要求和新增语言流程见 [多语言资源设计](docs/localization.md)。
 
 所有日志统一保存在 `Log/`，只写入 `Simpilot.log`，不读取或迁移其他目录中的日志。每次 Simpilot 启动时，日志中超过 90 天的记录会被安全清理。`program-cache.tsv` 仅保存程序名与已解析路径；Everything 返回多个候选时，用户确认的路径也保存在此处，目标文件被删除后对应缓存会自动失效。
 
@@ -115,3 +121,4 @@ HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run\Simpilot
 - `docs`：功能审计、Windows 版本差异和开发决策记录。
 - `third_party/Everything`：随发布包分发的 Everything 运行组件。
 - `third_party/PowerToys`：按 MIT 许可复用的 Keyboard Manager 源码及许可。
+- `Languages`：内建的 JSON 界面语言资源。

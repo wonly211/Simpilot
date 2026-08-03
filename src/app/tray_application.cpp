@@ -33,6 +33,7 @@ constexpr UINT english_language_command = 5;
 constexpr UINT simplified_chinese_language_command = 6;
 constexpr UINT repair_everything_command = 7;
 constexpr UINT settings_command = 8;
+constexpr UINT traditional_chinese_language_command = 9;
 constexpr UINT about_command = 10;
 constexpr UINT configuration_changed_message = WM_APP + 2;
 constexpr UINT open_settings_message = WM_APP + 4;
@@ -66,6 +67,13 @@ std::wstring wide_error(const char* value) {
     MultiByteToWideChar(CP_UTF8, 0, value, -1, result.data(), size);
     result.pop_back();
     return result;
+}
+
+template <typename... Args>
+std::wstring format_localized(const Localization& localization,
+                              const std::string_view key, Args&&... args) {
+    return std::vformat(localization.text(key),
+                        std::make_wformat_args(args...));
 }
 
 std::wstring menu_label(const std::wstring_view name,
@@ -337,6 +345,8 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
             set_language(UiLanguage::english);
         } else if (identifier == simplified_chinese_language_command) {
             set_language(UiLanguage::simplified_chinese);
+        } else if (identifier == traditional_chinese_language_command) {
+            set_language(UiLanguage::traditional_chinese);
         } else if (identifier == repair_everything_command) {
             const auto repaired = everything_manager_ && everything_search_
                 && everything_manager_->repair_service(*everything_search_, window);
@@ -349,9 +359,9 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         } else if (identifier == settings_command) {
             show_settings();
         } else if (identifier == about_command) {
-            const auto about_message = localization_.language() == UiLanguage::simplified_chinese
-                ? std::format(L"\u7b80\u9a6d | Simpilot\n\n\u7248\u672c {}", SIMPILOT_VERSION)
-                : std::format(L"\u7b80\u9a6d | Simpilot\n\nVersion {}", SIMPILOT_VERSION);
+            const auto version = std::wstring(SIMPILOT_VERSION);
+            const auto about_message = format_localized(
+                localization_, "ui.about_message", version);
             MessageBoxW(window, about_message.c_str(), localization_.text(UiText::about).data(),
                         MB_OK | MB_ICONINFORMATION);
         } else if (identifier == exit_command) {
@@ -492,6 +502,25 @@ void TrayApplication::show_context_menu() {
     const auto menu = CreatePopupMenu();
     AppendMenuW(menu, MF_STRING, settings_command, localization_.text(UiText::settings).data());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    const auto language_menu = CreatePopupMenu();
+    AppendMenuW(language_menu, MF_STRING, simplified_chinese_language_command,
+                localization_.text(UiText::simplified_chinese).data());
+    AppendMenuW(language_menu, MF_STRING, traditional_chinese_language_command,
+                localization_.text(UiText::traditional_chinese).data());
+    AppendMenuW(language_menu, MF_STRING, english_language_command,
+                localization_.text(UiText::english).data());
+    const auto selected_language_command =
+        localization_.language() == UiLanguage::traditional_chinese
+            ? traditional_chinese_language_command
+            : localization_.language() == UiLanguage::english
+                ? english_language_command
+                : simplified_chinese_language_command;
+    CheckMenuRadioItem(language_menu, english_language_command,
+                       traditional_chinese_language_command, selected_language_command,
+                       MF_BYCOMMAND);
+    AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(language_menu),
+                localization_.text(UiText::language).data());
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const auto maintenance_menu = CreatePopupMenu();
     AppendMenuW(maintenance_menu, MF_STRING, reload_menu_command,
                 localization_.text(UiText::reload_menu).data());
@@ -506,19 +535,6 @@ void TrayApplication::show_context_menu() {
                     ? MF_STRING : MF_GRAYED,
                 repair_everything_command,
                 localization_.text(UiText::repair_everything).data());
-    AppendMenuW(maintenance_menu, MF_SEPARATOR, 0, nullptr);
-    const auto language_menu = CreatePopupMenu();
-    AppendMenuW(language_menu,
-                MF_STRING | (localization_.language() == UiLanguage::english ? MF_CHECKED : MF_UNCHECKED),
-                english_language_command,
-                localization_.text(UiText::english).data());
-    AppendMenuW(language_menu,
-                MF_STRING | (localization_.language() == UiLanguage::simplified_chinese
-                    ? MF_CHECKED : MF_UNCHECKED),
-                simplified_chinese_language_command,
-                localization_.text(UiText::simplified_chinese).data());
-    AppendMenuW(maintenance_menu, MF_POPUP, reinterpret_cast<UINT_PTR>(language_menu),
-                localization_.text(UiText::language).data());
     AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(maintenance_menu),
                 localization_.text(UiText::maintenance).data());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
@@ -591,7 +607,8 @@ void TrayApplication::show_settings() {
             menu_icons_.clear();
             (void)reload_menu(true);
             return collect_menu_icon_targets();
-        });
+        },
+        [this](const UiLanguage language) { set_language(language); });
     settings_window_open_ = false;
     keyboard_manager_.update(effective_windows_hotkey_blocking_state(settings_));
     register_global_hotkeys();
@@ -602,9 +619,7 @@ bool TrayApplication::apply_settings(const AppSettings& updated) {
     if (!AppSettingsStore::save(settings_path, updated)) {
         logger_.write(L"settings save failed");
         MessageBoxW(window_,
-            localization_.language() == UiLanguage::simplified_chinese
-                ? L"\u65e0\u6cd5\u4fdd\u5b58 Config\\Simpilot.settings.ini\u3002"
-                : L"Config\\Simpilot.settings.ini could not be saved.",
+            localization_.text("ui.settings_save_failed").data(),
             localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
         return false;
     }
@@ -617,9 +632,7 @@ bool TrayApplication::apply_settings(const AppSettings& updated) {
     if (!StartupRegistration::apply(settings_.start_with_windows, executable_path_)) {
         logger_.write(L"startup registration update failed");
         MessageBoxW(window_,
-            localization_.language() == UiLanguage::simplified_chinese
-                ? L"\u65e0\u6cd5\u66f4\u65b0\u5f53\u524d\u7528\u6237\u7684 Windows \u542f\u52a8\u9879\u3002"
-                : L"The current user's Windows startup entry could not be updated.",
+            localization_.text("ui.startup_update_failed").data(),
             localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
     }
     return true;
@@ -648,10 +661,8 @@ std::vector<MenuIconTarget> TrayApplication::collect_menu_icon_targets() const {
             }
         }
     };
-    const auto main_menu_name = localization_.language() == UiLanguage::simplified_chinese
-        ? L"\u83dc\u5355 1" : L"Menu 1";
-    const auto second_menu_name = localization_.language() == UiLanguage::simplified_chinese
-        ? L"\u83dc\u5355 2" : L"Menu 2";
+    const auto main_menu_name = localization_.text("ui.menu_one");
+    const auto second_menu_name = localization_.text(UiText::menu_two);
     collect(document_.get(), main_menu_name);
     collect(secondary_document_.get(), second_menu_name);
     return targets;
@@ -820,9 +831,8 @@ void TrayApplication::execute_custom_hotkey(const CustomGlobalHotKey& hotkey) {
 void TrayApplication::show_launch_error(const std::wstring_view target,
                                         const std::uint64_t error) {
     logger_.write(std::format(L"launch failed error={} target={}", error, target));
-    const auto message = localization_.language() == UiLanguage::simplified_chinese
-        ? std::format(L"无法打开：\n{}\n\n错误代码：{}", target, error)
-        : std::format(L"Could not open:\n{}\n\nError code: {}", target, error);
+    const auto message = format_localized(
+        localization_, "ui.launch_failed", target, error);
     MessageBoxW(window_, message.c_str(), localization_.text(UiText::app_title).data(),
                 MB_OK | MB_ICONERROR);
 }
@@ -830,11 +840,14 @@ void TrayApplication::show_launch_error(const std::wstring_view target,
 void TrayApplication::set_language(const UiLanguage language) {
     if (localization_.language() == language) return;
     localization_.set_language(language);
-    (void)localization_.save(config_directory_);
+    if (!localization_.save(config_directory_)) {
+        logger_.write(L"language preference save failed");
+    }
     SetWindowTextW(window_, localization_.text(UiText::app_title).data());
     update_tray_text();
-    logger_.write(language == UiLanguage::simplified_chinese
-        ? L"language changed to zh-CN" : L"language changed to en-US");
+    const auto code = Localization::language_code(language);
+    logger_.write(L"language changed to "
+        + std::wstring(code.begin(), code.end()));
 }
 
 void TrayApplication::add_tray_icon() {

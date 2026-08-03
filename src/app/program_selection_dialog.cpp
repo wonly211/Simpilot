@@ -22,11 +22,6 @@ namespace {
 constexpr auto dialog_class_name = L"Simpilot.ProgramSelectionDialog";
 constexpr int candidate_list_identifier = 100;
 
-const wchar_t* tr(const UiLanguage language, const wchar_t* chinese,
-                  const wchar_t* english) noexcept {
-    return language == UiLanguage::simplified_chinese ? chinese : english;
-}
-
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
 }
@@ -64,7 +59,7 @@ std::optional<std::filesystem::path> ProgramSelectionDialog::show_modal(
 ProgramSelectionDialog::ProgramSelectionDialog(
     const HINSTANCE instance, const HWND owner, const UiLanguage language,
     std::wstring executable, const std::vector<ProgramCandidate>& candidates)
-    : instance_(instance), owner_(owner), language_(language),
+    : instance_(instance), owner_(owner), localization_(language),
       executable_(std::move(executable)), candidates_(candidates) {}
 
 std::optional<std::filesystem::path> ProgramSelectionDialog::run() {
@@ -89,8 +84,7 @@ std::optional<std::filesystem::path> ProgramSelectionDialog::run() {
     const auto system_dpi = GetDpiForSystem();
     window_ = CreateWindowExW(
         WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME, dialog_class_name,
-        tr(language_, L"\u7b80\u9a6d | Simpilot - \u9009\u62e9\u7a0b\u5e8f",
-           L"\u7b80\u9a6d | Simpilot - Select program"),
+        text("program_selection.window_title"),
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME,
         CW_USEDEFAULT, CW_USEDEFAULT, MulDiv(900, system_dpi, 96),
         MulDiv(520, system_dpi, 96), owner_, nullptr, instance_, this);
@@ -131,9 +125,9 @@ std::optional<std::filesystem::path> ProgramSelectionDialog::run() {
 
 void ProgramSelectionDialog::create_controls() {
     dpi_ = GetDpiForWindow(window_);
-    const auto prompt = language_ == UiLanguage::simplified_chinese
-        ? std::format(L"\u627e\u5230\u591a\u4e2a\u201c{}\u201d\uff0c\u8bf7\u9009\u62e9\u8981\u4f7f\u7528\u7684\u7a0b\u5e8f\u3002", executable_)
-        : std::format(L"Multiple copies of {} were found. Select the program to use.", executable_);
+    const auto prompt = std::vformat(
+        localization_.text("program_selection.prompt"),
+        std::make_wformat_args(executable_));
     prompt_ = CreateWindowW(L"STATIC", prompt.c_str(), WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     list_ = CreateWindowExW(WS_EX_STATICEDGE, WC_LISTVIEWW, L"",
@@ -145,13 +139,13 @@ void ProgramSelectionDialog::create_controls() {
     settings_visual_style::style_list_view(list_);
 
     LVCOLUMNW column{.mask = LVCF_TEXT | LVCF_WIDTH};
-    column.pszText = const_cast<wchar_t*>(tr(language_, L"\u6587\u4ef6\u8def\u5f84", L"File path"));
+    column.pszText = const_cast<wchar_t*>(text("program_selection.file_path"));
     column.cx = 520;
     ListView_InsertColumn(list_, 0, &column);
-    column.pszText = const_cast<wchar_t*>(tr(language_, L"\u7248\u672c", L"Version"));
+    column.pszText = const_cast<wchar_t*>(text("program_selection.version"));
     column.cx = 120;
     ListView_InsertColumn(list_, 1, &column);
-    column.pszText = const_cast<wchar_t*>(tr(language_, L"\u4fee\u6539\u65f6\u95f4", L"Modified"));
+    column.pszText = const_cast<wchar_t*>(text("program_selection.modified"));
     column.cx = 160;
     ListView_InsertColumn(list_, 2, &column);
 
@@ -183,10 +177,10 @@ void ProgramSelectionDialog::create_controls() {
                               LVIS_SELECTED | LVIS_FOCUSED);
     }
 
-    select_button_ = CreateWindowW(L"BUTTON", tr(language_, L"\u9009\u62e9", L"Select"),
+    select_button_ = CreateWindowW(L"BUTTON", text("program_selection.select"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(IDOK), instance_, nullptr);
-    cancel_button_ = CreateWindowW(L"BUTTON", tr(language_, L"\u53d6\u6d88", L"Cancel"),
+    cancel_button_ = CreateWindowW(L"BUTTON", text("program_selection.cancel"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(IDCANCEL), instance_, nullptr);
     update_font();
@@ -235,6 +229,10 @@ void ProgramSelectionDialog::accept_selection() {
     if (index >= candidates_.size()) return;
     result_ = candidates_[index].path;
     DestroyWindow(window_);
+}
+
+const wchar_t* ProgramSelectionDialog::text(const std::string_view key) const noexcept {
+    return localization_.text(key).data();
 }
 
 LRESULT CALLBACK ProgramSelectionDialog::window_procedure(
