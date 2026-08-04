@@ -75,7 +75,7 @@
 
 安装、菜单编辑、热键录制、Windows 快捷键屏蔽、Everything、备份迁移和故障排查，请阅读：
 
-**[《简驭 | Simpilot 用户手册》](docs/用户手册.md)**
+**[《简驭 | Simpilot 用户手册》](docs/zh-CN/用户手册.md)**
 
 也可访问 **[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)**，按任务查阅快速开始、菜单、热键、Everything、语言包和故障排查。
 
@@ -131,13 +131,13 @@ Log/
 <details>
 <summary><strong>开发与设计文档</strong></summary>
 
-- [多语言资源设计](docs/多语言资源与发布.md)
-- [快捷启动菜单编辑器](docs/快捷启动菜单编辑器.md)
-- [自定义全局热键](docs/自定义全局热键.md)
-- [人工指定菜单图标](docs/menu-custom-icons.md)
-- [菜单图标与主题](docs/菜单图标与主题.md)
-- [Windows 快捷键复核与屏蔽方案](docs/Windows快捷键屏蔽复核.md)
-- [PowerToys Keyboard Manager 录制架构复用说明](docs/PowerToys键盘录制架构.md)
+- [多语言资源设计](docs/zh-CN/多语言资源与发布.md)
+- [快捷启动菜单编辑器](docs/zh-CN/development/快捷启动菜单编辑器.md)
+- [自定义全局热键](docs/zh-CN/development/自定义全局热键.md)
+- [人工指定菜单图标](docs/zh-CN/development/人工指定菜单图标.md)
+- [菜单图标与主题](docs/zh-CN/development/菜单图标与主题.md)
+- [Windows 快捷键复核与屏蔽方案](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
+- [PowerToys Keyboard Manager 录制架构复用说明](docs/zh-CN/development/PowerToys键盘录制架构.md)
 
 </details>
 

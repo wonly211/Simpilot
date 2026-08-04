@@ -129,13 +129,13 @@ Log/
 <details>
 <summary><strong>Development and Design Documentation (Simplified Chinese)</strong></summary>
 
-- [Localization resources](docs/多语言资源与发布.md)
-- [Quick-launch menu editor](docs/快捷启动菜单编辑器.md)
-- [Custom global hotkeys](docs/自定义全局热键.md)
-- [Custom menu icons](docs/menu-custom-icons.md)
-- [Menu icons and themes](docs/菜单图标与主题.md)
-- [Windows shortcut audit and blocking](docs/Windows快捷键屏蔽复核.md)
-- [PowerToys Keyboard Manager recording architecture](docs/PowerToys键盘录制架构.md)
+- [Localization resources](docs/zh-CN/多语言资源与发布.md)
+- [Quick-launch menu editor](docs/zh-CN/development/快捷启动菜单编辑器.md)
+- [Custom global hotkeys](docs/zh-CN/development/自定义全局热键.md)
+- [Custom menu icons](docs/en-US/development/menu-custom-icons.md)
+- [Menu icons and themes](docs/zh-CN/development/菜单图标与主题.md)
+- [Windows shortcut audit and blocking](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
+- [PowerToys Keyboard Manager recording architecture](docs/zh-CN/development/PowerToys键盘录制架构.md)
 
 </details>
 

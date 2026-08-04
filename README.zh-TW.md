@@ -129,13 +129,13 @@ Log/
 <details>
 <summary><strong>開發與設計文件（簡體中文）</strong></summary>
 
-- [多語言資源設計](docs/多语言资源与发布.md)
-- [快速啟動選單編輯器](docs/快捷启动菜单编辑器.md)
-- [自訂全域快速鍵](docs/自定义全局热键.md)
-- [手動指定選單圖示](docs/menu-custom-icons.md)
-- [選單圖示與主題](docs/菜单图标与主题.md)
-- [Windows 快速鍵檢查與封鎖方案](docs/Windows快捷键屏蔽复核.md)
-- [PowerToys Keyboard Manager 錄製架構重用說明](docs/PowerToys键盘录制架构.md)
+- [多語言資源設計](docs/zh-CN/多语言资源与发布.md)
+- [快速啟動選單編輯器](docs/zh-CN/development/快捷启动菜单编辑器.md)
+- [自訂全域快速鍵](docs/zh-CN/development/自定义全局热键.md)
+- [手動指定選單圖示](docs/zh-TW/development/人工指定選單圖示.md)
+- [選單圖示與主題](docs/zh-CN/development/菜单图标与主题.md)
+- [Windows 快速鍵檢查與封鎖方案](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
+- [PowerToys Keyboard Manager 錄製架構重用說明](docs/zh-CN/development/PowerToys键盘录制架构.md)
 
 </details>
 

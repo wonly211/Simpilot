@@ -1,0 +1,77 @@
+# FAQ and Troubleshooting
+
+[简体中文](../zh-CN/常见问题与故障排查) | [繁體中文](../zh-TW/常見問題與疑難排解) | **English**
+
+## Why is there no main window after startup?
+
+This is expected. Simpilot runs in the Windows notification area and does not show a conventional main window.
+
+1. Look in the notification area and its hidden-icons panel.
+2. Left-click the tray icon to open the quick-launch menu; right-click it for Settings and maintenance.
+3. If there is no icon at all, confirm the release was fully extracted, the program folder is writable, and inspect `Log/Simpilot.log`.
+
+If Windows Explorer has restarted, Simpilot attempts to register its tray icon again. Wait briefly. If it still does not appear, exit and restart `Simpilot.exe`, then review the log.
+
+## Why is a quick-launch item missing?
+
+Simpilot hides targets that do not exist or cannot be resolved. Check that:
+
+- the target path exists;
+- a relative path is correct relative to `Config/`;
+- an application filename can be found through normal Windows locations, `PATH`, or Everything;
+- the menu file is valid UTF-8.
+
+After correcting the issue, wait for automatic refresh or select **Maintenance > Refresh Menu** from the tray context menu. If a configuration reload fails, Simpilot keeps the last valid menu active.
+
+## Why does a global hotkey not respond?
+
+1. Under **Settings > Global Hotkeys**, make sure the hotkey is recorded and its switch is enabled.
+2. Select **Apply** or **Save**.
+3. Close the Settings window and test again.
+4. Check for conflicts with Windows or another application.
+5. Try a combination that is not reserved by the system, then check `Log/Simpilot.log` for a registration failure.
+
+`Win+L`, `Ctrl+Alt+Del`, and similar Windows security combinations cannot be Simpilot hotkeys or be blocked by normal desktop applications.
+
+## Why does a Windows shortcut still run?
+
+Turn on the corresponding `Win+letter` switch under **Settings > Windows Hotkey Blocking**, then select **Apply** or **Save**. Blocking is exact: blocking `Win+Z` does not block `Shift+Win+Z`.
+
+Blocking applies only while Simpilot is running and does not require restarting Windows Explorer. The sign-in screen, other user sessions, the security desktop, and some Remote Desktop environments are outside the supported scope. `Win+L` is not supported.
+
+## Why can Simpilot not open Everything or resolve a program name?
+
+1. Confirm that `Everything/Everything.exe` and `Everything/Everything64.dll` exist.
+2. Select **Maintenance > Open Everything** from the tray right-click menu.
+3. When an indexing service is needed, select **Maintenance > Install/Repair Everything Service** and approve the UAC prompt.
+4. If you use a separately installed Everything, make sure its default instance is running rather than only a named instance.
+
+Everything being unavailable does not stop Simpilot. It only affects Everything Search and resolving applications without a full path. See [Everything Integration](Everything-Integration) for details.
+
+## Why is my language not listed?
+
+Simplified Chinese, Traditional Chinese, and English are built in. For another language, put `Language.lng` beside `Simpilot.exe` and restart Simpilot.
+
+If it still does not appear, check the filename, location, and format. Removing a faulty `Language.lng` always returns Simpilot to its built-in languages. See [Language and Language.lng](Language-and-Language.lng).
+
+## Why is a menu icon wrong or not updated?
+
+Select the item in **Settings > Menu Icons** and choose a new icon or restore its automatic icon. Both automatic and custom icons are stored under `Cache/RunIcon/`. Deleting that directory rebuilds the cache but also removes all custom icons.
+
+## What should I include in a bug report?
+
+Open an issue at [GitHub Issues](https://github.com/wonly211/Simpilot/issues) with:
+
+- Simpilot and Windows versions;
+- clear reproduction steps;
+- expected and actual behavior;
+- relevant screenshots; and
+- relevant log excerpts.
+
+Remove usernames, personal paths, and sensitive filenames from logs before posting them.
+
+## Related pages
+
+- [Wiki Home](Home.en-US)
+- [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)
+- [Translating and Contributing](Translating-and-Contributing)
