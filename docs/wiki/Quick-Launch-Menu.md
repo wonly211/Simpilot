@@ -1,6 +1,6 @@
 # Quick Launch Menu
 
-[简体中文](快捷启动菜单) | [繁體中文](快捷启动菜单.zh-TW) | **English**
+[简体中文](快捷启动菜单) | [繁體中文](快速啟動選單) | **English**
 
 The quick-launch menu centralizes frequently used entry points. Left-click the Simpilot tray icon to open the main menu. The menu chooses an opening direction automatically from the pointer position and available space on the active display.
 
@@ -11,7 +11,7 @@ Right-click the tray icon, select **Settings**, then select **Quick Launch Menu*
 - The **main menu** is saved in `Config/Simpilot.ini` and opens from the tray icon or its built-in hotkey.
 - The **second menu** is saved in `Config/Simpilot2.ini`, is created only when needed, and can have its own hotkey.
 
-For initial setup, see [Quick Start](快速开始.en-US). To open either menu from the keyboard, see [Global Hotkeys](全局热键.en-US).
+For initial setup, see [Quick Start](Quick-Start). To open either menu from the keyboard, see [Global Hotkeys](Global-Hotkeys).
 
 ## Build a menu hierarchy
 
@@ -38,13 +38,13 @@ Launch items support these action types:
 
 Use a complete application path whenever possible. If an application entry contains only a file name, Simpilot first checks normal Windows search locations and `PATH`, then uses Everything when available. If Everything finds several candidates, Simpilot shows their paths, versions, and modification times so that you can select the right file.
 
-Everything is optional. Its absence does not prevent the menu from working, but pathless application entries might not be resolved. See [Everything Integration](Everything-集成.en-US) for the full behavior.
+Everything is optional. Its absence does not prevent the menu from working, but pathless application entries might not be resolved. See [Everything Integration](Everything-Integration) for the full behavior.
 
 ## Icons and appearance
 
 Simpilot automatically extracts an icon for local items it can resolve and caches it under `Cache/RunIcon/`. You can also set a custom icon from an ICO file or from an EXE or DLL in **Settings > Menu Icons**. The custom icon is stored per complete launch action, so distinct arguments for the same executable can use different icons.
 
-Choose **Follow Windows**, **Light**, or **Dark** under **Settings > General** to control the quick-launch and tray context menu theme. This does not change the Windows system theme. See [Menu Icons and Themes](菜单图标与主题.en-US) for details.
+Choose **Follow Windows**, **Light**, or **Dark** under **Settings > General** to control the quick-launch and tray context menu theme. This does not change the Windows system theme. See [Menu Icons and Themes](Menu-Icons-and-Themes) for details.
 
 ## Save and refresh
 
@@ -55,6 +55,6 @@ When editing a menu file by hand, use UTF-8 and select **Maintenance > Refresh M
 ## Related pages
 
 - [Wiki Home](Home.en-US)
-- [Quick Start](快速开始.en-US)
-- [Global Hotkeys](全局热键.en-US)
-- [Configuration, Logs, and Backup](配置-日志与备份.en-US)
+- [Quick Start](Quick-Start)
+- [Global Hotkeys](Global-Hotkeys)
+- [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)

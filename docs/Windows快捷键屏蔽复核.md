@@ -38,7 +38,7 @@ PowerToys 在进入录制状态时安装 `WH_KEYBOARD_LL`，录制期间同时�
 
 `KeyboardManagerState::DetectShortcutUIBackend` 根据每次按下和释放维护当前按键集合，然后返回 `Suppress`。公共 `KeyboardHook::HookProc` 收到该决定后返回非零值，事件不会继续到达反馈中心、Game Bar、Explorer 或前台应用。因此 `Win+F`、`Win+G` 等组合在第一次按下时即可被录制，而不会先执行系统动作。
 
-Simpilot 自 0.5.1 起在同一个 `Simpilot.exe` 中设置专用键盘线程，当前 0.18.0 仍使用这一架构。该线程建立自己的消息循环并在程序生命周期内只安装一个钩子；用户点击热键框时只切换钩子的录制优先状态。录制期间四类消息全部吞掉，状态完全由钩子收到的事件维护，不在回调中调用 `GetAsyncKeyState`。按键全部释放后再把录制结果投递给界面线程。源码复用范围和最小适配边界见 [PowerToys Keyboard Manager 录制架构复用说明](powertoys-keyboard-recorder.md)。
+Simpilot 自 0.5.1 起在同一个 `Simpilot.exe` 中设置专用键盘线程，当前 0.18.0 仍使用这一架构。该线程建立自己的消息循环并在程序生命周期内只安装一个钩子；用户点击热键框时只切换钩子的录制优先状态。录制期间四类消息全部吞掉，状态完全由钩子收到的事件维护，不在回调中调用 `GetAsyncKeyState`。按键全部释放后再把录制结果投递给界面线程。源码复用范围和最小适配边界见 [PowerToys Keyboard Manager 录制架构复用说明](PowerToys键盘录制架构.md)。
 
 ### 2.2 禁用快捷键
 

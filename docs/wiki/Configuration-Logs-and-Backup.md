@@ -1,6 +1,6 @@
 # Configuration, Logs, and Backup
 
-[简体中文](配置-日志与备份) | [繁體中文](配置-日志与备份.zh-TW) | **English**
+[简体中文](配置-日志与备份) | [繁體中文](設定、記錄檔與備份) | **English**
 
 Simpilot is a portable application. Its runtime data remains in the program folder so that it can be backed up, moved, and diagnosed easily. Extract the complete release package to a fixed directory writable by the current Windows user.
 
@@ -53,6 +53,6 @@ After moving the entire program folder, reopen **Settings > General** and apply 
 
 ## Related pages
 
-- [Quick Launch Menu](快捷启动菜单.en-US)
-- [Menu Icons and Themes](菜单图标与主题.en-US)
-- [FAQ and Troubleshooting](常见问题与故障排查.en-US)
+- [Quick Launch Menu](Quick-Launch-Menu)
+- [Menu Icons and Themes](Menu-Icons-and-Themes)
+- [FAQ and Troubleshooting](FAQ-and-Troubleshooting)

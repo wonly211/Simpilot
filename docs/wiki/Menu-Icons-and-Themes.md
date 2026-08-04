@@ -1,6 +1,6 @@
 # Menu Icons and Themes
 
-[简体中文](菜单图标与主题) | [繁體中文](菜单图标与主题.zh-TW) | **English**
+[简体中文](菜单图标与主题) | [繁體中文](選單圖示與佈景主題) | **English**
 
 Use **Settings > Menu Icons** to inspect quick-launch icon sources and assign an icon to an individual launch item.
 
@@ -25,4 +25,4 @@ Deleting `Cache/RunIcon/` rebuilds automatic caches but also removes custom icon
 
 The quick-launch menu and tray right-click menu can use **Follow Windows**, **Light**, or **Dark**. Settings and editor windows always use their own light interface and are not affected by this menu-theme selection.
 
-For menu structure and launch entries, see [Quick Launch Menu](快捷启动菜单.en-US). For cache handling and backup, see [Configuration, Logs, and Backup](配置-日志与备份.en-US).
+For menu structure and launch entries, see [Quick Launch Menu](Quick-Launch-Menu). For cache handling and backup, see [Configuration, Logs, and Backup](Configuration-Logs-and-Backup).

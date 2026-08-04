@@ -1,6 +1,6 @@
 # FAQ and Troubleshooting
 
-[简体中文](常见问题与故障排查) | [繁體中文](常见问题与故障排查.zh-TW) | **English**
+[简体中文](常见问题与故障排查) | [繁體中文](常見問題與疑難排解) | **English**
 
 ## Why is there no main window after startup?
 
@@ -46,13 +46,13 @@ Blocking applies only while Simpilot is running and does not require restarting 
 3. When an indexing service is needed, select **Maintenance > Install/Repair Everything Service** and approve the UAC prompt.
 4. If you use a separately installed Everything, make sure its default instance is running rather than only a named instance.
 
-Everything being unavailable does not stop Simpilot. It only affects Everything Search and resolving applications without a full path. See [Everything Integration](Everything-集成.en-US) for details.
+Everything being unavailable does not stop Simpilot. It only affects Everything Search and resolving applications without a full path. See [Everything Integration](Everything-Integration) for details.
 
 ## Why is my language not listed?
 
 Simplified Chinese, Traditional Chinese, and English are built in. For another language, put `Language.lng` beside `Simpilot.exe` and restart Simpilot.
 
-If it still does not appear, check the filename, location, and format. Removing a faulty `Language.lng` always returns Simpilot to its built-in languages. See [Language and Language.lng](语言与-Language.lng.en-US).
+If it still does not appear, check the filename, location, and format. Removing a faulty `Language.lng` always returns Simpilot to its built-in languages. See [Language and Language.lng](Language-and-Language.lng).
 
 ## Why is a menu icon wrong or not updated?
 
@@ -73,5 +73,5 @@ Remove usernames, personal paths, and sensitive filenames from logs before posti
 ## Related pages
 
 - [Wiki Home](Home.en-US)
-- [Configuration, Logs, and Backup](配置-日志与备份.en-US)
-- [Translating and Contributing](翻译与贡献.en-US)
+- [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)
+- [Translating and Contributing](Translating-and-Contributing)

@@ -1,6 +1,6 @@
 # Everything 整合
 
-[简体中文](Everything-集成) | **繁體中文** | [English](Everything-集成.en-US)
+[简体中文](Everything-集成) | **繁體中文** | [English](Everything-Integration)
 
 Everything 是简驭 | Simpilot 的選用搜尋能力。它用於開啟或還原 Everything 搜尋視窗，並在快速啟動選單只填寫程式名稱時協助定位檔案。
 
@@ -65,4 +65,4 @@ Everything 傳回多個候選項目時，简驭會顯示選擇視窗。候選項
 - `Everything64.dll` 缺失時，简驭無法查詢 Everything 資料庫；但不影響简驭啟動。
 - `Ctrl+Alt+Del`、權限更高的桌面工作階段和其他使用者工作階段不屬於简驭或 Everything 的控制範圍。
 
-遇到無法開啟或無法定位時，請先確認 `Everything/Everything.exe` 與 `Everything/Everything64.dll` 存在，再查看[常見問題與疑難排解](常见问题与故障排查.zh-TW)。
+遇到無法開啟或無法定位時，請先確認 `Everything/Everything.exe` 與 `Everything/Everything64.dll` 存在，再查看[常見問題與疑難排解](常見問題與疑難排解)。

@@ -1,6 +1,6 @@
 # Windows Hotkey Blocking
 
-[简体中文](Windows-快捷键屏蔽) | [繁體中文](Windows-快捷键屏蔽.zh-TW) | **English**
+[简体中文](Windows-快捷键屏蔽) | [繁體中文](Windows-快速鍵封鎖) | **English**
 
 Use **Settings > Windows Hotkey Blocking** to select supported `Win+letter` combinations that Simpilot should intercept in real time.
 
@@ -19,7 +19,7 @@ When an enabled built-in or custom hotkey uses an exact `Win+letter` combination
 
 If the last global hotkey using that combination is disabled, cleared, or deleted, the automatic link is removed. A blocking state that you had selected independently remains in place.
 
-See [Global Hotkeys](全局热键.en-US) for recording and managing global hotkeys.
+See [Global Hotkeys](Global-Hotkeys) for recording and managing global hotkeys.
 
 ## Limits
 
@@ -27,4 +27,4 @@ See [Global Hotkeys](全局热键.en-US) for recording and managing global hotke
 - Security-desktop combinations such as `Ctrl+Alt+Del` cannot be intercepted by ordinary desktop applications.
 - The sign-in screen, other user sessions, elevated desktops, and some Remote Desktop environments are outside the supported scope.
 
-For common checks when a shortcut still reaches Windows, see [FAQ and Troubleshooting](常见问题与故障排查.en-US).
+For common checks when a shortcut still reaches Windows, see [FAQ and Troubleshooting](FAQ-and-Troubleshooting).

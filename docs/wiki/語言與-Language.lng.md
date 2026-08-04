@@ -1,6 +1,6 @@
 # 語言與 Language.lng
 
-[简体中文](语言与-Language.lng) | **繁體中文** | [English](语言与-Language.lng.en-US)
+[简体中文](语言与-Language.lng) | **繁體中文** | [English](Language-and-Language.lng)
 
 简驭 | Simpilot 內建簡體中文、繁體中文與 English。首次執行以及語言設定無效時，預設使用簡體中文。
 
@@ -45,4 +45,4 @@ Config/
 
 因此，外部語言包即使漏掉少量字串，介面也不會出現空白控制項；但正式發佈前仍應補齊所有翻譯項目。
 
-如何製作與發佈新語言，請參閱[翻譯與貢獻](翻译与贡献.zh-TW)。
+如何製作與發佈新語言，請參閱[翻譯與貢獻](翻譯與貢獻)。

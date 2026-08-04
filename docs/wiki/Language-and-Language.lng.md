@@ -1,6 +1,6 @@
 # Language and Language.lng
 
-[简体中文](语言与-Language.lng) | [繁體中文](语言与-Language.lng.zh-TW) | **English**
+[简体中文](语言与-Language.lng) | [繁體中文](語言與-Language.lng) | **English**
 
 Simpilot includes Simplified Chinese, Traditional Chinese, and English. Simplified Chinese is used on first launch and whenever the saved language selection is invalid.
 
@@ -45,4 +45,4 @@ Selected language -> built-in English -> [missing translation]
 
 Therefore, a package with a few missing strings does not leave blank controls, but a production translation should still include every string.
 
-See [Translating and Contributing](翻译与贡献.en-US) to create and publish a language package.
+See [Translating and Contributing](Translating-and-Contributing) to create and publish a language package.

@@ -12,7 +12,7 @@ GitHub Wiki 面向最终用户，按任务组织，不暴露实现细节；仓�
 | 快捷启动菜单、全局热键、Windows 快捷键屏蔽 | `docs/wiki/` 与用户手册 | 产品经理、开发、测试 |
 | Everything、语言包、配置与排障 | `docs/wiki/` 与专项文档 | 开发、客服、测试 |
 | 图标与主题 | `docs/wiki/` 与 `menu-*.md` | UI/UX、开发 |
-| 翻译与贡献 | `docs/wiki/` 与 `localization.md` | 本地化审校、技术文档工程师 |
+| 翻译与贡献 | `docs/wiki/` 与 `多语言资源与发布.md` | 本地化审校、技术文档工程师 |
 | 关于、许可与第三方组件 | `LICENSE` 与 `THIRD-PARTY-NOTICES.txt` | 产品经理、技术文档工程师、法务审校 |
 
 ## 发布检查

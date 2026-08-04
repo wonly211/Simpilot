@@ -1,12 +1,12 @@
 # Simpilot Wiki
 
-[简体中文](Home) | [繁體中文](Home.zh-TW) | **English**
+[简体中文](Home) | [繁體中文](首頁) | **English**
 
 Simpilot is a lightweight quick launcher and global hotkey manager for Windows. It uses a notification-area icon to organize frequently used applications, folders, files, and websites into hierarchical menus, while global hotkeys make frequent actions available from anywhere on the desktop.
 
 ## Start here
 
-Read [Quick Start](快速开始.en-US) to download, extract, and run Simpilot for the first time. Simpilot is a portable tray application: after it starts, it stays in the Windows notification area instead of opening a conventional main window.
+Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the first time. Simpilot is a portable tray application: after it starts, it stays in the Windows notification area instead of opening a conventional main window.
 
 - Left-click the tray icon to open the quick-launch menu.
 - Right-click the tray icon for settings, language, Everything maintenance, About, and Exit.
@@ -16,17 +16,17 @@ Read [Quick Start](快速开始.en-US) to download, extract, and run Simpilot fo
 
 | What you want to do | Guide |
 | --- | --- |
-| Download, start, or understand the folder layout | [Quick Start](快速开始.en-US) |
-| Build a hierarchy of applications, files, and folders | [Quick Launch Menu](快捷启动菜单.en-US) |
-| Record built-in hotkeys or add your own action | [Global Hotkeys](全局热键.en-US) |
-| Block a supported Windows shortcut while Simpilot runs | [Windows Hotkey Blocking](Windows-快捷键屏蔽.en-US) |
-| Use, maintain, or troubleshoot Everything | [Everything Integration](Everything-集成.en-US) |
-| Select menu icons or choose a menu theme | [Menu Icons and Themes](菜单图标与主题.en-US) |
-| Change the interface language or install `Language.lng` | [Language and Language.lng](语言与-Language.lng.en-US) |
-| Back up settings or inspect diagnostic logs | [Configuration, Logs, and Backup](配置-日志与备份.en-US) |
-| Resolve common problems | [FAQ and Troubleshooting](常见问题与故障排查.en-US) |
-| Translate Simpilot or report a problem | [Translating and Contributing](翻译与贡献.en-US) |
-| Review licensing, third-party components, or support channels | [About, License, and Third-Party Components](关于、许可与第三方组件.en-US) |
+| Download, start, or understand the folder layout | [Quick Start](Quick-Start) |
+| Build a hierarchy of applications, files, and folders | [Quick Launch Menu](Quick-Launch-Menu) |
+| Record built-in hotkeys or add your own action | [Global Hotkeys](Global-Hotkeys) |
+| Block a supported Windows shortcut while Simpilot runs | [Windows Hotkey Blocking](Windows-Hotkey-Blocking) |
+| Use, maintain, or troubleshoot Everything | [Everything Integration](Everything-Integration) |
+| Select menu icons or choose a menu theme | [Menu Icons and Themes](Menu-Icons-and-Themes) |
+| Change the interface language or install `Language.lng` | [Language and Language.lng](Language-and-Language.lng) |
+| Back up settings or inspect diagnostic logs | [Configuration, Logs, and Backup](Configuration-Logs-and-Backup) |
+| Resolve common problems | [FAQ and Troubleshooting](FAQ-and-Troubleshooting) |
+| Translate Simpilot or report a problem | [Translating and Contributing](Translating-and-Contributing) |
+| Review licensing, third-party components, or support channels | [About, License, and Third-Party Components](About-License-and-Third-Party-Components) |
 
 ## Core capabilities
 

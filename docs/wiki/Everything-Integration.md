@@ -1,6 +1,6 @@
 # Everything Integration
 
-[简体中文](Everything-集成) | [繁體中文](Everything-集成.zh-TW) | **English**
+[简体中文](Everything-集成) | [繁體中文](Everything-整合) | **English**
 
 Everything is an optional search capability for Simpilot. It opens or restores the Everything Search window and helps resolve application entries that contain only a program name instead of a complete path.
 
@@ -70,4 +70,4 @@ The selected result is stored in `Cache/program-cache.tsv`. If that target is mo
 - When the default instance is running, Simpilot does not depend on the path of its `Everything.exe`.
 - Without `Everything64.dll`, Simpilot cannot query the Everything database, but it can still start.
 
-For troubleshooting, see [FAQ and Troubleshooting](常见问题与故障排查.en-US).
+For troubleshooting, see [FAQ and Troubleshooting](FAQ-and-Troubleshooting).

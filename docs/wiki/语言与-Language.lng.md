@@ -1,6 +1,6 @@
 # 语言与 Language.lng
 
-**简体中文** | [繁體中文](语言与-Language.lng.zh-TW) | [English](语言与-Language.lng.en-US)
+**简体中文** | [繁體中文](語言與-Language.lng) | [English](Language-and-Language.lng)
 
 简驭 | Simpilot 内建简体中文、繁体中文与 English。首次运行以及语言设置无效时，默认使用简体中文。
 

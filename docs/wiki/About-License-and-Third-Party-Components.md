@@ -1,6 +1,6 @@
 # About, License, and Third-Party Components
 
-[简体中文](关于、许可与第三方组件) | [繁體中文](关于、许可与第三方组件.zh-TW) | **English**
+[简体中文](关于、许可与第三方组件) | [繁體中文](關於、授權條款與第三方元件) | **English**
 
 Simpilot is a lightweight quick launcher and global hotkey manager for Windows. It runs portably: configuration, caches, and diagnostic logs stay in its program folder, and its core features do not require an account or cloud service.
 
@@ -33,5 +33,5 @@ See the [third-party notices](https://github.com/wonly211/Simpilot/blob/main/THI
 ## Related pages
 
 - [Wiki Home](Home.en-US)
-- [FAQ and Troubleshooting](常见问题与故障排查.en-US)
-- [Translating and Contributing](翻译与贡献.en-US)
+- [FAQ and Troubleshooting](FAQ-and-Troubleshooting)
+- [Translating and Contributing](Translating-and-Contributing)

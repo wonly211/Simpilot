@@ -1,6 +1,6 @@
 # Quick Start
 
-[简体中文](快速开始) | [繁體中文](快速开始.zh-TW) | **English**
+[简体中文](快速开始) | [繁體中文](快速開始) | **English**
 
 This guide gets Simpilot running and opens your first quick-launch menu.
 
@@ -59,8 +59,8 @@ On first launch, Simpilot creates `Config/Simpilot.ini` with example entries. Yo
 
 ## Next steps
 
-1. Read [Quick Launch Menu](快捷启动菜单.en-US) to organize applications, folders, files, and websites.
-2. Read [Global Hotkeys](全局热键.en-US) to record convenient key combinations.
+1. Read [Quick Launch Menu](Quick-Launch-Menu) to organize applications, folders, files, and websites.
+2. Read [Global Hotkeys](Global-Hotkeys) to record convenient key combinations.
 3. In **Settings > General**, choose an interface language or menu theme, or enable automatic startup after Windows sign-in.
 
-Return to [Wiki Home](Home.en-US) for all topics. For complete operational details, including backup and troubleshooting, see the [user manual](https://github.com/wonly211/Simpilot/blob/main/docs/user-manual.zh-CN.md).
+Return to [Wiki Home](Home.en-US) for all topics. For complete operational details, including backup and troubleshooting, see the [user manual](https://github.com/wonly211/Simpilot/blob/main/docs/用户手册.md).

@@ -1,6 +1,6 @@
 # Translating and Contributing
 
-[简体中文](翻译与贡献) | [繁體中文](翻译与贡献.zh-TW) | **English**
+[简体中文](翻译与贡献) | [繁體中文](翻譯與貢獻) | **English**
 
 Thank you for helping make Simpilot available in more languages. Simplified Chinese, Traditional Chinese, and English are built in. Other languages are distributed through `Language.lng`.
 
@@ -71,4 +71,4 @@ Before submitting a translation, verify that:
 
 Submit the JSON source file and any needed notes to the repository rather than only the binary `Language.lng`. Maintainers can then review key completeness, terminology, UI presentation, and the final packaged result before distributing the language with a release.
 
-For user-facing behavior of language packages, see [Language and Language.lng](语言与-Language.lng.en-US).
+For user-facing behavior of language packages, see [Language and Language.lng](Language-and-Language.lng).

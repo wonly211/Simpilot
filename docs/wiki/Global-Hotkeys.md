@@ -1,6 +1,6 @@
 # Global Hotkeys
 
-[简体中文](全局热键) | [繁體中文](全局热键.zh-TW) | **English**
+[简体中文](全局热键) | [繁體中文](全域快速鍵) | **English**
 
 Global hotkeys trigger actions while Simpilot runs in the background. Open **Settings > Global Hotkeys** to record, enable, pause, edit, or remove them.
 
@@ -27,7 +27,7 @@ In the **Custom Global Hotkeys** section, select **Add** and then:
 4. Select the record control and press the desired key combination.
 5. Turn on the item switch and select **Apply** or **Save**.
 
-You can select an existing custom item to edit or delete it, or use its switch to pause it without deleting its configuration. Custom global hotkeys do not open websites directly; add a website to the [Quick Launch Menu](快捷启动菜单.en-US) instead.
+You can select an existing custom item to edit or delete it, or use its switch to pause it without deleting its configuration. Custom global hotkeys do not open websites directly; add a website to the [Quick Launch Menu](Quick-Launch-Menu) instead.
 
 ## Record a hotkey
 
@@ -41,7 +41,7 @@ During recording, Simpilot temporarily handles the keystrokes used for capture. 
 
 When settings are saved, Simpilot checks for conflicts with built-in hotkeys, other custom hotkeys, and combinations registered by Windows or other programs. It asks for confirmation before replacing an existing Simpilot assignment. Do not override a hotkey unless you understand what it currently does.
 
-An active exact `Win+letter` hotkey is linked to [Windows Hotkey Blocking](Windows-快捷键屏蔽.en-US). Simpilot automatically blocks and locks the matching Windows shortcut so that Windows does not perform its usual action first. When the last active hotkey using that combination is disabled, cleared, or removed, this automatic lock is released. Any independent blocking choice that you made remains intact.
+An active exact `Win+letter` hotkey is linked to [Windows Hotkey Blocking](Windows-Hotkey-Blocking). Simpilot automatically blocks and locks the matching Windows shortcut so that Windows does not perform its usual action first. When the last active hotkey using that combination is disabled, cleared, or removed, this automatic lock is released. Any independent blocking choice that you made remains intact.
 
 ## Important limits
 
@@ -52,6 +52,6 @@ An active exact `Win+letter` hotkey is linked to [Windows Hotkey Blocking](Windo
 ## Related pages
 
 - [Wiki Home](Home.en-US)
-- [Quick Start](快速开始.en-US)
-- [Quick Launch Menu](快捷启动菜单.en-US)
-- [Windows Hotkey Blocking](Windows-快捷键屏蔽.en-US)
+- [Quick Start](Quick-Start)
+- [Quick Launch Menu](Quick-Launch-Menu)
+- [Windows Hotkey Blocking](Windows-Hotkey-Blocking)

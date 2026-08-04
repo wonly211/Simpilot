@@ -1,6 +1,6 @@
 # Windows 快捷键屏蔽
 
-**简体中文** | [繁體中文](Windows-快捷键屏蔽.zh-TW) | [English](Windows-快捷键屏蔽.en-US)
+**简体中文** | [繁體中文](Windows-快速鍵封鎖) | [English](Windows-Hotkey-Blocking)
 
 “设置 > Windows 快捷键屏蔽”用于选择需要由简驭实时拦截的受支持 `Win+字母` 组合。
 
