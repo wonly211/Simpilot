@@ -34,7 +34,7 @@ It is designed for office users, developers, content creators, and productivity 
 | Windows shortcut takeover | Block selected `Win+letter` combinations while Simpilot is running and give custom actions priority |
 | Everything integration | Open or restore the search window with one action and locate programs whose full paths were not specified |
 | Menu icons and themes | Extract clear icons automatically or select them manually; follow the system theme or choose light or dark mode |
-| Portable and localized | Extract the complete archive and run it immediately; settings remain local, with 简体中文, 繁體中文, and English built in |
+| Portable and localized | Extract the complete archive and run it immediately; settings remain local, with 简体中文, 繁體中文, and English built in, plus optional `Language.lng` language packs |
 
 Simpilot is built with native C++20 and Win32. Its core features require no account or cloud service, and shortcut blocking does not modify Windows system policies. When Simpilot exits, its registered hotkeys and real-time shortcut blocking are removed automatically.
 
@@ -71,11 +71,11 @@ Simpilot is a tray application and does not show a conventional main window afte
 - Per-Monitor V2 DPI keeps menus clear across displays with different scaling settings.
 - Logs are stored in `Log/Simpilot.log`; entries older than 90 days are removed at startup.
 
-## User Manual
+## User Documentation
 
 For installation, menu editing, hotkey recording, Windows shortcut blocking, Everything integration, backup and migration, and troubleshooting, see:
 
-**[简驭 | Simpilot User Manual (Simplified Chinese)](docs/user-manual.zh-CN.md)**
+**[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)** provides task-oriented guides for setup, menus, hotkeys, Everything, language packs, and troubleshooting. The repository documentation remains the technical source of truth.
 
 For problems, check the troubleshooting and FAQ sections first, then report the issue through [GitHub Issues](https://github.com/wonly211/Simpilot/issues). Review the log before posting and avoid exposing personal directory or file names.
 

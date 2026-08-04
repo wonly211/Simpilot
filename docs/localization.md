@@ -49,13 +49,28 @@ Config/
 
 `locale` 必须是类似 `fr-FR` 的语言区域代码，`name` 是设置页显示的语言自称。`strings` 应以 `Languages/en-US.json` 的完整键集合为基准；缺少的键会回退到内置英文。
 
-仓库中的 `tools/language_pack_builder.cpp` 是构建期打包工具，不会放入最终发布包。先构建 `simpilot_language_pack_builder` 目标，再使用其输出程序生成外部包：
+仓库中的 `tools/language_pack_builder.cpp` 是构建期打包工具，不会放入最终发布包。先使用 Visual Studio 2022 的 C++ 桌面开发环境构建 `simpilot_language_pack_builder` 目标：
+
+```powershell
+cmake -S . -B build/vs2022-x64 -G "Visual Studio 17 2022" -A x64
+cmake --build build/vs2022-x64 --config Release --target simpilot_language_pack_builder
+```
+
+再使用其输出程序生成外部包：
 
 ```text
 simpilot_language_pack_builder.exe Language.lng fr-FR.json
 ```
 
 可以在一次命令中追加多个 JSON 文件，以生成包含多种额外语言的一个 `Language.lng`。
+
+## 翻译发布检查
+
+1. 以 `Languages/en-US.json` 为基准补齐全部键和 `{}` 格式占位符。
+2. 使用 UTF-8 保存 JSON，并填写正确的 `locale` 与本地语言自称 `name`。
+3. 生成 `Language.lng`，放入测试版本 `Simpilot.exe` 同目录并重启程序。
+4. 检查托盘菜单、设置、菜单编辑器和对话框，确认文本没有截断、重叠或遗留英文。
+5. 移走或损坏 `Language.lng`，确认简驭仍能正常启动并回退到内置语言。
 
 ## 回退规则
 

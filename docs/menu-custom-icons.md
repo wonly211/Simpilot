@@ -1,4 +1,6 @@
-# Simpilot 0.8.0+: Custom Menu Icons
+# Simpilot Custom Menu Icons
+
+Applies to Simpilot 0.18.0 and later.
 
 ## Scope
 

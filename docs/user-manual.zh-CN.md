@@ -18,7 +18,7 @@
 
 1. 从 [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载最新版本的 `Simpilot-*-win-x64.zip`。
 2. 将压缩包完整解压到一个固定目录。
-3. 确保 `Simpilot.exe`、`Everything` 和 `Languages` 目录保持在原有相对位置。
+3. 确保 `Simpilot.exe` 与 `Everything` 目录保持在原有相对位置。
 4. 双击 `Simpilot.exe`。
 
 建议选择当前账户可以正常写入的目录。简驭会在程序目录中创建配置、缓存和日志；不要只在压缩包预览窗口中运行，也不要仅复制 `Simpilot.exe`。
@@ -112,9 +112,11 @@ Windows 资源管理器重启后，简驭会自动重新注册托盘图标，无
 
 选择后立即切换，无需重启简驭或 Windows 资源管理器。当前设置页面、尚未应用的其他设置和列表选择会保留。用户自己填写的菜单名称、分类名称和目标路径不会被翻译。
 
+如需其他语言，可将压缩的 `Language.lng` 放在 `Simpilot.exe` 同目录。程序启动时会加载包内语言并在此处列出；文件不存在、损坏或不兼容时会被忽略，内置三种语言不受影响。语言包制作方法见[语言包与翻译发布指南](localization.md)。
+
 语言选择以 `Language=...` 保存在 `Config/Setting.ini`。如果当前语言资源缺少某段文字，简驭会使用英文文本；资源仍缺失时会显示 `[missing translation]`，而不是显示空白按钮。
 
-更新旧版本时不会自动迁移配置。请手动将 `Config/Simpilot.settings.ini` 改名为 `Config/Setting.ini`，再把原 `language.txt` 中的语言代码写入 `[General]` 下的 `Language=` 项；旧文件不会被读取。
+旧配置不提供自动迁移。升级前请备份 `Config/`，并按当前文件名与格式自行整理需要保留的内容。
 
 ### 4.3 快捷启动菜单主题
 

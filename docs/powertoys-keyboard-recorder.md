@@ -1,11 +1,11 @@
 # PowerToys Keyboard Manager 录制逻辑复用说明
 
 更新日期：2026-07-30  
-适用版本：Simpilot 0.5.1
+适用版本：Simpilot 0.18.0；本文为开发档案，不是最终用户操作指南。
 
 ## 1. 最终架构
 
-Simpilot 0.5.1 只发布并运行一个主程序 `Simpilot.exe`。程序内部创建一个专用键盘线程，该线程拥有独立的 Windows 消息循环，并在整个程序生命周期内安装唯一的 `WH_KEYBOARD_LL` 低级键盘钩子。
+Simpilot 自 0.5.1 起只发布并运行一个主程序 `Simpilot.exe`；当前 0.18.0 仍使用这一架构。程序内部创建一个专用键盘线程，该线程拥有独立的 Windows 消息循环，并在整个程序生命周期内安装唯一的 `WH_KEYBOARD_LL` 低级键盘钩子。
 
 ```text
 Simpilot.exe
@@ -26,7 +26,7 @@ Simpilot.exe
 
 PowerToys 将 Runtime 与 Editor 分成不同进程，这是其产品架构选择，不是 `WH_KEYBOARD_LL` 的系统要求。Simpilot 的设置窗口规模较小，可以在单个进程内用专用线程获得所需的消息循环隔离，无需增加第二个可执行文件、进程间协议和子进程生命周期管理。
 
-0.5.1 因此删除了：
+0.5.1 版本因此删除了：
 
 - `Simpilot.KeyboardRecorder.exe`；
 - `KeyboardRecorderClient`；

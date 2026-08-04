@@ -1,7 +1,7 @@
 # Win+A～Win+Z 系统热键复核与屏蔽方案
 
 更新日期：2026-07-30  
-适用版本：Simpilot 0.5.1 及后续版本
+适用版本：Simpilot 0.18.0；本文为开发档案，不是最终用户操作指南。最终用户请参阅 GitHub Wiki 的“Windows 快捷键屏蔽”页面。
 
 ## 1. 结论
 
@@ -38,7 +38,7 @@ PowerToys 在进入录制状态时安装 `WH_KEYBOARD_LL`，录制期间同时�
 
 `KeyboardManagerState::DetectShortcutUIBackend` 根据每次按下和释放维护当前按键集合，然后返回 `Suppress`。公共 `KeyboardHook::HookProc` 收到该决定后返回非零值，事件不会继续到达反馈中心、Game Bar、Explorer 或前台应用。因此 `Win+F`、`Win+G` 等组合在第一次按下时即可被录制，而不会先执行系统动作。
 
-Simpilot 0.5.1 在同一个 `Simpilot.exe` 中设置专用键盘线程。该线程建立自己的消息循环并在程序生命周期内只安装一个钩子；用户点击热键框时只切换钩子的录制优先状态。录制期间四类消息全部吞掉，状态完全由钩子收到的事件维护，不在回调中调用 `GetAsyncKeyState`。按键全部释放后再把录制结果投递给界面线程。源码复用范围和最小适配边界见 [PowerToys Keyboard Manager 录制架构复用说明](powertoys-keyboard-recorder.md)。
+Simpilot 自 0.5.1 起在同一个 `Simpilot.exe` 中设置专用键盘线程，当前 0.18.0 仍使用这一架构。该线程建立自己的消息循环并在程序生命周期内只安装一个钩子；用户点击热键框时只切换钩子的录制优先状态。录制期间四类消息全部吞掉，状态完全由钩子收到的事件维护，不在回调中调用 `GetAsyncKeyState`。按键全部释放后再把录制结果投递给界面线程。源码复用范围和最小适配边界见 [PowerToys Keyboard Manager 录制架构复用说明](powertoys-keyboard-recorder.md)。
 
 ### 2.2 禁用快捷键
 
@@ -150,7 +150,7 @@ Keyboard Filter 适用于特定 Enterprise、Education 和 IoT 场景，需要�
 
 自动测试负责验证配置文件往返保存；系统行为需要在隔离测试桌面人工验证：
 
-1. 录制 `Win+F`、`Win+G`、`Win+L`，确认第一次按下即显示在输入框，系统功能不启动。
+1. 录制 `Win+F`、`Win+G`、`Win+R`，确认第一次按下即显示在输入框，系统功能不启动；录制 `Win+L` 时，界面应拒绝将其保存为全局热键。
 2. 分别打开 F、G 对应的屏蔽开关并保存，确认无需重启 Explorer 且第一次按下即被屏蔽；页面不提供 Win+L。
 3. 长按动作键，确认自动重复不会穿透。
 4. 分别使用左 Win、右 Win，确认行为一致。
