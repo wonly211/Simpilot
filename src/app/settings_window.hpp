@@ -40,8 +40,7 @@ public:
 
     [[nodiscard]] static std::optional<AppSettings> show_modal(
         HINSTANCE instance, HWND owner, const AppSettings& current,
-        UiLanguage language, KeyboardManager& keyboard_manager,
-        AvailabilityProbe availability_probe,
+        KeyboardManager& keyboard_manager, AvailabilityProbe availability_probe,
         DiagnosticSink diagnostic_sink, std::vector<MenuIconTarget> menu_icon_targets,
         std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
         IconChangeSink icon_change_sink = {},
@@ -52,8 +51,7 @@ public:
 
 private:
     SettingsWindow(HINSTANCE instance, HWND owner, AppSettings current,
-                   UiLanguage language, KeyboardManager& keyboard_manager,
-                   AvailabilityProbe availability_probe,
+                   KeyboardManager& keyboard_manager, AvailabilityProbe availability_probe,
                    DiagnosticSink diagnostic_sink,
                    std::vector<MenuIconTarget> menu_icon_targets,
                    std::filesystem::path config_directory,

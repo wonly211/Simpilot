@@ -1,6 +1,7 @@
 #pragma once
 
 #include "simpilot/hotkey.hpp"
+#include "simpilot/localization.hpp"
 
 #include <array>
 #include <filesystem>
@@ -56,6 +57,7 @@ struct BuiltInHotKey {
 };
 
 struct AppSettings {
+    UiLanguage language = UiLanguage::simplified_chinese;
     bool start_with_windows = false;
     MenuTheme menu_theme = MenuTheme::system;
     BuiltInHotKey main_menu{{{HotKeyGesture{0, VK_OEM_3}}, false}, true};

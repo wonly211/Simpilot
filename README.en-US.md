@@ -114,8 +114,7 @@ build/vs2022-x64/Simpilot-<version>-win-x64.zip
 Config/
   Simpilot.ini
   Simpilot2.ini
-  Simpilot.settings.ini
-  language.txt
+  Setting.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -123,7 +122,7 @@ Log/
   Simpilot.log
 ```
 
-`Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources. The menu editor saves these UTF-8 configuration files atomically; most users do not need to edit them manually.
+`Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources; `Setting.ini` stores the display language and application settings. Configuration is saved atomically in UTF-8, so most users do not need to edit it manually.
 
 </details>
 

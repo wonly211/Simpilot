@@ -22,7 +22,7 @@ Simpilot 0.5.1 由 `Simpilot.exe` 内的专用键盘线程统一处理运行时�
 
 ## 2. 配置格式
 
-自定义热键写入 `Config\Simpilot.settings.ini`：
+自定义热键写入 `Config\Setting.ini`：
 
 ```ini
 [CustomGlobalHotkeys]

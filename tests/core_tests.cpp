@@ -23,6 +23,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <utility>
 
 namespace {
 
@@ -434,28 +435,15 @@ void bundled_everything_sdk_exports_load() {
     require(search != nullptr, "Bundled Everything SDK exports");
 }
 
-void localization_switches_and_persists_language() {
+void localization_resources_cover_supported_languages() {
     const auto root = std::filesystem::temp_directory_path()
         / (L"simpilot-language-test-" + std::to_wstring(GetCurrentProcessId()));
     std::filesystem::remove_all(root);
     std::filesystem::create_directories(root);
 
-    const auto default_language = simpilot::Localization::load(root);
-    require(default_language.language() == simpilot::UiLanguage::simplified_chinese,
-            "Missing language preference defaults to Simplified Chinese");
-    simpilot::write_configuration_text(root / L"language.txt", L"invalid-locale\n");
-    const auto invalid_language = simpilot::Localization::load(root);
-    require(invalid_language.language() == simpilot::UiLanguage::simplified_chinese,
-            "Invalid language preference defaults to Simplified Chinese");
-
     simpilot::Localization localization(simpilot::UiLanguage::simplified_chinese);
     require_equal(std::wstring(localization.text(simpilot::UiText::exit)),
                   std::wstring(L"\u9000\u51fa"), "Chinese UI text");
-    require(localization.save(root), "Save language preference");
-    const auto loaded = simpilot::Localization::load(root);
-    require(loaded.language() == simpilot::UiLanguage::simplified_chinese,
-            "Load language preference");
-
     simpilot::Localization english(simpilot::UiLanguage::english);
     require_equal(std::wstring(english.text(simpilot::UiText::reload_menu)),
                   std::wstring(L"Reload menu"), "English UI text");
@@ -491,10 +479,6 @@ void localization_switches_and_persists_language() {
     simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
     require_equal(std::wstring(traditional.text(simpilot::UiText::exit)),
                   std::wstring(L"\u7d50\u675f"), "Traditional Chinese UI text");
-    require(traditional.save(root), "Save Traditional Chinese preference");
-    const auto reloaded_traditional = simpilot::Localization::load(root);
-    require(reloaded_traditional.language() == simpilot::UiLanguage::traditional_chinese,
-            "Load Traditional Chinese preference");
     require_equal(std::string(simpilot::Localization::language_code(
                       simpilot::UiLanguage::traditional_chinese)),
                   std::string("zh-TW"), "Traditional Chinese language code");
@@ -539,8 +523,9 @@ void hotkeys_display_canonical_gestures() {
 void app_settings_persist_captured_hotkeys_and_force_override() {
     const auto root = std::filesystem::temp_directory_path()
         / (L"simpilot-settings-test-" + std::to_wstring(GetCurrentProcessId()));
-    const auto path = root / L"Simpilot.settings.ini";
+    const auto path = root / L"Setting.ini";
     simpilot::AppSettings settings;
+    settings.language = simpilot::UiLanguage::traditional_chinese;
     settings.start_with_windows = true;
     settings.menu_theme = simpilot::MenuTheme::dark;
     settings.main_menu = simpilot::BuiltInHotKey{
@@ -624,6 +609,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
                 "Persist open-folder action value");
         require(content.find("MenuTheme=2") != std::string::npos,
                 "Persist dark popup-menu theme value");
+        require(content.find("Language=zh-TW") != std::string::npos,
+                "Persist the UI language in the unified settings file");
         require(content.find("EverythingSearchCode=8,81") != std::string::npos
                 && content.find("EverythingSearchEnabled=1") != std::string::npos,
                 "Persist the built-in Everything Search hotkey without a path");
@@ -638,6 +625,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
                 "Do not persist textual hotkey compatibility fields");
     }
     const auto loaded = simpilot::AppSettingsStore::load(path);
+    require(loaded.language == simpilot::UiLanguage::traditional_chinese,
+            "Load the UI language from the unified settings file");
     require(loaded.start_with_windows, "Persist startup setting");
     require(loaded.menu_theme == simpilot::MenuTheme::dark,
             "Load popup-menu theme");
@@ -661,10 +650,27 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     require_equal(loaded.custom_global_hotkeys, expected_custom_hotkeys,
                    "Persist custom actions, normalize Win+letter, and reject Win+L");
 
-    const auto incomplete_path = root / L"incomplete.settings.ini";
+    const std::array language_cases{
+        std::pair{simpilot::UiLanguage::simplified_chinese, std::string("zh-CN")},
+        std::pair{simpilot::UiLanguage::traditional_chinese, std::string("zh-TW")},
+        std::pair{simpilot::UiLanguage::english, std::string("en-US")},
+    };
+    for (const auto& [language, code] : language_cases) {
+        auto language_settings = settings;
+        language_settings.language = language;
+        const auto language_path = root / (L"language-" + std::wstring(
+            code.begin(), code.end()) + L".ini");
+        require(simpilot::AppSettingsStore::save(language_path, language_settings),
+                "Save every supported UI language");
+        require(simpilot::AppSettingsStore::load(language_path).language == language,
+                "Load every supported UI language");
+    }
+
+    const auto incomplete_path = root / L"incomplete.ini";
     {
         std::ofstream incomplete(incomplete_path, std::ios::binary | std::ios::trunc);
         incomplete << "[CustomGlobalHotkeys]\r\n"
+                   << "Language=invalid-locale\r\n"
                    << "CustomGlobalHotKeyCount=1\r\n"
                    << "CustomGlobalHotKey1Code=3,88\r\n"
                    << "CustomGlobalHotKey1Program=C:\\Apps\\Incomplete.exe\r\n";
@@ -672,9 +678,13 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     const auto incomplete = simpilot::AppSettingsStore::load(incomplete_path);
     require(incomplete.custom_global_hotkeys.empty(),
             "Ignore custom hotkeys that do not declare Enabled");
+    require(incomplete.language == simpilot::UiLanguage::simplified_chinese,
+            "Invalid language values default to Simplified Chinese");
     std::filesystem::remove_all(root);
 
     const auto defaults = simpilot::AppSettingsStore::load(root / L"missing.ini");
+    require(defaults.language == simpilot::UiLanguage::simplified_chinese,
+            "Missing settings default to Simplified Chinese");
     require(defaults.main_menu.binding.gesture
             && defaults.main_menu.binding.gesture->virtual_key == VK_OEM_3
             && defaults.main_menu.enabled,
@@ -708,7 +718,7 @@ int wmain() {
         logger_removes_entries_older_than_ninety_days_at_startup();
         config_watcher_reports_menu_file_changes();
         bundled_everything_sdk_exports_load();
-        localization_switches_and_persists_language();
+        localization_resources_cover_supported_languages();
         hotkeys_display_canonical_gestures();
         app_settings_persist_captured_hotkeys_and_force_override();
         std::wcout << L"All Simpilot core tests passed.\n";

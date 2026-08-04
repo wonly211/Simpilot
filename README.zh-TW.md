@@ -114,8 +114,7 @@ build/vs2022-x64/Simpilot-<version>-win-x64.zip
 Config/
   Simpilot.ini
   Simpilot2.ini
-  Simpilot.settings.ini
-  language.txt
+  Setting.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -123,7 +122,7 @@ Log/
   Simpilot.log
 ```
 
-`Simpilot.ini` 與選用的 `Simpilot2.ini` 是快速啟動選單的資料來源。選單編輯器會以原子方式儲存 UTF-8 設定；一般使用者無須手動修改這些檔案。
+`Simpilot.ini` 與選用的 `Simpilot2.ini` 是快速啟動選單的資料來源；`Setting.ini` 儲存顯示語言與應用程式設定。設定統一以 UTF-8 原子方式儲存，一般使用者無須手動修改。
 
 </details>
 

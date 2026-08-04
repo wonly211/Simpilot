@@ -77,7 +77,7 @@ HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System\DisableLockWorkst
 
 ### 3.2 生命周期
 
-1. Simpilot 启动并读取 `Config\Simpilot.settings.ini`。
+1. Simpilot 启动并读取 `Config\Setting.ini`。
 2. `Simpilot.exe` 的专用键盘线程建立独立消息循环并安装唯一的常驻 `WH_KEYBOARD_LL`。有效屏蔽集合由本页选择、确认强制覆盖的固定热键和自定义 `Win+字母` 热键合并生成。
 3. 设置页打开后仍使用同一钩子。录制开始时，钩子先执行 PowerToys 来源的录制决策并吞掉全部输入，不再继续执行运行时屏蔽或全局热键分支。设置窗口与添加窗口自身不安装钩子。
 4. 用户保存后，新字母掩码立即写入常驻钩子；不修改 Windows 设置，不显示 Explorer 重启对话框。

@@ -189,7 +189,7 @@
     "about.link.third_party": "第三方组件声明",
     "about.close": "关闭",
     "about.open_failed": "无法打开所选内容。请确认默认浏览器或文件关联可用。",
-    "ui.settings_save_failed": "无法保存 Config\\Simpilot.settings.ini。",
+    "ui.settings_save_failed": "无法保存 Config\\Setting.ini。",
     "ui.startup_update_failed": "无法更新当前用户的 Windows 启动项。",
     "ui.menu_one": "菜单 1",
     "ui.launch_failed": "无法打开：\n{}\n\n错误代码：{}",

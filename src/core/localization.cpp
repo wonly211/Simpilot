@@ -8,9 +8,7 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <fstream>
-#include <iterator>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -18,7 +16,6 @@
 namespace simpilot {
 namespace {
 
-constexpr auto language_file_name = L"language.txt";
 constexpr auto language_directory_name = L"Languages";
 
 using Catalog = std::unordered_map<std::string, std::wstring>;
@@ -115,16 +112,6 @@ static_assert(custom_hotkey_keys.size() ==
 static_assert(about_keys.size() ==
               static_cast<std::size_t>(AboutText::open_failed_text) + 1);
 
-std::string trim(std::string value) {
-    const auto first = std::find_if_not(value.begin(), value.end(), [](const unsigned char character) {
-        return std::isspace(character) != 0;
-    });
-    const auto last = std::find_if_not(value.rbegin(), value.rend(), [](const unsigned char character) {
-        return std::isspace(character) != 0;
-    }).base();
-    return first < last ? std::string(first, last) : std::string{};
-}
-
 std::size_t language_index(const UiLanguage language) noexcept {
     switch (language) {
     case UiLanguage::english: return 0;
@@ -210,47 +197,6 @@ Localization::Localization(const UiLanguage language,
     resources->catalogs[2] = load_catalog(directory, UiLanguage::traditional_chinese);
     const std::scoped_lock lock(cache_mutex);
     resources_ = cache.try_emplace(cache_key, resources).first->second;
-}
-
-Localization Localization::load(const std::filesystem::path& config_directory,
-                                std::filesystem::path resource_directory) {
-    std::ifstream stream(config_directory / language_file_name, std::ios::binary);
-    if (stream) {
-        std::string value((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
-        value = trim(std::move(value));
-        if (value == "en-US") {
-            return Localization(UiLanguage::english, std::move(resource_directory));
-        }
-        if (value == "zh-CN") {
-            return Localization(UiLanguage::simplified_chinese, std::move(resource_directory));
-        }
-        if (value == "zh-TW") {
-            return Localization(UiLanguage::traditional_chinese, std::move(resource_directory));
-        }
-    }
-    return Localization(UiLanguage::simplified_chinese, std::move(resource_directory));
-}
-
-bool Localization::save(const std::filesystem::path& config_directory) const noexcept {
-    try {
-        std::filesystem::create_directories(config_directory);
-        const auto path = config_directory / language_file_name;
-        const auto temporary_path = path.wstring() + L".tmp";
-        {
-            std::ofstream stream(temporary_path, std::ios::binary | std::ios::trunc);
-            if (!stream) return false;
-            const auto code = language_code(language_);
-            stream.write(code.data(), static_cast<std::streamsize>(code.size()));
-            stream.put('\n');
-            if (!stream) return false;
-        }
-        std::error_code error;
-        std::filesystem::remove(path, error);
-        std::filesystem::rename(temporary_path, path);
-        return true;
-    } catch (...) {
-        return false;
-    }
 }
 
 UiLanguage Localization::language() const noexcept {

@@ -39,7 +39,7 @@ Simpilot 以规范化目标路径生成稳定的缓存文件名。首次提取�
 - 浅色：强制 Simpilot 弹出菜单使用浅色；
 - 深色：强制 Simpilot 弹出菜单使用深色。
 
-设置保存在 `Config\Simpilot.settings.ini`：
+设置保存在 `Config\Setting.ini`：
 
 ```ini
 [General]

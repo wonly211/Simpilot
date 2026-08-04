@@ -189,7 +189,7 @@
     "about.link.third_party": "Third-Party Notices",
     "about.close": "Close",
     "about.open_failed": "The selected item could not be opened. Check the default browser or file association.",
-    "ui.settings_save_failed": "Config\\Simpilot.settings.ini could not be saved.",
+    "ui.settings_save_failed": "Config\\Setting.ini could not be saved.",
     "ui.startup_update_failed": "The current user's Windows startup entry could not be updated.",
     "ui.menu_one": "Menu 1",
     "ui.launch_failed": "Could not open:\n{}\n\nError code: {}",

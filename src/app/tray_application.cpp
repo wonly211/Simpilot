@@ -196,8 +196,8 @@ TrayApplication::TrayApplication(HINSTANCE instance, std::filesystem::path execu
       config_directory_(executable_path_.parent_path() / L"Config"),
       logger_(config_directory_.parent_path() / L"Log" / L"Simpilot.log"),
       program_cache_(executable_path_.parent_path() / L"Cache" / L"program-cache.tsv"),
-      settings_(AppSettingsStore::load(config_directory_ / L"Simpilot.settings.ini")),
-      localization_(Localization::load(config_directory_)),
+      settings_(AppSettingsStore::load(config_directory_ / L"Setting.ini")),
+      localization_(settings_.language),
       menu_icons_(executable_path_.parent_path() / L"Cache" / L"RunIcon") {}
 
 TrayApplication::~TrayApplication() {
@@ -603,7 +603,7 @@ void TrayApplication::show_settings() {
     (void)MenuThemeController::apply(MenuTheme::light);
     settings_window_open_ = true;
     (void)SettingsWindow::show_modal(
-        instance_, nullptr, settings_, localization_.language(), keyboard_manager_,
+        instance_, nullptr, settings_, keyboard_manager_,
         [this](const HotKeyGesture& gesture) {
             return keyboard_manager_.probe_available(gesture);
         },
@@ -659,7 +659,7 @@ void TrayApplication::show_settings() {
 }
 
 bool TrayApplication::apply_settings(const AppSettings& updated) {
-    const auto settings_path = config_directory_ / L"Simpilot.settings.ini";
+    const auto settings_path = config_directory_ / L"Setting.ini";
     if (!AppSettingsStore::save(settings_path, updated)) {
         logger_.write(L"settings save failed");
         MessageBoxW(window_,
@@ -884,8 +884,9 @@ void TrayApplication::show_launch_error(const std::wstring_view target,
 
 void TrayApplication::set_language(const UiLanguage language) {
     if (localization_.language() == language) return;
+    settings_.language = language;
     localization_.set_language(language);
-    if (!localization_.save(config_directory_)) {
+    if (!AppSettingsStore::save(config_directory_ / L"Setting.ini", settings_)) {
         logger_.write(L"language preference save failed");
     }
     SetWindowTextW(window_, localization_.text(UiText::app_title).data());

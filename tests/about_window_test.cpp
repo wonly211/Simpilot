@@ -52,7 +52,7 @@ BOOL CALLBACK inspect_child(const HWND control, const LPARAM parameter) {
     const auto value = control_text(control);
     if (_wcsicmp(class_name, L"SysLink") == 0) ++summary.links;
     if (value == L"简驭 | Simpilot") summary.product_name = true;
-    if (value == L"Version 0.17.0" || value == L"版本 0.17.0") summary.version = true;
+    if (value == L"Version 0.17.1" || value == L"版本 0.17.1") summary.version = true;
     if (value == L"Close" || value == L"关闭" || value == L"關閉") summary.close = true;
     RECT rectangle{};
     if (GetWindowRect(control, &rectangle)) summary.rectangles.push_back(rectangle);
@@ -203,9 +203,9 @@ int wmain(const int argument_count, wchar_t** arguments) {
         const auto product = directory / L"Simpilot.exe";
         require(version_value(product, L"ProductName") == L"简驭 | Simpilot",
                 "Product name matches the About window");
-        require(version_value(product, L"FileVersion") == L"0.17.0.0",
+        require(version_value(product, L"FileVersion") == L"0.17.1.0",
                 "File version matches the project version");
-        require(version_value(product, L"ProductVersion") == L"0.17.0.0",
+        require(version_value(product, L"ProductVersion") == L"0.17.1.0",
                 "Product version matches the project version");
         const auto snapshot_path = argument_count > 2
             && _wcsicmp(arguments[1], L"--snapshot") == 0
@@ -257,7 +257,7 @@ int wmain(const int argument_count, wchar_t** arguments) {
             ? simpilot::UiLanguage::english
             : snapshot_language);
         simpilot::AboutWindow::show_modal(
-            GetModuleHandleW(nullptr), nullptr, localization, product, L"0.17.0");
+            GetModuleHandleW(nullptr), nullptr, localization, product, L"0.17.1");
         inspector.join();
         require(found, "About window was created");
         require(icons_present, "About window uses Simpilot icons");

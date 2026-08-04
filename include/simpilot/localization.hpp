@@ -98,11 +98,6 @@ public:
     explicit Localization(UiLanguage language,
                           std::filesystem::path resource_directory = {});
 
-    [[nodiscard]] static Localization load(
-        const std::filesystem::path& config_directory,
-        std::filesystem::path resource_directory = {});
-    [[nodiscard]] bool save(const std::filesystem::path& config_directory) const noexcept;
-
     [[nodiscard]] UiLanguage language() const noexcept;
     void set_language(UiLanguage language) noexcept;
     [[nodiscard]] std::wstring_view text(UiText text) const noexcept;

@@ -126,8 +126,7 @@ std::wstring windows_error_message(const DWORD error, const UiLanguage language)
 
 std::optional<AppSettings> SettingsWindow::show_modal(
     const HINSTANCE instance, const HWND owner, const AppSettings& current,
-    const UiLanguage language, KeyboardManager& keyboard_manager,
-    AvailabilityProbe availability_probe,
+    KeyboardManager& keyboard_manager, AvailabilityProbe availability_probe,
     DiagnosticSink diagnostic_sink, std::vector<MenuIconTarget> menu_icon_targets,
     std::filesystem::path config_directory, std::filesystem::path icon_cache_directory,
     IconChangeSink icon_change_sink,
@@ -135,7 +134,7 @@ std::optional<AppSettings> SettingsWindow::show_modal(
     LanguageChangeSink language_change_sink,
     ProgramResolutionLookup resolution_lookup,
     ProgramResolutionReselect resolution_reselect) {
-    SettingsWindow window(instance, owner, current, language, keyboard_manager,
+    SettingsWindow window(instance, owner, current, keyboard_manager,
                           std::move(availability_probe), std::move(diagnostic_sink),
                           std::move(menu_icon_targets), std::move(config_directory),
                           std::move(icon_cache_directory),
@@ -148,8 +147,7 @@ std::optional<AppSettings> SettingsWindow::show_modal(
 }
 
 SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
-                               AppSettings current, const UiLanguage language,
-                               KeyboardManager& keyboard_manager,
+                               AppSettings current, KeyboardManager& keyboard_manager,
                                AvailabilityProbe availability_probe,
                                DiagnosticSink diagnostic_sink,
                                std::vector<MenuIconTarget> menu_icon_targets,
@@ -160,8 +158,8 @@ SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
                                LanguageChangeSink language_change_sink,
                                ProgramResolutionLookup resolution_lookup,
                                ProgramResolutionReselect resolution_reselect)
-    : instance_(instance), owner_(owner), settings_(std::move(current)), language_(language),
-      localization_(language),
+    : instance_(instance), owner_(owner), settings_(std::move(current)),
+      language_(settings_.language), localization_(language_),
       keyboard_manager_(keyboard_manager),
       availability_probe_(std::move(availability_probe)),
       diagnostic_sink_(std::move(diagnostic_sink)),
@@ -604,6 +602,8 @@ void SettingsWindow::change_language(const UiLanguage language) {
     const auto old_second_menu = std::wstring(localization_.text(UiText::menu_two));
     const auto old_both_menus = old_main_menu + L" / " + old_second_menu;
     language_ = language;
+    settings_.language = language;
+    applied_settings_.language = language;
     localization_.set_language(language);
     const auto new_main_menu = std::wstring(localization_.text("ui.menu_one"));
     const auto new_second_menu = std::wstring(localization_.text(UiText::menu_two));

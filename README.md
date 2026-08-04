@@ -114,8 +114,7 @@ build/vs2022-x64/Simpilot-<version>-win-x64.zip
 Config/
   Simpilot.ini
   Simpilot2.ini
-  Simpilot.settings.ini
-  language.txt
+  Setting.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -123,7 +122,7 @@ Log/
   Simpilot.log
 ```
 
-`Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源。菜单编辑器使用 UTF-8 原子保存配置；普通用户无需手工修改这些文件。
+`Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源；`Setting.ini` 保存界面语言和应用设置。配置统一使用 UTF-8 原子保存，普通用户无需手工修改。
 
 </details>
 

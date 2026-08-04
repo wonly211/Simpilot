@@ -45,7 +45,9 @@ Languages/
 English
 ```
 
-切换立即写入 `Config/language.txt` 并刷新当前设置窗口，不需要重启 Simpilot 或 Windows 资源管理器。当前设置页面、未应用的设置和列表选择保持不变。之后打开的模态窗口使用新语言。
+切换立即把 `Language=zh-CN`、`Language=zh-TW` 或 `Language=en-US` 写入 `Config/Setting.ini`，并刷新当前设置窗口，不需要重启 Simpilot 或 Windows 资源管理器。当前设置页面、未应用的设置和列表选择保持不变。之后打开的模态窗口使用新语言。
+
+程序不提供旧配置迁移：更新旧版本时，用户需要手动把 `Config/Simpilot.settings.ini` 改名为 `Config/Setting.ini`，并将原 `language.txt` 中的语言代码写入 `[General]` 下的 `Language=` 项。旧文件不会被读取。
 
 ## 回退规则
 

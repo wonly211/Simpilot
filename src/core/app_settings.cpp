@@ -41,6 +41,14 @@ std::wstring string_value(
     return found == values.end() ? std::wstring{} : found->second;
 }
 
+UiLanguage language_value(
+    const std::unordered_map<std::wstring, std::wstring>& values) noexcept {
+    const auto value = lowercase(trim(string_value(values, L"Language")));
+    if (value == L"en-us") return UiLanguage::english;
+    if (value == L"zh-tw") return UiLanguage::traditional_chinese;
+    return UiLanguage::simplified_chinese;
+}
+
 unsigned int unsigned_value(
     const std::unordered_map<std::wstring, std::wstring>& values,
     const std::wstring& key, const unsigned int fallback,
@@ -231,6 +239,7 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
             start = end + 1;
             if (text[end] == L'\r' && start < text.size() && text[start] == L'\n') ++start;
         }
+        result.language = language_value(values);
         result.start_with_windows = boolean_value(values, L"startwithwindows", false);
         result.menu_theme = static_cast<MenuTheme>(
             unsigned_value(values, L"MenuTheme", 0, 2));
@@ -267,8 +276,9 @@ bool AppSettingsStore::save(const std::filesystem::path& path,
         {
             std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
             if (!stream) return false;
-            stream << "[General]\r\nStartWithWindows="
-                   << (settings.start_with_windows ? 1 : 0)
+            const auto language = Localization::language_code(settings.language);
+            stream << "[General]\r\nLanguage=" << language
+                   << "\r\nStartWithWindows=" << (settings.start_with_windows ? 1 : 0)
                    << "\r\nMenuTheme=" << static_cast<unsigned int>(settings.menu_theme)
                    << "\r\n\r\n[Hotkeys]\r\n";
             write_binding(stream, "MainMenu", settings.main_menu.binding);
