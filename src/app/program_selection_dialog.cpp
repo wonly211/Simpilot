@@ -49,17 +49,17 @@ std::wstring time_text(const std::filesystem::file_time_type value) {
 } // namespace
 
 std::optional<std::filesystem::path> ProgramSelectionDialog::show_modal(
-    const HINSTANCE instance, const HWND owner, const UiLanguage language,
+    const HINSTANCE instance, const HWND owner, std::string language_code,
     std::wstring executable, const std::vector<ProgramCandidate>& candidates) {
     ProgramSelectionDialog dialog(
-        instance, owner, language, std::move(executable), candidates);
+        instance, owner, std::move(language_code), std::move(executable), candidates);
     return dialog.run();
 }
 
 ProgramSelectionDialog::ProgramSelectionDialog(
-    const HINSTANCE instance, const HWND owner, const UiLanguage language,
+    const HINSTANCE instance, const HWND owner, std::string language_code,
     std::wstring executable, const std::vector<ProgramCandidate>& candidates)
-    : instance_(instance), owner_(owner), localization_(language),
+    : instance_(instance), owner_(owner), localization_(std::move(language_code)),
       executable_(std::move(executable)), candidates_(candidates) {}
 
 std::optional<std::filesystem::path> ProgramSelectionDialog::run() {

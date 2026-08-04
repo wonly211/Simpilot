@@ -1,6 +1,6 @@
 # 简驭 | Simpilot 用户手册
 
-适用版本：0.17.1
+适用版本：0.18.0
 
 简驭 | Simpilot 是一款常驻 Windows 托盘的快捷启动器和全局热键管理器。它可以把常用应用、文件夹、文件和网址整理成分层菜单，也可以通过全局热键直接打开指定目标，并在程序运行期间屏蔽选定的 Windows 快捷键。
 
@@ -16,7 +16,7 @@
 
 简驭采用便携方式发布，不需要安装程序。
 
-1. 从 [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载 `Simpilot-0.17.1-win-x64.zip`。
+1. 从 [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载最新版本的 `Simpilot-*-win-x64.zip`。
 2. 将压缩包完整解压到一个固定目录。
 3. 确保 `Simpilot.exe`、`Everything` 和 `Languages` 目录保持在原有相对位置。
 4. 双击 `Simpilot.exe`。
@@ -32,16 +32,12 @@ Everything/
   Everything64.dll
   Everything.lng
   Everything.ini
-Languages/
-  en-US.json
-  zh-CN.json
-  zh-TW.json
 ```
 
 发布页同时提供 `.sha256` 校验文件。如需核对下载内容，可在 PowerShell 中运行：
 
 ```powershell
-Get-FileHash .\Simpilot-0.17.1-win-x64.zip -Algorithm SHA256
+Get-FileHash .\Simpilot-*-win-x64.zip -Algorithm SHA256
 ```
 
 将结果与 `.sha256` 文件中的值比较。当前发布包尚未进行数字签名；若 Windows SmartScreen 首次运行时提示未知发布者，请先确认文件来自本仓库的正式 Release，并完成校验后再决定是否运行。
@@ -373,7 +369,7 @@ Log/
 如果托盘图标也不存在：
 
 1. 确认已经完整解压发布包，而不是在压缩包内运行。
-2. 确认程序目录可写，并保留 `Languages/` 和 `Everything/`。
+2. 确认程序目录可写，并保留 `Everything/`。
 3. 如果刚重启过 Windows 资源管理器，请稍候片刻；简驭会自动恢复托盘图标。
 4. 再次启动 `Simpilot.exe`。
 5. 查看 `Log/Simpilot.log`。
@@ -476,7 +472,7 @@ Everything 找到了多个同名文件，简驭无法仅凭文件名判断用户
 
 ### 更新版本时如何保留设置？
 
-先退出简驭并备份原目录。更新时保留原来的 `Config/`；使用人工图标时同时保留 `Cache/RunIcon/`。请继续保持 `Everything/` 和 `Languages/` 与新版 `Simpilot.exe` 配套，不要只替换或单独移动部分组件。
+先退出简驭并备份原目录。更新时保留原来的 `Config/`；使用人工图标时同时保留 `Cache/RunIcon/`。请继续保持 `Everything/` 与新版 `Simpilot.exe` 配套，不要只替换或单独移动部分组件。若已添加额外语言，请同时保留同目录的 `Language.lng`。
 
 ### 可以删除缓存和日志吗？
 

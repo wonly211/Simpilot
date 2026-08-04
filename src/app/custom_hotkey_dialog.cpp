@@ -49,22 +49,23 @@ void add_combo_item(const HWND combo, const wchar_t* value) {
 } // namespace
 
 std::optional<CustomGlobalHotKey> CustomHotKeyDialog::show_modal(
-    const HINSTANCE instance, const HWND owner, const UiLanguage language,
+    const HINSTANCE instance, const HWND owner, std::string language_code,
     KeyboardManager& keyboard_manager, std::filesystem::path config_directory,
     const CustomGlobalHotKey* initial,
     DiagnosticSink diagnostic_sink) {
     CustomHotKeyDialog dialog(
-        instance, owner, language, keyboard_manager, std::move(config_directory), initial,
+        instance, owner, std::move(language_code), keyboard_manager,
+        std::move(config_directory), initial,
         std::move(diagnostic_sink));
     return dialog.run();
 }
 
 CustomHotKeyDialog::CustomHotKeyDialog(
-    const HINSTANCE instance, const HWND owner, const UiLanguage language,
+    const HINSTANCE instance, const HWND owner, std::string language_code,
     KeyboardManager& keyboard_manager, std::filesystem::path config_directory,
     const CustomGlobalHotKey* initial,
     DiagnosticSink diagnostic_sink)
-    : instance_(instance), owner_(owner), localization_(language),
+    : instance_(instance), owner_(owner), localization_(std::move(language_code)),
       keyboard_manager_(keyboard_manager),
       config_directory_(std::move(config_directory)),
       diagnostic_sink_(std::move(diagnostic_sink)),

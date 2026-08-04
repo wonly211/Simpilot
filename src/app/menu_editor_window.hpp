@@ -36,7 +36,7 @@ public:
         MenuElement* element = nullptr;
     };
 
-    MenuEditorWindow(HINSTANCE instance, HWND parent, UiLanguage language,
+    MenuEditorWindow(HINSTANCE instance, HWND parent, std::string language_code,
         std::filesystem::path main_menu_path,
         std::filesystem::path second_menu_path,
         DiagnosticSink diagnostic_sink = {}, DirtySink dirty_sink = {},
@@ -50,7 +50,7 @@ public:
     [[nodiscard]] bool create();
     void set_bounds(int x, int y, int width, int height) const;
     void set_visible(bool visible) const;
-    void set_language(UiLanguage language);
+    void set_language(std::string language_code);
     [[nodiscard]] bool apply();
     [[nodiscard]] bool dirty() const noexcept;
 
@@ -101,7 +101,7 @@ private:
 
     HINSTANCE instance_;
     HWND parent_;
-    UiLanguage language_;
+    std::string language_code_;
     Localization localization_;
     std::array<std::filesystem::path, 2> paths_;
     std::array<std::optional<std::wstring>, 2> original_sources_;

@@ -34,7 +34,7 @@ public:
     using IconChangeSink = std::function<void()>;
     using ApplySink = std::function<bool(const AppSettings&)>;
     using MenuChangeSink = std::function<std::vector<MenuIconTarget>()>;
-    using LanguageChangeSink = std::function<void(UiLanguage)>;
+    using LanguageChangeSink = std::function<void(UiLanguage, std::string_view)>;
     using ProgramResolutionLookup = MenuEditorWindow::ProgramResolutionLookup;
     using ProgramResolutionReselect = MenuEditorWindow::ProgramResolutionReselect;
 
@@ -65,7 +65,8 @@ private:
     [[nodiscard]] std::optional<AppSettings> run();
     void create_controls();
     void refresh_localized_text();
-    void change_language(UiLanguage language);
+    void change_language(std::string language_code);
+    void refresh_language_combo();
     void update_fonts();
     void layout_controls(int width, int height);
     void update_page_visibility();
@@ -119,6 +120,7 @@ private:
     HWND window_ = nullptr;
     AppSettings settings_;
     UiLanguage language_;
+    std::string language_code_;
     Localization localization_;
     KeyboardManager& keyboard_manager_;
     AvailabilityProbe availability_probe_;
@@ -161,6 +163,7 @@ private:
     HWND menu_theme_combo_ = nullptr;
     HWND language_label_ = nullptr;
     HWND language_combo_ = nullptr;
+    std::vector<LanguageInfo> available_languages_;
     HWND windows_hotkey_heading_ = nullptr;
     HWND windows_hotkey_scope_ = nullptr;
     HWND windows_hotkey_runtime_ = nullptr;

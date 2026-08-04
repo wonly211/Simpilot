@@ -41,7 +41,7 @@
 ## 三個步驟開始使用
 
 1. 前往 [Releases](https://github.com/wonly211/Simpilot/releases/latest) 下載最新的 `Simpilot-*-win-x64.zip`。
-2. 將壓縮檔完整解壓縮到目前使用者可寫入的固定目錄，並維持 `Everything/` 與 `Languages/` 目錄結構不變。
+2. 將壓縮檔完整解壓縮到目前使用者可寫入的固定目錄，並維持 `Everything/` 目錄結構不變。
 3. 執行 `Simpilot.exe`。按一下通知區域圖示或按反引號鍵開啟快速啟動選單；在通知區域圖示按右鍵可進入設定與維護。
 
 简驭是通知區域應用程式，啟動後不會顯示一般主視窗。若沒有看到圖示，請檢查工作列的隱藏圖示區域。

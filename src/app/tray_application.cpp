@@ -197,7 +197,10 @@ TrayApplication::TrayApplication(HINSTANCE instance, std::filesystem::path execu
       logger_(config_directory_.parent_path() / L"Log" / L"Simpilot.log"),
       program_cache_(executable_path_.parent_path() / L"Cache" / L"program-cache.tsv"),
       settings_(AppSettingsStore::load(config_directory_ / L"Setting.ini")),
-      localization_(settings_.language),
+      localization_(settings_.language == UiLanguage::external
+          && !settings_.language_code.empty()
+          ? settings_.language_code
+          : std::string(Localization::language_code(settings_.language))),
       menu_icons_(executable_path_.parent_path() / L"Cache" / L"RunIcon") {}
 
 TrayApplication::~TrayApplication() {
@@ -356,11 +359,11 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         } else if (identifier == show_everything_command) {
             show_everything_search();
         } else if (identifier == english_language_command) {
-            set_language(UiLanguage::english);
+            set_language(std::string(Localization::language_code(UiLanguage::english)));
         } else if (identifier == simplified_chinese_language_command) {
-            set_language(UiLanguage::simplified_chinese);
+            set_language(std::string(Localization::language_code(UiLanguage::simplified_chinese)));
         } else if (identifier == traditional_chinese_language_command) {
-            set_language(UiLanguage::traditional_chinese);
+            set_language(std::string(Localization::language_code(UiLanguage::traditional_chinese)));
         } else if (identifier == repair_everything_command) {
             const auto repaired = everything_manager_ && everything_search_
                 && everything_manager_->repair_service(*everything_search_, window);
@@ -416,7 +419,8 @@ bool TrayApplication::reload_menu(const bool notify_on_failure) noexcept {
                 [this](const std::wstring& executable,
                        const std::vector<ProgramCandidate>& candidates) {
                     const auto selected = ProgramSelectionDialog::show_modal(
-                        instance_, nullptr, localization_.language(), executable, candidates);
+                        instance_, nullptr, std::string(localization_.language_code()),
+                        executable, candidates);
                     if (selected) {
                         logger_.write(std::format(
                             L"program candidate selected executable={} path={}",
@@ -618,7 +622,9 @@ void TrayApplication::show_settings() {
             (void)reload_menu(true);
             return collect_menu_icon_targets();
         },
-        [this](const UiLanguage language) { set_language(language); },
+        [this](const UiLanguage, const std::string_view language_code) {
+            set_language(std::string(language_code));
+        },
         [this](const std::wstring_view executable) {
             MenuEditorWindow::ProgramResolutionInfo result;
             const auto value = std::wstring(executable);
@@ -645,7 +651,7 @@ void TrayApplication::show_settings() {
             auto selected = candidates.front().path;
             if (candidates.size() > 1) {
                 const auto requested = ProgramSelectionDialog::show_modal(
-                    instance_, owner, localization_.language(), value, candidates);
+                    instance_, owner, std::string(localization_.language_code()), value, candidates);
                 if (!requested) return std::nullopt;
                 selected = *requested;
             }
@@ -882,18 +888,20 @@ void TrayApplication::show_launch_error(const std::wstring_view target,
                 MB_OK | MB_ICONERROR);
 }
 
-void TrayApplication::set_language(const UiLanguage language) {
-    if (localization_.language() == language) return;
-    settings_.language = language;
-    localization_.set_language(language);
+void TrayApplication::set_language(std::string language_code) {
+    if (language_code.empty() || localization_.language_code() == language_code) return;
+    settings_.language = Localization::language_from_code(language_code);
+    settings_.language_code = settings_.language == UiLanguage::external
+        ? language_code : std::string{};
+    localization_.set_language(std::move(language_code));
     if (!AppSettingsStore::save(config_directory_ / L"Setting.ini", settings_)) {
         logger_.write(L"language preference save failed");
     }
     SetWindowTextW(window_, localization_.text(UiText::app_title).data());
     update_tray_text();
-    const auto code = Localization::language_code(language);
     logger_.write(L"language changed to "
-        + std::wstring(code.begin(), code.end()));
+        + std::wstring(localization_.language_code().begin(),
+                       localization_.language_code().end()));
 }
 
 void TrayApplication::add_tray_icon() {

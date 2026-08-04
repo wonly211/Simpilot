@@ -58,6 +58,9 @@ struct BuiltInHotKey {
 
 struct AppSettings {
     UiLanguage language = UiLanguage::simplified_chinese;
+    // Empty for the three built-in languages; populated with the locale code
+    // when an external Language.lng language is selected.
+    std::string language_code;
     bool start_with_windows = false;
     MenuTheme menu_theme = MenuTheme::system;
     BuiltInHotKey main_menu{{{HotKeyGesture{0, VK_OEM_3}}, false}, true};

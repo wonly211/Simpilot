@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <string>
 #include <string_view>
 
 namespace simpilot {
@@ -19,14 +20,14 @@ public:
     using DiagnosticSink = std::function<void(std::wstring_view)>;
 
     [[nodiscard]] static std::optional<CustomGlobalHotKey> show_modal(
-        HINSTANCE instance, HWND owner, UiLanguage language,
+        HINSTANCE instance, HWND owner, std::string language_code,
         KeyboardManager& keyboard_manager,
         std::filesystem::path config_directory,
         const CustomGlobalHotKey* initial = nullptr,
         DiagnosticSink diagnostic_sink = {});
 
 private:
-    CustomHotKeyDialog(HINSTANCE instance, HWND owner, UiLanguage language,
+    CustomHotKeyDialog(HINSTANCE instance, HWND owner, std::string language_code,
                        KeyboardManager& keyboard_manager,
                        std::filesystem::path config_directory,
                        const CustomGlobalHotKey* initial,

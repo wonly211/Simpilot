@@ -41,7 +41,7 @@
 ## 三步开始
 
 1. 前往 [Releases](https://github.com/wonly211/Simpilot/releases/latest) 下载最新的 `Simpilot-*-win-x64.zip`。
-2. 将压缩包完整解压到当前用户可写的固定目录，并保持 `Everything/` 与 `Languages/` 目录结构不变。
+2. 将压缩包完整解压到当前用户可写的固定目录，并保持 `Everything/` 目录结构不变。
 3. 运行 `Simpilot.exe`。左键单击托盘图标或按反引号键打开快捷启动菜单；右键单击托盘图标进入设置与维护。
 
 简驭是托盘应用，启动后不会显示普通主窗口。若没有看到图标，请检查任务栏的隐藏图标区域。

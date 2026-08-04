@@ -59,21 +59,6 @@ std::wstring format_localized(const Localization& localization,
                         std::make_wformat_args(args...));
 }
 
-int language_combo_index(const UiLanguage language) noexcept {
-    switch (language) {
-    case UiLanguage::simplified_chinese: return 0;
-    case UiLanguage::traditional_chinese: return 1;
-    case UiLanguage::english: return 2;
-    }
-    return 0;
-}
-
-UiLanguage language_from_combo_index(const LRESULT index) noexcept {
-    return index == 1 ? UiLanguage::traditional_chinese
-        : index == 2 ? UiLanguage::english
-                     : UiLanguage::simplified_chinese;
-}
-
 int measured_navigation_width(const HWND navigation, const HFONT font,
                               const UINT horizontal_dpi) {
     const auto minimum = MulDiv(188, horizontal_dpi, 96);
@@ -159,7 +144,12 @@ SettingsWindow::SettingsWindow(const HINSTANCE instance, const HWND owner,
                                ProgramResolutionLookup resolution_lookup,
                                ProgramResolutionReselect resolution_reselect)
     : instance_(instance), owner_(owner), settings_(std::move(current)),
-      language_(settings_.language), localization_(language_),
+      language_(settings_.language),
+      language_code_(settings_.language == UiLanguage::external
+          && !settings_.language_code.empty()
+          ? settings_.language_code
+          : std::string(Localization::language_code(settings_.language))),
+      localization_(language_code_),
       keyboard_manager_(keyboard_manager),
       availability_probe_(std::move(availability_probe)),
       diagnostic_sink_(std::move(diagnostic_sink)),
@@ -315,14 +305,7 @@ void SettingsWindow::create_controls() {
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(language_identifier)), instance_, nullptr);
-    SendMessageW(language_combo_, CB_ADDSTRING, 0,
-                 reinterpret_cast<LPARAM>(localization_.text(UiText::simplified_chinese).data()));
-    SendMessageW(language_combo_, CB_ADDSTRING, 0,
-                 reinterpret_cast<LPARAM>(localization_.text(UiText::traditional_chinese).data()));
-    SendMessageW(language_combo_, CB_ADDSTRING, 0,
-                 reinterpret_cast<LPARAM>(localization_.text(UiText::english).data()));
-    SendMessageW(language_combo_, CB_SETMINVISIBLE, 3, 0);
-    SendMessageW(language_combo_, CB_SETCURSEL, language_combo_index(language_), 0);
+    refresh_language_combo();
     menu_theme_label_ = CreateWindowW(L"STATIC", text(menu_theme_text),
         WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
@@ -462,7 +445,7 @@ void SettingsWindow::create_controls() {
     menu_editor_scope_ = CreateWindowW(L"STATIC", text(quick_launch_scope_text),
         WS_CHILD, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     menu_editor_ = std::make_unique<MenuEditorWindow>(
-        instance_, window_, language_, config_directory_ / L"Simpilot.ini",
+        instance_, window_, language_code_, config_directory_ / L"Simpilot.ini",
         config_directory_ / L"Simpilot2.ini",
         [this](const std::wstring_view message) { diagnose(message); },
         [this] { mark_dirty(); }, resolution_lookup_, resolution_reselect_);
@@ -503,14 +486,7 @@ void SettingsWindow::refresh_localized_text() {
     SetWindowTextW(appearance_section_, text(appearance_section_text));
     SetWindowTextW(startup_checkbox_, text(startup_text));
     SetWindowTextW(language_label_, text("settings.display_language"));
-    SendMessageW(language_combo_, CB_RESETCONTENT, 0, 0);
-    for (const auto identifier : {UiText::simplified_chinese,
-                                  UiText::traditional_chinese,
-                                  UiText::english}) {
-        SendMessageW(language_combo_, CB_ADDSTRING, 0,
-                     reinterpret_cast<LPARAM>(localization_.text(identifier).data()));
-    }
-    SendMessageW(language_combo_, CB_SETCURSEL, language_combo_index(language_), 0);
+    refresh_language_combo();
     SetWindowTextW(menu_theme_label_, text(menu_theme_text));
     const auto theme_selection = SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0);
     SendMessageW(menu_theme_combo_, CB_RESETCONTENT, 0, 0);
@@ -583,7 +559,7 @@ void SettingsWindow::refresh_localized_text() {
 
     SetWindowTextW(menu_editor_heading_, text(quick_launch_heading_text));
     SetWindowTextW(menu_editor_scope_, text(quick_launch_scope_text));
-    if (menu_editor_) menu_editor_->set_language(language_);
+    if (menu_editor_) menu_editor_->set_language(language_code_);
     SetWindowTextW(save_button_, text(save_text));
     SetWindowTextW(apply_button_, text(apply_text));
     SetWindowTextW(cancel_button_, text(cancel_text));
@@ -596,15 +572,43 @@ void SettingsWindow::refresh_localized_text() {
     InvalidateRect(window_, nullptr, TRUE);
 }
 
-void SettingsWindow::change_language(const UiLanguage language) {
-    if (language_ == language) return;
+void SettingsWindow::refresh_language_combo() {
+    if (!language_combo_) return;
+    available_languages_ = localization_.available_languages();
+    SendMessageW(language_combo_, CB_RESETCONTENT, 0, 0);
+    for (std::size_t index = 0; index < available_languages_.size(); ++index) {
+        const auto& language = available_languages_[index];
+        const auto display_name = language.display_name.empty()
+            ? std::wstring(language.code.begin(), language.code.end())
+            : language.display_name;
+        const auto added = SendMessageW(language_combo_, CB_ADDSTRING, 0,
+            reinterpret_cast<LPARAM>(display_name.c_str()));
+        if (added != CB_ERR) SendMessageW(language_combo_, CB_SETITEMDATA, added,
+                                          static_cast<LPARAM>(index));
+    }
+    SendMessageW(language_combo_, CB_SETMINVISIBLE,
+                 static_cast<WPARAM>(std::max<std::size_t>(3, available_languages_.size())), 0);
+    for (std::size_t index = 0; index < available_languages_.size(); ++index) {
+        if (_stricmp(available_languages_[index].code.c_str(), language_code_.c_str()) == 0) {
+            SendMessageW(language_combo_, CB_SETCURSEL, static_cast<WPARAM>(index), 0);
+            return;
+        }
+    }
+    SendMessageW(language_combo_, CB_SETCURSEL, 0, 0);
+}
+
+void SettingsWindow::change_language(std::string language_code) {
+    if (language_code_ == language_code || language_code.empty()) return;
     const auto old_main_menu = std::wstring(localization_.text("ui.menu_one"));
     const auto old_second_menu = std::wstring(localization_.text(UiText::menu_two));
     const auto old_both_menus = old_main_menu + L" / " + old_second_menu;
-    language_ = language;
-    settings_.language = language;
-    applied_settings_.language = language;
-    localization_.set_language(language);
+    language_code_ = std::move(language_code);
+    language_ = Localization::language_from_code(language_code_);
+    settings_.language = language_;
+    settings_.language_code = language_ == UiLanguage::external ? language_code_ : std::string{};
+    applied_settings_.language = language_;
+    applied_settings_.language_code = settings_.language_code;
+    localization_.set_language(language_code_);
     const auto new_main_menu = std::wstring(localization_.text("ui.menu_one"));
     const auto new_second_menu = std::wstring(localization_.text(UiText::menu_two));
     const auto new_both_menus = new_main_menu + L" / " + new_second_menu;
@@ -617,7 +621,7 @@ void SettingsWindow::change_language(const UiLanguage language) {
             target.menu_name = new_both_menus;
         }
     }
-    if (language_change_sink_) language_change_sink_(language);
+    if (language_change_sink_) language_change_sink_(language_, language_code_);
     refresh_localized_text();
 }
 
@@ -1058,7 +1062,7 @@ void SettingsWindow::restore_selected_menu_icon() {
 void SettingsWindow::add_custom_hotkey() {
     if (capturing_) cancel_capture();
     auto candidate = CustomHotKeyDialog::show_modal(
-        instance_, window_, language_, keyboard_manager_, config_directory_, nullptr,
+        instance_, window_, language_code_, keyboard_manager_, config_directory_, nullptr,
         [this](const std::wstring_view message) { diagnose(message); });
     if (candidate && commit_custom_hotkey(std::move(*candidate), std::nullopt)) mark_dirty();
 }
@@ -1068,7 +1072,7 @@ void SettingsWindow::edit_selected_custom_hotkey() {
     const auto index = selected_custom_hotkey_index();
     if (!index) return;
     auto candidate = CustomHotKeyDialog::show_modal(
-        instance_, window_, language_, keyboard_manager_, config_directory_,
+        instance_, window_, language_code_, keyboard_manager_, config_directory_,
         &settings_.custom_global_hotkeys[*index],
         [this](const std::wstring_view message) { diagnose(message); });
     if (candidate && commit_custom_hotkey(std::move(*candidate), index)) mark_dirty();
@@ -1815,8 +1819,13 @@ LRESULT SettingsWindow::handle_message(const UINT message,
             return 0;
         }
         if (identifier == language_identifier && notification == CBN_SELCHANGE) {
-            change_language(language_from_combo_index(
-                SendMessageW(language_combo_, CB_GETCURSEL, 0, 0)));
+            const auto selected = SendMessageW(language_combo_, CB_GETCURSEL, 0, 0);
+            if (selected != CB_ERR) {
+                const auto item = SendMessageW(language_combo_, CB_GETITEMDATA, selected, 0);
+                if (item != CB_ERR && static_cast<std::size_t>(item) < available_languages_.size()) {
+                    change_language(available_languages_[static_cast<std::size_t>(item)].code);
+                }
+            }
             return 0;
         }
         if (identifier >= windows_hotkey_base_identifier

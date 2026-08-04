@@ -42,11 +42,20 @@ std::wstring string_value(
 }
 
 UiLanguage language_value(
-    const std::unordered_map<std::wstring, std::wstring>& values) noexcept {
-    const auto value = lowercase(trim(string_value(values, L"Language")));
+    const std::unordered_map<std::wstring, std::wstring>& values,
+    std::string& external_code) noexcept {
+    const auto raw_value = trim(string_value(values, L"Language"));
+    const auto value = lowercase(raw_value);
     if (value == L"en-us") return UiLanguage::english;
     if (value == L"zh-tw") return UiLanguage::traditional_chinese;
-    return UiLanguage::simplified_chinese;
+    if (value == L"zh-cn" || value.empty()) return UiLanguage::simplified_chinese;
+    const auto separator = raw_value.find(L'-');
+    const auto locale_shape = separator == 2 && raw_value.size() == 5
+        && iswalpha(raw_value[0]) && iswalpha(raw_value[1])
+        && iswalpha(raw_value[3]) && iswalpha(raw_value[4]);
+    if (!locale_shape) return UiLanguage::simplified_chinese;
+    external_code = encode_utf8(raw_value);
+    return external_code.empty() ? UiLanguage::simplified_chinese : UiLanguage::external;
 }
 
 unsigned int unsigned_value(
@@ -239,7 +248,7 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
             start = end + 1;
             if (text[end] == L'\r' && start < text.size() && text[start] == L'\n') ++start;
         }
-        result.language = language_value(values);
+        result.language = language_value(values, result.language_code);
         result.start_with_windows = boolean_value(values, L"startwithwindows", false);
         result.menu_theme = static_cast<MenuTheme>(
             unsigned_value(values, L"MenuTheme", 0, 2));
@@ -276,7 +285,9 @@ bool AppSettingsStore::save(const std::filesystem::path& path,
         {
             std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
             if (!stream) return false;
-            const auto language = Localization::language_code(settings.language);
+            const auto language = settings.language == UiLanguage::external
+                ? settings.language_code
+                : std::string(Localization::language_code(settings.language));
             stream << "[General]\r\nLanguage=" << language
                    << "\r\nStartWithWindows=" << (settings.start_with_windows ? 1 : 0)
                    << "\r\nMenuTheme=" << static_cast<unsigned int>(settings.menu_theme)

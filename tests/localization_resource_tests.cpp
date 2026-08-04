@@ -1,24 +1,23 @@
+#include "simpilot/language_pack.hpp"
+#include "simpilot/localization.hpp"
+
 #include <Windows.h>
+#include <compressapi.h>
 
 #include <nlohmann/json.hpp>
 
 #include <array>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <map>
-#include <set>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
-using KeySet = std::set<std::string>;
-
-struct CatalogSummary {
-    KeySet keys;
-    std::map<std::string, std::size_t> placeholder_counts;
-};
+using Json = nlohmann::json;
 
 void require(const bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
@@ -26,78 +25,92 @@ void require(const bool condition, const char* message) {
 
 std::filesystem::path executable_directory() {
     std::wstring path(32768, L'\0');
-    const auto length = GetModuleFileNameW(
-        nullptr, path.data(), static_cast<DWORD>(path.size()));
+    const auto length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
     require(length > 0 && length < path.size(), "Resolve test executable directory");
     path.resize(length);
     return std::filesystem::path(path).parent_path();
 }
 
-std::size_t placeholder_count(const std::string& value) {
-    std::size_t count = 0;
-    for (std::size_t index = 0; index + 1 < value.size(); ++index) {
-        if (value[index] == '{' && value[index + 1] == '}') {
-            ++count;
-            ++index;
-        }
-    }
-    return count;
-}
-
-CatalogSummary load_catalog(const std::filesystem::path& path,
-                            const std::string& expected_locale) {
-    std::ifstream stream(path, std::ios::binary);
-    require(stream.good(), "Open packaged language resource");
-    const auto document = nlohmann::json::parse(stream);
-    require(document.is_object(), "Language resource root is an object");
-    require(document.value("locale", std::string{}) == expected_locale,
-            "Language resource locale matches its file name");
-    require(document.contains("strings") && document.at("strings").is_object(),
-            "Language resource contains a strings object");
-
-    CatalogSummary summary;
-    for (const auto& [key, value] : document.at("strings").items()) {
-        require(!key.empty(), "Language resource key is not empty");
-        require(value.is_string(), "Language resource value is a string");
-        const auto& translated = value.get_ref<const std::string&>();
-        require(!translated.empty(), "Language resource value is not empty");
-        summary.keys.insert(key);
-        summary.placeholder_counts.emplace(key, placeholder_count(translated));
-    }
-    return summary;
+void write_external_pack(const std::filesystem::path& path) {
+    const auto payload = Json{{"languages", Json::array({Json{
+        {"locale", "fr-FR"},
+        {"name", "Francais"},
+        {"strings", Json{{"ui.settings", "Parametres"}}},
+    }})}}.dump();
+    COMPRESSOR_HANDLE compressor = nullptr;
+    require(CreateCompressor(COMPRESS_ALGORITHM_XPRESS_HUFF, nullptr, &compressor) != FALSE,
+            "Create external language compressor");
+    SIZE_T required = 0;
+    (void)Compress(compressor, payload.data(), payload.size(), nullptr, 0, &required);
+    require(required > 0, "Size external language payload");
+    std::vector<std::byte> compressed(required);
+    SIZE_T written = 0;
+    require(Compress(compressor, payload.data(), payload.size(), compressed.data(),
+                     compressed.size(), &written) != FALSE,
+            "Compress external language payload");
+    CloseCompressor(compressor);
+    compressed.resize(written);
+    const simpilot::LanguagePackHeader header{
+        .magic = simpilot::language_pack_magic,
+        .version = simpilot::language_pack_version,
+        .compression = simpilot::language_pack_xpress_huffman,
+        .uncompressed_size = static_cast<std::uint32_t>(payload.size()),
+        .compressed_size = static_cast<std::uint32_t>(compressed.size()),
+    };
+    std::ofstream stream(path, std::ios::binary | std::ios::trunc);
+    require(stream.good(), "Create external language pack");
+    stream.write(reinterpret_cast<const char*>(&header), sizeof(header));
+    stream.write(reinterpret_cast<const char*>(compressed.data()),
+                 static_cast<std::streamsize>(compressed.size()));
+    require(stream.good(), "Write external language pack");
 }
 
 } // namespace
 
 int wmain() {
     try {
-        const auto language_directory = executable_directory() / L"Languages";
-        const std::array locales{"en-US", "zh-CN", "zh-TW"};
-        const auto english = load_catalog(
-            language_directory / L"en-US.json", locales[0]);
-        require(!english.keys.empty(), "English language resource is not empty");
-        const std::array required_about_keys{
-            "about.positioning", "about.version", "about.tagline",
-            "about.link.home", "about.link.releases", "about.link.manual",
-            "about.link.issues", "about.product_information", "about.label.system",
-            "about.value.system", "about.label.distribution", "about.value.distribution",
-            "about.label.license", "about.value.license", "about.local_data",
-            "about.third_party_summary", "about.link.license",
-            "about.link.third_party", "about.close", "about.open_failed"};
-        for (const auto key : required_about_keys) {
-            require(english.keys.contains(key), "English About resource is complete");
-        }
+        (void)executable_directory();
 
-        for (std::size_t index = 1; index < locales.size(); ++index) {
-            const auto locale = std::string(locales[index]);
-            const auto catalog = load_catalog(
-                language_directory / (locale + ".json"), locale);
-            require(catalog.keys == english.keys,
-                    "Every built-in language has the canonical English key set");
-            require(catalog.placeholder_counts == english.placeholder_counts,
-                    "Format placeholders match across built-in languages");
+        const simpilot::Localization simplified(simpilot::UiLanguage::simplified_chinese);
+        const simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
+        const simpilot::Localization english(simpilot::UiLanguage::english);
+        require(simplified.text(simpilot::UiText::settings) != L"[missing translation]",
+                "Read Simplified Chinese from the embedded pack");
+        require(traditional.text(simpilot::UiText::settings) != L"[missing translation]",
+                "Read Traditional Chinese from the embedded pack");
+        require(english.text(simpilot::UiText::settings) != L"[missing translation]",
+                "Read English from the embedded pack");
+        require(english.available_languages().size() == 3,
+                "Expose the three built-in languages");
+
+        const auto root = std::filesystem::temp_directory_path()
+            / (L"simpilot-language-pack-test-" + std::to_wstring(GetCurrentProcessId()));
+        const auto language_directory = root / L"Languages";
+        std::filesystem::create_directories(language_directory);
+        write_external_pack(language_directory / L"Language.lng");
+        const simpilot::Localization french("fr-FR", language_directory);
+        require(french.text("ui.settings") == L"Parametres",
+                "Read an external language from Language.lng");
+        const auto languages = french.available_languages();
+        require(languages.size() == 4 && languages.back().code == "fr-FR",
+                "List an external language package");
+        const auto missing_directory = root / L"Missing";
+        std::filesystem::create_directories(missing_directory);
+        const simpilot::Localization missing("fr-FR", missing_directory);
+        require(missing.text("ui.settings") == L"[missing translation]",
+                "Ignore a missing external language package");
+        const auto corrupt_directory = root / L"Corrupt";
+        std::filesystem::create_directories(corrupt_directory);
+        {
+            std::ofstream corrupt(corrupt_directory / L"Language.lng",
+                                  std::ios::binary | std::ios::trunc);
+            corrupt << "not a language package";
         }
-        std::wcout << L"All Simpilot language resources are complete.\n";
+        const simpilot::Localization corrupt("fr-FR", corrupt_directory);
+        require(corrupt.text("ui.settings") == L"[missing translation]",
+                "Ignore a corrupt external language package");
+        std::filesystem::remove_all(root);
+        std::wcout << L"Embedded and external language resources verified.\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "Localization resource test failure: " << error.what() << '\n';

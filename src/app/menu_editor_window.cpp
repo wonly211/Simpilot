@@ -108,12 +108,13 @@ std::optional<MenuEditorWindow::ElementLocation> find_location_in(
 } // namespace
 
 MenuEditorWindow::MenuEditorWindow(
-    const HINSTANCE instance, const HWND parent, const UiLanguage language,
+    const HINSTANCE instance, const HWND parent, std::string language_code,
     std::filesystem::path main_menu_path, std::filesystem::path second_menu_path,
     DiagnosticSink diagnostic_sink, DirtySink dirty_sink,
     ProgramResolutionLookup resolution_lookup,
     ProgramResolutionReselect resolution_reselect)
-    : instance_(instance), parent_(parent), language_(language), localization_(language),
+    : instance_(instance), parent_(parent), language_code_(std::move(language_code)),
+      localization_(language_code_),
       paths_{std::move(main_menu_path), std::move(second_menu_path)},
       diagnostic_sink_(std::move(diagnostic_sink)), dirty_sink_(std::move(dirty_sink)),
       resolution_lookup_(std::move(resolution_lookup)),
@@ -165,10 +166,10 @@ void MenuEditorWindow::set_visible(const bool visible) const {
     if (window_) ShowWindow(window_, visible ? SW_SHOW : SW_HIDE);
 }
 
-void MenuEditorWindow::set_language(const UiLanguage language) {
-    if (language_ == language) return;
-    language_ = language;
-    localization_.set_language(language);
+void MenuEditorWindow::set_language(std::string language_code) {
+    if (language_code_ == language_code) return;
+    language_code_ = std::move(language_code);
+    localization_.set_language(language_code_);
     refresh_localized_text();
 }
 

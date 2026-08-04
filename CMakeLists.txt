@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.17.1 LANGUAGES CXX)
+project(Simpilot VERSION 0.18.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -27,10 +27,41 @@ add_library(simpilot_core STATIC
     src/core/variable_expander.cpp
 )
 target_include_directories(simpilot_core PUBLIC include)
+target_include_directories(simpilot_core PRIVATE resources)
 target_include_directories(simpilot_core SYSTEM PRIVATE third_party)
 target_compile_definitions(simpilot_core PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(simpilot_core PRIVATE /W4 /permissive- /utf-8 /EHsc)
-target_link_libraries(simpilot_core PUBLIC advapi32 shell32 ole32 user32 version)
+target_link_libraries(simpilot_core PUBLIC advapi32 Cabinet shell32 ole32 user32 version)
+
+add_executable(simpilot_language_pack_builder EXCLUDE_FROM_ALL
+    tools/language_pack_builder.cpp
+)
+target_include_directories(simpilot_language_pack_builder PRIVATE include third_party)
+target_compile_definitions(simpilot_language_pack_builder PRIVATE
+    UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_compile_options(simpilot_language_pack_builder PRIVATE /W4 /permissive- /utf-8 /EHsc)
+target_link_libraries(simpilot_language_pack_builder PRIVATE Cabinet)
+
+set(SIMPILOT_BUILTIN_LANGUAGE_PACK
+    "${CMAKE_CURRENT_BINARY_DIR}/builtin-languages.lng")
+add_custom_command(
+    OUTPUT "${SIMPILOT_BUILTIN_LANGUAGE_PACK}"
+    COMMAND "$<TARGET_FILE:simpilot_language_pack_builder>"
+            "${SIMPILOT_BUILTIN_LANGUAGE_PACK}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Languages/en-US.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Languages/zh-CN.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/Languages/zh-TW.json"
+    DEPENDS simpilot_language_pack_builder
+            ${CMAKE_CURRENT_SOURCE_DIR}/Languages/en-US.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/Languages/zh-CN.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/Languages/zh-TW.json
+    COMMENT "Packing built-in language resources")
+add_custom_target(simpilot_builtin_language_pack
+    DEPENDS "${SIMPILOT_BUILTIN_LANGUAGE_PACK}")
+configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/BuiltinLanguagePack.rc.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
+    @ONLY)
 
 add_library(simpilot_keyboard STATIC
     src/app/keyboard_manager.cpp
@@ -62,6 +93,7 @@ configure_file(
 
 add_executable(simpilot WIN32
     resources/Simpilot.rc
+    "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
     "${CMAKE_CURRENT_BINARY_DIR}/SimpilotVersion.rc"
     src/app/about_window.cpp
     src/app/custom_hotkey_dialog.cpp
@@ -76,6 +108,7 @@ add_executable(simpilot WIN32
     src/app/toggle_switch.cpp
     src/app/tray_application.cpp
 )
+add_dependencies(simpilot simpilot_builtin_language_pack)
 target_include_directories(simpilot PRIVATE
     include
     resources
@@ -115,9 +148,6 @@ foreach(resource IN LISTS SIMPILOT_LANGUAGE_RESOURCE_FILES)
         message(FATAL_ERROR "Missing language resource: ${resource}")
     endif()
 endforeach()
-list(TRANSFORM SIMPILOT_LANGUAGE_RESOURCE_FILES
-     PREPEND "${SIMPILOT_LANGUAGE_RESOURCE_DIR}/"
-     OUTPUT_VARIABLE SIMPILOT_LANGUAGE_RESOURCE_PATHS)
 list(TRANSFORM EVERYTHING_COMPONENTS
      PREPEND "${EVERYTHING_SOURCE_DIR}/"
      OUTPUT_VARIABLE EVERYTHING_COMPONENT_PATHS)
@@ -133,21 +163,12 @@ foreach(component IN LISTS EVERYTHING_COMPONENTS)
                 "$<TARGET_FILE_DIR:simpilot>/Everything/${component}"
     )
 endforeach()
-add_custom_command(TARGET simpilot POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:simpilot>/Languages"
-    COMMENT "Preparing JSON language resources"
-)
-foreach(resource IN LISTS SIMPILOT_LANGUAGE_RESOURCE_FILES)
-    add_custom_command(TARGET simpilot POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${SIMPILOT_LANGUAGE_RESOURCE_DIR}/${resource}"
-                "$<TARGET_FILE_DIR:simpilot>/Languages/${resource}"
-    )
-endforeach()
 
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(simpilot_core_tests tests/core_tests.cpp)
+    add_executable(simpilot_core_tests
+        "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
+        tests/core_tests.cpp)
     target_include_directories(simpilot_core_tests PRIVATE include)
     target_compile_definitions(simpilot_core_tests PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
     target_compile_options(simpilot_core_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
@@ -156,13 +177,15 @@ if(BUILD_TESTING)
     add_test(NAME simpilot_core_tests COMMAND simpilot_core_tests)
 
     add_executable(simpilot_localization_resource_tests
+        "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
         tests/localization_resource_tests.cpp
     )
-    target_include_directories(simpilot_localization_resource_tests PRIVATE third_party)
+    target_include_directories(simpilot_localization_resource_tests PRIVATE include third_party resources)
     target_compile_definitions(simpilot_localization_resource_tests PRIVATE
         UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
     target_compile_options(simpilot_localization_resource_tests PRIVATE
         /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_localization_resource_tests PRIVATE simpilot_core)
     add_dependencies(simpilot_localization_resource_tests simpilot)
     add_test(NAME simpilot_localization_resource_tests
              COMMAND simpilot_localization_resource_tests)
@@ -212,6 +235,7 @@ if(BUILD_TESTING)
 
     add_executable(simpilot_program_selection_dialog_test
         resources/Simpilot.rc
+        "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
         tests/program_selection_dialog_test.cpp
         src/app/program_selection_dialog.cpp
     )
@@ -233,6 +257,7 @@ if(BUILD_TESTING)
 
     add_executable(simpilot_about_window_test
         resources/Simpilot.rc
+        "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"
         "${CMAKE_CURRENT_BINARY_DIR}/Simpilot.manifest"
         tests/about_window_test.cpp
         src/app/about_window.cpp
@@ -259,10 +284,6 @@ install(TARGETS simpilot RUNTIME DESTINATION .)
 install(FILES
     ${EVERYTHING_COMPONENT_PATHS}
     DESTINATION Everything
-)
-install(FILES
-    ${SIMPILOT_LANGUAGE_RESOURCE_PATHS}
-    DESTINATION Languages
 )
 install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE"

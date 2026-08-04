@@ -41,7 +41,7 @@ Simpilot is built with native C++20 and Win32. Its core features require no acco
 ## Get Started in Three Steps
 
 1. Go to [Releases](https://github.com/wonly211/Simpilot/releases/latest) and download the latest `Simpilot-*-win-x64.zip`.
-2. Extract the complete archive to a fixed directory writable by the current user. Keep the `Everything/` and `Languages/` directory structure intact.
+2. Extract the complete archive to a fixed directory writable by the current user. Keep the `Everything/` directory structure intact.
 3. Run `Simpilot.exe`. Left-click the tray icon or press the backtick key to open the quick-launch menu. Right-click the tray icon for settings and maintenance.
 
 Simpilot is a tray application and does not show a conventional main window after launch. If the icon is not visible, check the hidden-icons area of the taskbar.

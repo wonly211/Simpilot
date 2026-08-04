@@ -55,7 +55,7 @@ private:
     void show_everything_search();
     void execute_custom_hotkey(const CustomGlobalHotKey& hotkey);
     void show_launch_error(std::wstring_view target, std::uint64_t error);
-    void set_language(UiLanguage language);
+    void set_language(std::string language_code);
     void add_tray_icon();
     void update_tray_text();
     void remove_tray_icon();

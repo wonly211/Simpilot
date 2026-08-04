@@ -1,53 +1,61 @@
 # 多语言资源设计
 
-## 支持范围
+## 内置语言
 
-简驭 | Simpilot 内建三种完整界面语言：
+简驭 | Simpilot 将以下完整界面语言压缩后嵌入 `Simpilot.exe`：
 
-- `zh-CN`：简体中文，首次运行和无效配置时的默认语言；
-- `zh-TW`：繁体中文，采用台湾常用软件术语；
-- `en-US`：英文，同时作为缺少资源时的兜底语言。
+- `zh-CN`：简体中文，也是首次运行和无效配置时的默认语言；
+- `zh-TW`：繁体中文；
+- `en-US`：英文，也是缺少翻译项时的兜底语言。
 
-品牌名称始终写作“简驭 | Simpilot”，繁体中文界面不会改写品牌中的“简驭”。用户在快捷启动菜单中创建的名称和分类属于用户数据，不会自动翻译。
+发布目录不再携带 `Languages/*.json`。因此删除、移动或损坏外部语言文件都不会影响这三种内置语言，也不会阻止程序启动。
 
-## 资源目录
+## 可选外部语言
 
-语言文件随 `Simpilot.exe` 一起发布：
+需要其他语言时，将一个名为 `Language.lng` 的语言包放在 `Simpilot.exe` 同目录：
 
 ```text
-Languages/
-  en-US.json
-  zh-CN.json
-  zh-TW.json
+Simpilot.exe
+Language.lng                 # 可选；不存在时直接忽略
+Everything/
+Config/
 ```
 
-每个文件使用 UTF-8 JSON：
+一个 `Language.lng` 可以包含一个或多个额外语言。程序会在启动时读取它，并在“设置 > 常规 > 显示语言”中列出包内语言。选择后，`Config/Setting.ini` 会保存相应的区域代码，例如 `Language=fr-FR`。
+
+语言包缺失、格式错误、版本不兼容或解压失败时，简驭会忽略它并继续使用内置语言。外部包不能替换简体中文、繁体中文或英文的内置资源。
+
+## 文件格式
+
+`Language.lng` 是 Simpilot 语言包格式 1：固定二进制头加 XPRESS Huffman 压缩负载。正常打开文件时不会直接看到可编辑的翻译文本。
+
+这是一种发布资源封装，不是加密或安全边界。持有文件的人仍可以提取内容；它的目的只是让发布目录不暴露明文 JSON，并减小资源体积。
+
+压缩前的负载结构如下，仅供翻译与打包时使用：
 
 ```json
 {
-  "locale": "zh-CN",
-  "strings": {
-    "ui.settings": "设置...",
-    "settings.display_language": "显示语言"
-  }
+  "languages": [
+    {
+      "locale": "fr-FR",
+      "name": "Francais",
+      "strings": {
+        "ui.settings": "Parametres"
+      }
+    }
+  ]
 }
 ```
 
-`locale` 必须与文件名一致，`strings` 中的键和值均不得为空。三种内建语言必须具有完全相同的键集合，带 `{}` 的动态文本还必须在各语言中保留相同数量的格式占位符。自动化测试会验证这些约束。
+`locale` 必须是类似 `fr-FR` 的语言区域代码，`name` 是设置页显示的语言自称。`strings` 应以 `Languages/en-US.json` 的完整键集合为基准；缺少的键会回退到内置英文。
 
-## 选择与切换
-
-用户可通过托盘右键菜单的“语言”，或“设置 > 常规 > 外观 > 显示语言”切换语言。语言名称始终自显为：
+仓库中的 `tools/language_pack_builder.cpp` 是构建期打包工具，不会放入最终发布包。先构建 `simpilot_language_pack_builder` 目标，再使用其输出程序生成外部包：
 
 ```text
-简体中文
-繁體中文
-English
+simpilot_language_pack_builder.exe Language.lng fr-FR.json
 ```
 
-切换立即把 `Language=zh-CN`、`Language=zh-TW` 或 `Language=en-US` 写入 `Config/Setting.ini`，并刷新当前设置窗口，不需要重启 Simpilot 或 Windows 资源管理器。当前设置页面、未应用的设置和列表选择保持不变。之后打开的模态窗口使用新语言。
-
-程序不提供旧配置迁移：更新旧版本时，用户需要手动把 `Config/Simpilot.settings.ini` 改名为 `Config/Setting.ini`，并将原 `language.txt` 中的语言代码写入 `[General]` 下的 `Language=` 项。旧文件不会被读取。
+可以在一次命令中追加多个 JSON 文件，以生成包含多种额外语言的一个 `Language.lng`。
 
 ## 回退规则
 
@@ -55,20 +63,8 @@ English
 
 ```text
 当前语言的文本
-→ en-US 中的同名文本
-→ [missing translation]
+-> 内置 en-US 的同名文本
+-> [missing translation]
 ```
 
-选中的语言文件缺失、JSON 无效或 UTF-8 解码失败时，整个文件视为空资源并回退英文。英文文件异常时仍显示 `[missing translation]`，避免按钮或提示无文字。
-
-## 新增语言
-
-新增语言时应：
-
-1. 以 `en-US.json` 为键集合基准创建新的 UTF-8 JSON 文件；
-2. 翻译全部文本，并保留动态格式占位符；
-3. 在语言注册列表与发布资源列表中加入语言代码；
-4. 为语言的自显名称补充产品定义；
-5. 运行完整构建和测试，确认 JSON 键集合、安装目录和发布包。
-
-界面不会使用国旗表示语言。翻译不得通过缩小字体规避布局问题；导航和控件应根据本地化文字长度自适应。
+用户创建的快捷启动菜单标题、分类名称和路径属于用户数据，不会自动翻译。品牌名称始终写作“简驭 | Simpilot”。

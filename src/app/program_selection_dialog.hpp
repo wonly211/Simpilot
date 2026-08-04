@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace simpilot {
@@ -15,11 +16,18 @@ namespace simpilot {
 class ProgramSelectionDialog final {
 public:
     [[nodiscard]] static std::optional<std::filesystem::path> show_modal(
-        HINSTANCE instance, HWND owner, UiLanguage language,
+        HINSTANCE instance, HWND owner, std::string language_code,
         std::wstring executable, const std::vector<ProgramCandidate>& candidates);
+    [[nodiscard]] static std::optional<std::filesystem::path> show_modal(
+        HINSTANCE instance, HWND owner, UiLanguage language,
+        std::wstring executable, const std::vector<ProgramCandidate>& candidates) {
+        return show_modal(instance, owner,
+                          std::string(Localization::language_code(language)),
+                          std::move(executable), candidates);
+    }
 
 private:
-    ProgramSelectionDialog(HINSTANCE instance, HWND owner, UiLanguage language,
+    ProgramSelectionDialog(HINSTANCE instance, HWND owner, std::string language_code,
                            std::wstring executable,
                            const std::vector<ProgramCandidate>& candidates);
 
