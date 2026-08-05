@@ -1,6 +1,6 @@
 # Configuration, Logs, and Backup
 
-[简体中文](../zh-CN/配置-日志与备份) | [繁體中文](../zh-TW/設定、記錄檔與備份) | **English**
+[简体中文](../zh-CN/配置-日志与备份) | **English**
 
 Simpilot is a portable application. Its runtime data remains in the program folder so that it can be backed up, moved, and diagnosed easily. Extract the complete release package to a fixed directory writable by the current Windows user.
 

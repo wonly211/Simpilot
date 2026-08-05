@@ -1,6 +1,6 @@
 # Menu Icons and Themes
 
-[简体中文](../zh-CN/菜单图标与主题) | [繁體中文](../zh-TW/選單圖示與佈景主題) | **English**
+[简体中文](../zh-CN/菜单图标与主题) | **English**
 
 Use **Settings > Menu Icons** to inspect quick-launch icon sources and assign an icon to an individual launch item.
 

@@ -1,6 +1,6 @@
 # Simpilot Documentation
 
-[简体中文](../zh-CN/文档中心.md) | [繁體中文](../zh-TW/文件中心.md) | **English**
+[简体中文](../zh-CN/文档中心.md) | **English**
 
 This directory contains English source documentation. User-facing English guides are published in the [English Wiki](../wiki/en-US/Home.en-US.md); the repository technical archive is expanded as translations are completed.
 

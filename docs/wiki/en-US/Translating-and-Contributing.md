@@ -1,6 +1,6 @@
 # Translating and Contributing
 
-[简体中文](../zh-CN/翻译与贡献) | [繁體中文](../zh-TW/翻譯與貢獻) | **English**
+[简体中文](../zh-CN/翻译与贡献) | **English**
 
 Thank you for helping make Simpilot available in more languages. Simplified Chinese, Traditional Chinese, and English are built in. Other languages are distributed through `Language.lng`.
 

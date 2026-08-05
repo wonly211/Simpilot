@@ -1,6 +1,6 @@
 # Simpilot Wiki
 
-[简体中文](../zh-CN/Home) | [繁體中文](../zh-TW/首頁) | **English**
+[简体中文](../zh-CN/Home) | **English**
 
 Simpilot is a lightweight quick launcher and global hotkey manager for Windows. It uses a notification-area icon to organize frequently used applications, folders, files, and websites into hierarchical menus, while global hotkeys make frequent actions available from anywhere on the desktop.
 

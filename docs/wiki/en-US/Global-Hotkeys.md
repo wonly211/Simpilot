@@ -1,6 +1,6 @@
 # Global Hotkeys
 
-[简体中文](../zh-CN/全局热键) | [繁體中文](../zh-TW/全域快速鍵) | **English**
+[简体中文](../zh-CN/全局热键) | **English**
 
 Global hotkeys trigger actions while Simpilot runs in the background. Open **Settings > Global Hotkeys** to record, enable, pause, edit, or remove them.
 

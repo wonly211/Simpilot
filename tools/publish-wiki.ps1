@@ -14,7 +14,7 @@ $targetRoot = if ($Target) {
     Join-Path $repoRoot "build\wiki-publish"
 }
 
-$languages = @("zh-CN", "zh-TW", "en-US")
+$languages = @("zh-CN", "en-US")
 
 foreach ($language in $languages) {
     $languagePath = Join-Path $sourceRoot $language
@@ -42,7 +42,7 @@ foreach ($language in $languages) {
         $content = Get-Content -LiteralPath $sourceFile.FullName -Raw -Encoding utf8
 
         # Source pages use language-relative links; the published Wiki is flat.
-        $content = $content -replace '\.\./(?:zh-CN|zh-TW|en-US)/', ''
+        $content = $content -replace '\.\./(?:zh-CN|en-US)/', ''
         $content = $content.TrimEnd([char[]]"`r`n") + [Environment]::NewLine
 
         $targetFile = Join-Path $targetRoot $sourceFile.Name

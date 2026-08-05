@@ -1,6 +1,6 @@
 # Quick Launch Menu
 
-[简体中文](../zh-CN/快捷启动菜单) | [繁體中文](../zh-TW/快速啟動選單) | **English**
+[简体中文](../zh-CN/快捷启动菜单) | **English**
 
 The quick-launch menu centralizes frequently used entry points. Left-click the Simpilot tray icon to open the main menu. The menu chooses an opening direction automatically from the pointer position and available space on the active display.
 

@@ -1,6 +1,6 @@
 # Everything 集成
 
-**简体中文** | [繁體中文](../zh-TW/Everything-整合) | [English](../en-US/Everything-Integration)
+**简体中文** | [English](../en-US/Everything-Integration)
 
 Everything 是简驭 | Simpilot 的可选搜索能力。它用于打开或恢复 Everything 搜索窗口，并在快捷启动菜单只填写程序名时协助定位文件。
 

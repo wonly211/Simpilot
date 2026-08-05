@@ -1,6 +1,6 @@
 # Language and Language.lng
 
-[简体中文](../zh-CN/语言与-Language.lng) | [繁體中文](../zh-TW/語言與-Language.lng) | **English**
+[简体中文](../zh-CN/语言与-Language.lng) | **English**
 
 Simpilot includes Simplified Chinese, Traditional Chinese, and English. Simplified Chinese is used on first launch and whenever the saved language selection is invalid.
 

@@ -1,6 +1,6 @@
 # Simpilot Documentation
 
-[简体中文](zh-CN/文档中心.md) | [繁體中文](zh-TW/文件中心.md) | [English](en-US/README.md)
+[简体中文](zh-CN/文档中心.md) | [English](en-US/README.md)
 
 The repository documentation is organized by language first. Each language directory keeps its user-facing facts together, while `development/` contains implementation and design records for that language. This avoids mixing translated documents in one directory and makes an incomplete translation visible instead of silently presenting the wrong language.
 
@@ -10,15 +10,11 @@ docs/
     文档中心.md
     用户手册.md
     development/
-  zh-TW/
-    文件中心.md
-    development/
   en-US/
     README.md
     development/
   wiki/
     zh-CN/
-    zh-TW/
     en-US/
     _Sidebar.md
 ```

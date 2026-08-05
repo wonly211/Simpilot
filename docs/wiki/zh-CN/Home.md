@@ -1,6 +1,6 @@
 # 简驭 | Simpilot Wiki
 
-**简体中文** | [繁體中文](../zh-TW/首頁) | [English](../en-US/Home.en-US)
+**简体中文** | [English](../en-US/Home.en-US)
 
 简驭 | Simpilot 是面向 Windows 的轻量级快速启动器和全局热键管理器。它以通知区域图标为入口：把常用应用、文件夹、文件和网站组织为分层菜单，也可以用全局热键直接执行高频操作。
 

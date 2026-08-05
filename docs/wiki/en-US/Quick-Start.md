@@ -1,6 +1,6 @@
 # Quick Start
 
-[简体中文](../zh-CN/快速开始) | [繁體中文](../zh-TW/快速開始) | **English**
+[简体中文](../zh-CN/快速开始) | **English**
 
 This guide gets Simpilot running and opens your first quick-launch menu.
 

@@ -1,6 +1,6 @@
 # Everything Integration
 
-[简体中文](../zh-CN/Everything-集成) | [繁體中文](../zh-TW/Everything-整合) | **English**
+[简体中文](../zh-CN/Everything-集成) | **English**
 
 Everything is an optional search capability for Simpilot. It opens or restores the Everything Search window and helps resolve application entries that contain only a program name instead of a complete path.
 

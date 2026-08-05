@@ -1,6 +1,6 @@
 # Windows Hotkey Blocking
 
-[简体中文](../zh-CN/Windows-快捷键屏蔽) | [繁體中文](../zh-TW/Windows-快速鍵封鎖) | **English**
+[简体中文](../zh-CN/Windows-快捷键屏蔽) | **English**
 
 Use **Settings > Windows Hotkey Blocking** to select supported `Win+letter` combinations that Simpilot should intercept in real time.
 

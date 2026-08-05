@@ -1,6 +1,6 @@
 # FAQ and Troubleshooting
 
-[简体中文](../zh-CN/常见问题与故障排查) | [繁體中文](../zh-TW/常見問題與疑難排解) | **English**
+[简体中文](../zh-CN/常见问题与故障排查) | **English**
 
 ## Why is there no main window after startup?
 
