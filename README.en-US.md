@@ -74,6 +74,8 @@ Simpilot is a tray application and does not show a conventional main window afte
 
 For installation, menu editing, hotkey recording, Windows shortcut blocking, Everything integration, backup and migration, and troubleshooting, see:
 
+**[Simpilot User Manual](docs/en-US/User-Manual.md)**
+
 **[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)** provides task-oriented guides for setup, menus, hotkeys, Everything, language packs, and troubleshooting. The repository documentation remains the technical source of truth.
 
 For problems, check the troubleshooting and FAQ sections first, then report the issue through [GitHub Issues](https://github.com/wonly211/Simpilot/issues). Review the log before posting and avoid exposing personal directory or file names.

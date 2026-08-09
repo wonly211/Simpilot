@@ -63,4 +63,4 @@ On first launch, Simpilot creates `Config/Simpilot.ini` with example entries. Yo
 2. Read [Global Hotkeys](Global-Hotkeys) to record convenient key combinations.
 3. In **Settings > General**, choose an interface language or menu theme, or enable automatic startup after Windows sign-in.
 
-Return to [Wiki Home](Home.en-US) for all topics. For complete operational details, including backup and troubleshooting, see the [Simplified Chinese user manual](https://github.com/wonly211/Simpilot/blob/main/docs/zh-CN/用户手册.md).
+Return to [Wiki Home](Home.en-US) for all topics. For complete operational details, including backup and troubleshooting, see the [English user manual](https://github.com/wonly211/Simpilot/blob/main/docs/en-US/User-Manual.md).

@@ -11,6 +11,18 @@
 namespace simpilot {
 
 inline constexpr wchar_t about_window_class_name[] = L"Simpilot.AboutWindow";
+inline constexpr wchar_t about_simplified_chinese_manual_url[] =
+    L"https://github.com/wonly211/Simpilot/blob/main/docs/zh-CN/"
+    L"%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C.md";
+inline constexpr wchar_t about_english_manual_url[] =
+    L"https://github.com/wonly211/Simpilot/blob/main/docs/en-US/User-Manual.md";
+
+[[nodiscard]] inline constexpr const wchar_t* about_manual_url_for_language(
+    const LANGID language) noexcept {
+    return PRIMARYLANGID(language) == LANG_CHINESE
+        ? about_simplified_chinese_manual_url
+        : about_english_manual_url;
+}
 
 class AboutWindow final {
 public:

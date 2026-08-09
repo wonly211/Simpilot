@@ -38,6 +38,7 @@ Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the f
 
 ## Useful links
 
+- [English user manual](https://github.com/wonly211/Simpilot/blob/main/docs/en-US/User-Manual.md)
 - [Documentation in the repository](https://github.com/wonly211/Simpilot/tree/main/docs)
 - [Latest release](https://github.com/wonly211/Simpilot/releases/latest)
 - [Report an issue](https://github.com/wonly211/Simpilot/issues)

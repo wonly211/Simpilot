@@ -12,6 +12,7 @@ docs/
     development/
   en-US/
     README.md
+    User-Manual.md
     development/
   wiki/
     zh-CN/

@@ -11,6 +11,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -52,7 +53,7 @@ BOOL CALLBACK inspect_child(const HWND control, const LPARAM parameter) {
     const auto value = control_text(control);
     if (_wcsicmp(class_name, L"SysLink") == 0) ++summary.links;
     if (value == L"简驭 | Simpilot") summary.product_name = true;
-    if (value == L"Version 0.18.1" || value == L"版本 0.18.1") summary.version = true;
+    if (value == L"Version 0.18.2" || value == L"版本 0.18.2") summary.version = true;
     if (value == L"Close" || value == L"关闭" || value == L"關閉") summary.close = true;
     RECT rectangle{};
     if (GetWindowRect(control, &rectangle)) summary.rectangles.push_back(rectangle);
@@ -199,13 +200,30 @@ std::wstring version_value(const std::filesystem::path& executable,
 int wmain(const int argument_count, wchar_t** arguments) {
     try {
         SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        require(std::wstring_view(simpilot::about_manual_url_for_language(
+                    MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED))) ==
+                    L"https://github.com/wonly211/Simpilot/blob/main/docs/zh-CN/"
+                    L"%E7%94%A8%E6%88%B7%E6%89%8B%E5%86%8C.md",
+                "Simplified Chinese Windows links to the Simplified Chinese manual");
+        require(std::wstring_view(simpilot::about_manual_url_for_language(
+                    MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL))) ==
+                    simpilot::about_simplified_chinese_manual_url,
+                "Traditional Chinese Windows links to the Simplified Chinese manual");
+        require(std::wstring_view(simpilot::about_manual_url_for_language(
+                    MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US))) ==
+                    simpilot::about_english_manual_url,
+                "English Windows links to the English manual");
+        require(std::wstring_view(simpilot::about_manual_url_for_language(
+                    MAKELANGID(LANG_JAPANESE, SUBLANG_DEFAULT))) ==
+                    simpilot::about_english_manual_url,
+                "Other Windows languages link to the English manual");
         const auto directory = executable_directory();
         const auto product = directory / L"Simpilot.exe";
         require(version_value(product, L"ProductName") == L"简驭 | Simpilot",
                 "Product name matches the About window");
-        require(version_value(product, L"FileVersion") == L"0.18.1.0",
+        require(version_value(product, L"FileVersion") == L"0.18.2.0",
                 "File version matches the project version");
-        require(version_value(product, L"ProductVersion") == L"0.18.1.0",
+        require(version_value(product, L"ProductVersion") == L"0.18.2.0",
                 "Product version matches the project version");
         const auto snapshot_path = argument_count > 2
             && _wcsicmp(arguments[1], L"--snapshot") == 0
@@ -257,7 +275,7 @@ int wmain(const int argument_count, wchar_t** arguments) {
             ? simpilot::UiLanguage::english
             : snapshot_language);
         simpilot::AboutWindow::show_modal(
-            GetModuleHandleW(nullptr), nullptr, localization, product, L"0.18.1");
+            GetModuleHandleW(nullptr), nullptr, localization, product, L"0.18.2");
         inspector.join();
         require(found, "About window was created");
         require(icons_present, "About window uses Simpilot icons");

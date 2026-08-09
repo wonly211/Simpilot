@@ -25,8 +25,6 @@ constexpr int third_party_identifier = 105;
 
 constexpr auto project_home_url = L"https://github.com/wonly211/Simpilot";
 constexpr auto releases_url = L"https://github.com/wonly211/Simpilot/releases/latest";
-constexpr auto manual_url =
-    L"https://github.com/wonly211/Simpilot/blob/main/docs/user-manual.zh-CN.md";
 constexpr auto issues_url = L"https://github.com/wonly211/Simpilot/issues";
 constexpr auto license_url = L"https://github.com/wonly211/Simpilot/blob/main/LICENSE";
 constexpr auto third_party_url =
@@ -490,7 +488,9 @@ void AboutWindow::open_target(const int identifier) {
     switch (identifier) {
     case home_identifier: target = project_home_url; break;
     case releases_identifier: target = releases_url; break;
-    case manual_identifier: target = manual_url; break;
+    case manual_identifier:
+        target = about_manual_url_for_language(GetUserDefaultUILanguage());
+        break;
     case issues_identifier: target = issues_url; break;
     case license_identifier: {
         const auto local = executable_path_.parent_path() / L"LICENSE";
