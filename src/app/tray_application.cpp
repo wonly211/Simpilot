@@ -27,6 +27,7 @@ namespace simpilot {
 namespace {
 
 constexpr UINT tray_callback_message = WM_APP + 1;
+constexpr UINT tray_icon_flags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
 constexpr UINT reload_menu_command = 2;
 constexpr UINT show_everything_command = 3;
 constexpr UINT exit_command = 4;
@@ -908,7 +909,7 @@ void TrayApplication::add_tray_icon() {
     tray_icon_.cbSize = sizeof(tray_icon_);
     tray_icon_.hWnd = window_;
     tray_icon_.uID = 1;
-    tray_icon_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    tray_icon_.uFlags = tray_icon_flags;
     tray_icon_.uCallbackMessage = tray_callback_message;
     tray_icon_.hIcon = LoadIconW(instance_, MAKEINTRESOURCEW(IDI_SIMPILOT));
     wcsncpy_s(tray_icon_.szTip, localization_.text(UiText::app_title).data(), _TRUNCATE);
@@ -920,14 +921,14 @@ void TrayApplication::add_tray_icon() {
     if (!Shell_NotifyIconW(NIM_SETVERSION, &tray_icon_)) {
         logger_.write(std::format(L"tray icon version update failed error={}", GetLastError()));
     }
-    tray_icon_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    tray_icon_.uFlags = tray_icon_flags;
 }
 
 void TrayApplication::update_tray_text() {
     wcsncpy_s(tray_icon_.szTip, localization_.text(UiText::app_title).data(), _TRUNCATE);
-    tray_icon_.uFlags = NIF_TIP;
+    tray_icon_.uFlags = NIF_TIP | NIF_SHOWTIP;
     Shell_NotifyIconW(NIM_MODIFY, &tray_icon_);
-    tray_icon_.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+    tray_icon_.uFlags = tray_icon_flags;
 }
 
 void TrayApplication::remove_tray_icon() {
