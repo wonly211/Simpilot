@@ -18,8 +18,9 @@ inline constexpr wchar_t about_english_manual_url[] =
     L"https://github.com/wonly211/Simpilot/blob/main/docs/en-US/User-Manual.md";
 
 [[nodiscard]] inline constexpr const wchar_t* about_manual_url_for_language(
-    const LANGID language) noexcept {
-    return PRIMARYLANGID(language) == LANG_CHINESE
+    const UiLanguage language) noexcept {
+    return language == UiLanguage::simplified_chinese
+            || language == UiLanguage::traditional_chinese
         ? about_simplified_chinese_manual_url
         : about_english_manual_url;
 }

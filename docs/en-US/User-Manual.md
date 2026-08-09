@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 0.18.2
+Applies to version: 0.18.3
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -118,7 +118,7 @@ Additional languages can be installed by placing a compressed `Language.lng` bes
 
 The selected language is stored as `Language=...` in `Config/Setting.ini`. If an external language omits a string, Simpilot falls back to English; if no value is available, `[missing translation]` is displayed instead of an empty control.
 
-The **User Manual** link in About follows the Windows user-interface language rather than the selected Simpilot display language. Chinese Windows languages, including Simplified and Traditional Chinese, open the Simplified Chinese manual. English and all other Windows languages open this English manual.
+The **User Manual** link in About follows the current Simpilot display language. Simplified Chinese and Traditional Chinese open the Simplified Chinese manual. English and languages loaded from `Language.lng` open this English manual.
 
 ### 4.3 Quick-launch menu theme
 

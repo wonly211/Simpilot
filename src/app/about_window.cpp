@@ -489,7 +489,7 @@ void AboutWindow::open_target(const int identifier) {
     case home_identifier: target = project_home_url; break;
     case releases_identifier: target = releases_url; break;
     case manual_identifier:
-        target = about_manual_url_for_language(GetUserDefaultUILanguage());
+        target = about_manual_url_for_language(localization_.language());
         break;
     case issues_identifier: target = issues_url; break;
     case license_identifier: {
