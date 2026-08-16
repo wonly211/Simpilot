@@ -9,6 +9,7 @@
 #include "simpilot/program_cache.hpp"
 
 #include "keyboard_manager.hpp"
+#include "cursor_locator.hpp"
 #include "launch_menu_renderer.hpp"
 #include "menu_icon_cache.hpp"
 
@@ -75,6 +76,7 @@ private:
     std::unique_ptr<EverythingSearch> everything_search_;
     std::unique_ptr<ConfigWatcher> config_watcher_;
     KeyboardManager keyboard_manager_;
+    CursorLocator cursor_locator_;
     MenuIconCache menu_icons_;
     LaunchMenuRenderer launch_menu_renderer_;
     std::unordered_map<UINT, const MenuEntry*> command_entries_;

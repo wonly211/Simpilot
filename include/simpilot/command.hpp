@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 
 namespace simpilot {
 
@@ -13,5 +14,6 @@ struct ParsedCommand {
     [[nodiscard]] std::wstring with_executable(const std::wstring& replacement) const;
 };
 
-} // namespace simpilot
+[[nodiscard]] bool is_terminal_executable(std::wstring_view executable) noexcept;
 
+} // namespace simpilot

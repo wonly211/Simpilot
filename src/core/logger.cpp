@@ -1,4 +1,5 @@
 #include "simpilot/logger.hpp"
+#include "simpilot/atomic_file.hpp"
 #include "simpilot/text_encoding.hpp"
 
 #include <Windows.h>
@@ -79,8 +80,9 @@ void Logger::remove_expired_entries() noexcept {
 
         std::ifstream source(path_, std::ios::binary);
         if (!source) return;
-        const auto temporary = std::filesystem::path(path_.wstring() + L".tmp");
-        std::ofstream destination(temporary, std::ios::binary | std::ios::trunc);
+        AtomicFileReplacement replacement(path_);
+        std::ofstream destination(
+            replacement.temporary_path(), std::ios::binary | std::ios::trunc);
         if (!destination) return;
 
         const auto cutoff = expiration_cutoff();
@@ -98,13 +100,9 @@ void Logger::remove_expired_entries() noexcept {
         destination.close();
 
         if (!removed) {
-            std::filesystem::remove(temporary, error);
             return;
         }
-        if (!MoveFileExW(temporary.c_str(), path_.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-            std::filesystem::remove(temporary, error);
-        }
+        (void)replacement.commit();
     } catch (...) {
     }
 }

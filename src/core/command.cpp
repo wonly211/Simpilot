@@ -1,7 +1,9 @@
 #include "simpilot/command.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cwctype>
+#include <filesystem>
 #include <regex>
 
 namespace simpilot {
@@ -16,6 +18,11 @@ std::wstring trim(std::wstring value) {
 std::wstring trim_left(std::wstring value) {
     const auto first = std::find_if_not(value.begin(), value.end(), iswspace);
     value.erase(value.begin(), first);
+    return value;
+}
+
+std::wstring lowercase(std::wstring value) {
+    std::transform(value.begin(), value.end(), value.begin(), towlower);
     return value;
 }
 
@@ -57,5 +64,21 @@ std::wstring ParsedCommand::with_executable(const std::wstring& replacement) con
     return arguments.empty() ? executable_value : executable_value + L" " + arguments;
 }
 
-} // namespace simpilot
+bool is_terminal_executable(const std::wstring_view executable) noexcept {
+    try {
+        const auto filename = lowercase(
+            std::filesystem::path(executable).filename().wstring());
+        static constexpr std::array<std::wstring_view, 9> terminal_names{
+            L"cmd", L"cmd.exe",
+            L"powershell", L"powershell.exe",
+            L"pwsh", L"pwsh.exe",
+            L"wt", L"wt.exe",
+            L"windowsterminal.exe",
+        };
+        return std::ranges::find(terminal_names, filename) != terminal_names.end();
+    } catch (...) {
+        return false;
+    }
+}
 
+} // namespace simpilot

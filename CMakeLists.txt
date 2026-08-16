@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.18.3 LANGUAGES CXX)
+project(Simpilot VERSION 0.18.4 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_library(simpilot_core STATIC
     src/core/app_settings.cpp
+    src/core/atomic_file.cpp
     src/core/command.cpp
     src/core/config_file.cpp
     src/core/config_watcher.cpp
@@ -21,6 +22,7 @@ add_library(simpilot_core STATIC
     src/core/localization.cpp
     src/core/menu_parser.cpp
     src/core/menu_writer.cpp
+    src/core/mouse_shake_detector.cpp
     src/core/program_cache.cpp
     src/core/program_resolver.cpp
     src/core/text_encoding.cpp
@@ -97,6 +99,7 @@ add_executable(simpilot WIN32
     "${CMAKE_CURRENT_BINARY_DIR}/SimpilotVersion.rc"
     src/app/about_window.cpp
     src/app/custom_hotkey_dialog.cpp
+    src/app/cursor_locator.cpp
     src/app/launch_menu_renderer.cpp
     src/app/main.cpp
     src/app/menu_editor_window.cpp

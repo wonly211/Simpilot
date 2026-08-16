@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 0.18.3
+Applies to version: 0.18.4
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -104,7 +104,13 @@ Enable **Start Simpilot after signing in to Windows**, then select **Apply** or 
 
 If the whole Simpilot directory is moved, open Settings and apply this option again so the startup entry uses the new path.
 
-### 4.2 Display language
+### 4.2 Pointer location
+
+Enable **Highlight the pointer when the mouse is shaken** and select **Apply** or **Save**. Quickly moving the mouse back and forth then shows a prominent fading ring around the current pointer. Ordinary movement, small jitter, and slow reversals do not trigger it. The ring neither takes focus nor intercepts mouse clicks. Disabling the switch stops detection immediately.
+
+The option is stored as `MouseShakeLocatorEnabled=...` in `Config/Setting.ini` and is disabled by default.
+
+### 4.3 Display language
 
 Simpilot includes three interface languages:
 
@@ -120,7 +126,7 @@ The selected language is stored as `Language=...` in `Config/Setting.ini`. If an
 
 The **User Manual** link in About follows the current Simpilot display language. Simplified Chinese and Traditional Chinese open the Simplified Chinese manual. English and languages loaded from `Language.lng` open this English manual.
 
-### 4.3 Quick-launch menu theme
+### 4.4 Quick-launch menu theme
 
 - **Use Windows setting** selects the current Windows application theme whenever a menu opens.
 - **Light** always uses a light menu.
@@ -159,6 +165,8 @@ Launch items support these action types:
 - **Open website** uses the default browser for an `http://` or `https://` address.
 
 Use **Browse...** to select a local target. The editor handles quoting when a path contains spaces.
+
+When a quick-launch entry opens `cmd.exe`, `powershell.exe`, `pwsh.exe`, or Windows Terminal, the terminal starts in the current Windows user profile rather than `Config/`. Other launch items continue to use `Config/` as their working directory so existing relative paths retain their meaning.
 
 When an application contains only a file name, such as `tool.exe`, the editor displays its currently resolved path. Simpilot searches Windows system directories, `PATH`, and confirmed Everything results. If an Everything result is no longer the desired one, select **Choose Again...** beside the resolved path.
 

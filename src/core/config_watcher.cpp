@@ -1,8 +1,37 @@
 #include "simpilot/config_watcher.hpp"
 
 #include <array>
+#include <fstream>
 
 namespace simpilot {
+namespace {
+
+std::uint64_t file_hash(
+    const std::filesystem::path& path, bool& readable) noexcept {
+    constexpr std::uint64_t fnv_offset_basis = 1469598103934665603ULL;
+    constexpr std::uint64_t fnv_prime = 1099511628211ULL;
+    try {
+        std::ifstream stream(path, std::ios::binary);
+        if (!stream) return 0;
+        std::uint64_t result = fnv_offset_basis;
+        std::array<char, 4096> buffer{};
+        while (stream) {
+            stream.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+            const auto count = stream.gcount();
+            for (std::streamsize index = 0; index < count; ++index) {
+                result ^= static_cast<unsigned char>(buffer[static_cast<std::size_t>(index)]);
+                result *= fnv_prime;
+            }
+        }
+        if (stream.bad()) return 0;
+        readable = true;
+        return result;
+    } catch (...) {
+        return 0;
+    }
+}
+
+} // namespace
 
 ConfigWatcher::ConfigWatcher(std::filesystem::path directory,
                              std::vector<std::wstring> file_names,
@@ -61,10 +90,22 @@ std::vector<ConfigWatcher::FileState> ConfigWatcher::snapshot() const noexcept {
             error.clear();
             state.last_write = std::filesystem::last_write_time(path, error);
             if (error) state.last_write = {};
+            state.content_hash = file_hash(path, state.readable);
         }
         result.push_back(state);
     }
     return result;
+}
+
+void ConfigWatcher::report_changes(std::vector<FileState>& previous) noexcept {
+    const auto current = snapshot();
+    if (current == previous) return;
+    previous = current;
+    try {
+        if (callback_) callback_();
+    } catch (...) {
+        log(L"config watcher callback failed");
+    }
 }
 
 void ConfigWatcher::watch_loop() noexcept {
@@ -80,6 +121,10 @@ void ConfigWatcher::watch_loop() noexcept {
             continue;
         }
         log(L"config watcher ready");
+        // A file can change after the first snapshot but before the directory
+        // notification is armed. Re-snapshot immediately after arming it so
+        // that this startup/retry window cannot lose a configuration update.
+        report_changes(previous);
         const std::array<HANDLE, 2> handles{stop_event_, notification};
         while (true) {
             const auto result = WaitForMultipleObjects(static_cast<DWORD>(handles.size()),
@@ -97,14 +142,7 @@ void ConfigWatcher::watch_loop() noexcept {
                 FindCloseChangeNotification(notification);
                 return;
             }
-            const auto current = snapshot();
-            if (current == previous) continue;
-            previous = current;
-            try {
-                if (callback_) callback_();
-            } catch (...) {
-                log(L"config watcher callback failed");
-            }
+            report_changes(previous);
         }
         FindCloseChangeNotification(notification);
     }

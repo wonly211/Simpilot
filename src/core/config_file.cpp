@@ -1,9 +1,9 @@
 #include "simpilot/config_file.hpp"
+#include "simpilot/atomic_file.hpp"
 #include "simpilot/text_encoding.hpp"
 
-#include <Windows.h>
-
 #include <fstream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -15,11 +15,32 @@ std::vector<char> read_bytes(const std::filesystem::path& path) {
     if (!stream) {
         throw std::runtime_error("Unable to open configuration file");
     }
-    const auto size = stream.tellg();
-    stream.seekg(0);
-    std::vector<char> bytes(static_cast<std::size_t>(size));
+    const auto end_position = stream.tellg();
+    if (end_position == std::streampos(-1)) {
+        throw std::runtime_error("Unable to determine configuration file size");
+    }
+    const auto size = static_cast<std::streamoff>(end_position);
+    if (size < 0
+        || static_cast<std::uintmax_t>(size)
+            > static_cast<std::uintmax_t>(std::numeric_limits<std::size_t>::max())
+        || static_cast<std::uintmax_t>(size)
+            > static_cast<std::uintmax_t>(std::numeric_limits<std::streamsize>::max())) {
+        throw std::runtime_error("Configuration file size is unsupported");
+    }
+    stream.seekg(0, std::ios::beg);
+    if (!stream) {
+        throw std::runtime_error("Unable to seek configuration file");
+    }
+    std::vector<char> bytes;
+    if (static_cast<std::uintmax_t>(size) > bytes.max_size()) {
+        throw std::runtime_error("Configuration file is too large");
+    }
+    bytes.resize(static_cast<std::size_t>(size));
     if (!bytes.empty()) {
         stream.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+        if (!stream || stream.gcount() != static_cast<std::streamsize>(bytes.size())) {
+            throw std::runtime_error("Unable to read the complete configuration file");
+        }
     }
     return bytes;
 }
@@ -64,15 +85,11 @@ std::wstring read_configuration_text(const std::filesystem::path& path) {
 }
 
 void write_configuration_text(const std::filesystem::path& path, const std::wstring& text) {
-    std::filesystem::create_directories(path.parent_path());
     const auto encoded = encode_utf8(text);
     const std::vector<char> bytes(encoded.begin(), encoded.end());
-    const auto temporary_path = std::filesystem::path(path.wstring() + L".tmp");
-    write_all(temporary_path, bytes);
-    if (!MoveFileExW(temporary_path.c_str(), path.c_str(),
-                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        std::error_code error;
-        std::filesystem::remove(temporary_path, error);
+    AtomicFileReplacement replacement(path);
+    write_all(replacement.temporary_path(), bytes);
+    if (!replacement.commit()) {
         throw std::runtime_error("Unable to replace configuration file");
     }
 }

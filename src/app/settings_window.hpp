@@ -155,6 +155,9 @@ private:
     HWND title_ = nullptr;
     HWND general_scope_ = nullptr;
     HWND startup_section_ = nullptr;
+    HWND cursor_locator_section_ = nullptr;
+    HWND cursor_locator_switch_ = nullptr;
+    HWND cursor_locator_scope_ = nullptr;
     HWND appearance_section_ = nullptr;
     HWND hint_ = nullptr;
     HWND status_ = nullptr;

@@ -62,6 +62,7 @@ struct AppSettings {
     // when an external Language.lng language is selected.
     std::string language_code;
     bool start_with_windows = false;
+    bool mouse_shake_locator_enabled = false;
     MenuTheme menu_theme = MenuTheme::system;
     BuiltInHotKey main_menu{{{HotKeyGesture{0, VK_OEM_3}}, false}, true};
     BuiltInHotKey second_menu{};

@@ -5,6 +5,7 @@
 #include <Windows.h>
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -127,6 +128,7 @@ private:
     HANDLE hook_thread_ = nullptr;
     HANDLE hook_ready_event_ = nullptr;
     DWORD hook_thread_id_ = 0;
+    std::atomic_bool stop_requested_ = false;
     DWORD last_error_ = ERROR_SUCCESS;
     UINT capture_session_ = 0;
     bool capture_active_ = false;

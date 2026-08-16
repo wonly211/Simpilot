@@ -26,6 +26,7 @@ constexpr int apply_identifier = 3;
 constexpr int startup_identifier = 10;
 constexpr int menu_theme_identifier = 11;
 constexpr int language_identifier = 12;
+constexpr int cursor_locator_identifier = 13;
 constexpr int built_in_hotkey_switch_base_identifier = 20;
 constexpr int edit_base_identifier = 100;
 constexpr int clear_base_identifier = 200;
@@ -269,6 +270,12 @@ void SettingsWindow::create_controls() {
         WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     startup_section_ = CreateWindowW(L"STATIC", text(startup_section_text),
         WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    cursor_locator_section_ = CreateWindowW(
+        L"STATIC", text("settings.section.cursor_locator"),
+        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    cursor_locator_scope_ = CreateWindowW(
+        L"STATIC", text("settings.cursor_locator.description"),
+        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     appearance_section_ = CreateWindowW(L"STATIC", text(appearance_section_text),
         WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     for (std::size_t index = 0; index < capture_buttons_.size(); ++index) {
@@ -298,6 +305,9 @@ void SettingsWindow::create_controls() {
             static_cast<INT_PTR>(startup_identifier)), instance_, nullptr);
     SendMessageW(startup_checkbox_, BM_SETCHECK,
                  settings_.start_with_windows ? BST_CHECKED : BST_UNCHECKED, 0);
+    cursor_locator_switch_ = toggle_switch::create(
+        instance_, window_, cursor_locator_identifier,
+        text("settings.cursor_locator"), settings_.mouse_shake_locator_enabled, true);
     language_label_ = CreateWindowW(L"STATIC", text("settings.display_language"),
         WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
@@ -483,6 +493,9 @@ void SettingsWindow::refresh_localized_text() {
     SetWindowTextW(title_, text(heading_text));
     SetWindowTextW(general_scope_, text(general_scope_text));
     SetWindowTextW(startup_section_, text(startup_section_text));
+    SetWindowTextW(cursor_locator_section_, text("settings.section.cursor_locator"));
+    SetWindowTextW(cursor_locator_switch_, text("settings.cursor_locator"));
+    SetWindowTextW(cursor_locator_scope_, text("settings.cursor_locator.description"));
     SetWindowTextW(appearance_section_, text(appearance_section_text));
     SetWindowTextW(startup_checkbox_, text(startup_text));
     SetWindowTextW(language_label_, text("settings.display_language"));
@@ -644,6 +657,9 @@ void SettingsWindow::update_fonts() {
     set_font(title_, title_font_);
     set_font(general_scope_, font_);
     set_font(startup_section_, section_font_);
+    set_font(cursor_locator_section_, section_font_);
+    set_font(cursor_locator_switch_, font_);
+    set_font(cursor_locator_scope_, font_);
     set_font(appearance_section_, section_font_);
     set_font(startup_checkbox_, font_);
     set_font(language_label_, font_);
@@ -738,15 +754,21 @@ void SettingsWindow::layout_controls(const int width, const int height) {
     MoveWindow(startup_section_, content_x, body_top, content_width, scale(28), TRUE);
     MoveWindow(startup_checkbox_, content_x, body_top + scale(36),
                content_width, scale(32), TRUE);
-    MoveWindow(appearance_section_, content_x, body_top + scale(104),
+    MoveWindow(cursor_locator_section_, content_x, body_top + scale(96),
                content_width, scale(28), TRUE);
-    MoveWindow(language_label_, content_x, body_top + scale(142),
+    MoveWindow(cursor_locator_switch_, content_x, body_top + scale(130),
+               content_width, scale(32), TRUE);
+    MoveWindow(cursor_locator_scope_, content_x, body_top + scale(166),
+               content_width, scale(42), TRUE);
+    MoveWindow(appearance_section_, content_x, body_top + scale(224),
+               content_width, scale(28), TRUE);
+    MoveWindow(language_label_, content_x, body_top + scale(262),
                label_width - scale(8), control_height, TRUE);
-    MoveWindow(language_combo_, edit_x, body_top + scale(142),
+    MoveWindow(language_combo_, edit_x, body_top + scale(262),
                std::min(wide(280), edit_width), scale(180), TRUE);
-    MoveWindow(menu_theme_label_, content_x, body_top + scale(188),
+    MoveWindow(menu_theme_label_, content_x, body_top + scale(308),
                label_width - scale(8), control_height, TRUE);
-    MoveWindow(menu_theme_combo_, edit_x, body_top + scale(188),
+    MoveWindow(menu_theme_combo_, edit_x, body_top + scale(308),
                std::min(wide(280), edit_width), scale(180), TRUE);
 
     MoveWindow(custom_hotkey_heading_, content_x, page_title_y,
@@ -872,6 +894,9 @@ void SettingsWindow::update_page_visibility() {
     ShowWindow(title_, general_command);
     ShowWindow(general_scope_, general_command);
     ShowWindow(startup_section_, general_command);
+    ShowWindow(cursor_locator_section_, general_command);
+    ShowWindow(cursor_locator_switch_, general_command);
+    ShowWindow(cursor_locator_scope_, general_command);
     ShowWindow(appearance_section_, general_command);
     ShowWindow(startup_checkbox_, general_command);
     ShowWindow(language_label_, general_command);
@@ -1580,6 +1605,8 @@ bool SettingsWindow::apply_current() {
     if (capturing_) cancel_capture();
     settings_.start_with_windows = SendMessageW(startup_checkbox_, BM_GETCHECK, 0, 0)
         == BST_CHECKED;
+    settings_.mouse_shake_locator_enabled = SendMessageW(
+        cursor_locator_switch_, BM_GETCHECK, 0, 0) == BST_CHECKED;
     settings_.menu_theme = static_cast<MenuTheme>(std::max<LRESULT>(0,
         SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0)));
     read_windows_hotkey_controls();
@@ -1787,6 +1814,12 @@ LRESULT SettingsWindow::handle_message(const UINT message,
         if (identifier == startup_identifier && notification == BN_CLICKED) {
             settings_.start_with_windows = SendMessageW(
                 startup_checkbox_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            mark_dirty();
+            return 0;
+        }
+        if (identifier == cursor_locator_identifier && notification == BN_CLICKED) {
+            settings_.mouse_shake_locator_enabled = SendMessageW(
+                cursor_locator_switch_, BM_GETCHECK, 0, 0) == BST_CHECKED;
             mark_dirty();
             return 0;
         }

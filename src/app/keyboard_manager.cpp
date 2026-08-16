@@ -225,6 +225,7 @@ bool KeyboardManager::create_capture_window() noexcept {
 }
 
 bool KeyboardManager::start_hook_thread() noexcept {
+    stop_requested_.store(false, std::memory_order_release);
     hook_ready_event_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
     if (!hook_ready_event_) {
         last_error_ = GetLastError();
@@ -284,11 +285,17 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
     last_error_ = ERROR_SUCCESS;
     SetEvent(hook_ready_event_);
 
+    if (stop_requested_.load(std::memory_order_acquire)) {
+        DestroyWindow(hook_window_);
+    }
+
     MSG message{};
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+    BOOL message_result = 0;
+    while ((message_result = GetMessageW(&message, nullptr, 0, 0)) > 0) {
         TranslateMessage(&message);
         DispatchMessageW(&message);
     }
+    if (message_result == -1) last_error_ = GetLastError();
 
     (void)send_windows_transition(
         windows_hotkey_state_.restore_suppressed_windows());
@@ -296,7 +303,7 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
     hook_ = nullptr;
     hook_window_ = nullptr;
     if (owner_ == this) owner_ = nullptr;
-    return 0;
+    return message_result == -1 ? 4 : 0;
 }
 
 bool KeyboardManager::send_control(
@@ -418,9 +425,17 @@ DWORD KeyboardManager::last_error() const noexcept {
 
 void KeyboardManager::stop() noexcept {
     end_capture();
-    if (hook_window_) (void)send_control(shutdown_hook_message);
+    stop_requested_.store(true, std::memory_order_release);
+    auto shutdown_sent = false;
+    if (hook_window_) shutdown_sent = send_control(shutdown_hook_message);
+    if (!shutdown_sent && hook_thread_id_ != 0) {
+        (void)PostThreadMessageW(hook_thread_id_, WM_QUIT, 0, 0);
+    }
     if (hook_thread_) {
-        (void)WaitForSingleObject(hook_thread_, hook_start_timeout_ms);
+        // The hook thread owns callbacks and window procedures that reference
+        // this object. Destruction must not continue until that thread has
+        // fully exited, even if its synchronous shutdown message timed out.
+        (void)WaitForSingleObject(hook_thread_, INFINITE);
         CloseHandle(hook_thread_);
         hook_thread_ = nullptr;
     }

@@ -1,4 +1,5 @@
 #include "simpilot/app_settings.hpp"
+#include "simpilot/atomic_file.hpp"
 #include "simpilot/command.hpp"
 #include "simpilot/config_file.hpp"
 #include "simpilot/config_watcher.hpp"
@@ -8,6 +9,7 @@
 #include "simpilot/hotkey.hpp"
 #include "simpilot/menu_parser.hpp"
 #include "simpilot/menu_writer.hpp"
+#include "simpilot/mouse_shake_detector.hpp"
 #include "simpilot/program_resolver.hpp"
 #include "simpilot/program_cache.hpp"
 #include "simpilot/variable_expander.hpp"
@@ -212,6 +214,16 @@ void commands_parse_and_replace_executables() {
             "Quoted command parsing");
     require_equal(parsed->with_executable(L"D:\\New Tool\\tool.exe"),
                   std::wstring(L"\"D:\\New Tool\\tool.exe\" --flag"), "Executable replacement");
+    for (const auto terminal : {
+             L"cmd.exe", L"powershell.exe", L"pwsh.exe", L"wt.exe",
+             L"C:\\Windows\\System32\\cmd.exe",
+             L"C:\\Program Files\\PowerShell\\7\\pwsh.exe",
+         }) {
+        require(simpilot::is_terminal_executable(terminal),
+                "Recognize terminal executables that start in the user profile");
+    }
+    require(!simpilot::is_terminal_executable(L"notepad.exe"),
+            "Do not change the working directory of regular launch items");
 }
 
 void resolver_falls_back_to_everything_search() {
@@ -397,28 +409,79 @@ void logger_removes_entries_older_than_ninety_days_at_startup() {
     std::filesystem::remove_all(root);
 }
 
+void atomic_file_replacements_use_unique_temporary_paths() {
+    const auto root = std::filesystem::temp_directory_path()
+        / (L"simpilot-atomic-file-test-" + std::to_wstring(GetCurrentProcessId()));
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root);
+    const auto path = root / L"Setting.ini";
+    {
+        simpilot::AtomicFileReplacement first(path);
+        simpilot::AtomicFileReplacement second(path);
+        require(first.temporary_path() != second.temporary_path(),
+                "Concurrent atomic writes reserve different temporary files");
+        {
+            std::ofstream stream(first.temporary_path(), std::ios::binary | std::ios::trunc);
+            stream << "first";
+            require(static_cast<bool>(stream), "Write the first atomic replacement");
+        }
+        {
+            std::ofstream stream(second.temporary_path(), std::ios::binary | std::ios::trunc);
+            stream << "second";
+            require(static_cast<bool>(stream), "Write the second atomic replacement");
+        }
+        require(first.commit(), "Commit the first atomic replacement");
+        require(second.commit(), "Commit the second atomic replacement");
+    }
+    std::ifstream stream(path, std::ios::binary);
+    const std::string content((std::istreambuf_iterator<char>(stream)),
+                              std::istreambuf_iterator<char>());
+    require_equal(content, std::string("second"),
+                  "The last complete atomic replacement wins");
+    stream.close();
+    for (const auto& item : std::filesystem::directory_iterator(root)) {
+        require(item.path().filename().wstring().find(L".tmp.") == std::wstring::npos,
+                "Atomic replacement leaves no temporary file behind");
+    }
+    std::filesystem::remove_all(root);
+}
+
 void config_watcher_reports_menu_file_changes() {
     const auto root = std::filesystem::temp_directory_path()
         / (L"simpilot-watcher-test-" + std::to_wstring(GetCurrentProcessId()));
     std::filesystem::create_directories(root);
     std::mutex mutex;
     std::condition_variable changed_condition;
-    bool changed = false;
+    int change_count = 0;
     simpilot::ConfigWatcher watcher(
         root, {L"Simpilot.ini", L"Simpilot2.ini"},
         [&] {
             {
                 std::scoped_lock lock(mutex);
-                changed = true;
+                ++change_count;
             }
             changed_condition.notify_one();
         }, {}, std::chrono::milliseconds(100));
     require(watcher.start(), "Config watcher starts");
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    simpilot::write_configuration_text(root / L"Simpilot.ini", L"Tool|notepad.exe\r\n");
+    const auto menu_path = root / L"Simpilot.ini";
+    simpilot::write_configuration_text(menu_path, L"Tool|notepad.exe\r\n");
     std::unique_lock lock(mutex);
-    require(changed_condition.wait_for(lock, std::chrono::seconds(3), [&] { return changed; }),
+    require(changed_condition.wait_for(lock, std::chrono::seconds(3),
+                                       [&] { return change_count >= 1; }),
             "Config watcher reports a menu file change");
+    lock.unlock();
+
+    const auto original_size = std::filesystem::file_size(menu_path);
+    const auto original_write_time = std::filesystem::last_write_time(menu_path);
+    simpilot::write_configuration_text(menu_path, L"Tool|wordpad.exe\r\n");
+    require(std::filesystem::file_size(menu_path) == original_size,
+            "Watcher regression uses a same-size configuration replacement");
+    std::filesystem::last_write_time(menu_path, original_write_time);
+    lock.lock();
+    require(changed_condition.wait_for(lock, std::chrono::seconds(3),
+                                       [&] { return change_count >= 2; }),
+            "Config watcher detects changed content with identical size and timestamp");
     lock.unlock();
     watcher.stop();
     std::filesystem::remove_all(root);
@@ -474,6 +537,15 @@ void localization_resources_cover_supported_languages() {
                         != L"[missing translation]",
                     "Every custom hotkey resource key is translated");
         }
+        for (const auto key : {
+                 "settings.section.cursor_locator",
+                 "settings.cursor_locator",
+                 "settings.cursor_locator.description",
+                 "ui.cursor_locator_update_failed",
+             }) {
+            require(catalog.text(key) != L"[missing translation]",
+                    "Every cursor locator resource key is translated");
+        }
     }
 
     simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
@@ -498,6 +570,50 @@ void localization_resources_cover_supported_languages() {
                   std::wstring(L"[missing translation]"),
                   "Missing English key uses non-empty safety text");
     std::filesystem::remove_all(root);
+}
+
+void mouse_shake_detector_requires_fast_direction_changes() {
+    using Detector = simpilot::MouseShakeDetector;
+    const auto start = Detector::Clock::time_point{};
+    const auto at = [start](const int milliseconds) {
+        return start + std::chrono::milliseconds(milliseconds);
+    };
+
+    Detector rapid;
+    require(!rapid.update(0, 0, at(0)), "Initialize mouse shake detector");
+    require(!rapid.update(70, 0, at(50)), "First fast movement does not trigger");
+    require(!rapid.update(-70, 0, at(100)), "First reversal does not trigger");
+    require(!rapid.update(70, 0, at(150)), "Second reversal does not trigger");
+    require(!rapid.update(-70, 0, at(200)), "Third reversal does not trigger");
+    require(rapid.update(70, 0, at(250)),
+            "Fast repeated reversals trigger pointer highlighting");
+    require(!rapid.update(-70, 0, at(300))
+            && !rapid.update(70, 0, at(350))
+            && !rapid.update(-70, 0, at(400))
+            && !rapid.update(70, 0, at(450)),
+            "Cooldown prevents repeated pointer highlighting");
+
+    Detector one_direction;
+    require(!one_direction.update(0, 0, at(0)), "Initialize one-direction sample");
+    for (int index = 1; index <= 8; ++index) {
+        require(!one_direction.update(index * 50, 0, at(index * 50)),
+                "One-direction movement never counts as a shake");
+    }
+
+    Detector slow;
+    require(!slow.update(0, 0, at(0)), "Initialize slow sample");
+    for (int index = 1; index <= 6; ++index) {
+        const auto x = index % 2 == 0 ? -70 : 70;
+        require(!slow.update(x, 0, at(index * 300)),
+                "Slow reversals reset instead of triggering");
+    }
+
+    Detector small;
+    require(!small.update(0, 0, at(0)), "Initialize small movement sample");
+    for (int index = 1; index <= 20; ++index) {
+        require(!small.update(index % 2 == 0 ? 0 : 3, 0, at(index * 20)),
+                "Small pointer jitter does not trigger highlighting");
+    }
 }
 
 void hotkeys_display_canonical_gestures() {
@@ -527,6 +643,7 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     simpilot::AppSettings settings;
     settings.language = simpilot::UiLanguage::traditional_chinese;
     settings.start_with_windows = true;
+    settings.mouse_shake_locator_enabled = true;
     settings.menu_theme = simpilot::MenuTheme::dark;
     settings.main_menu = simpilot::BuiltInHotKey{
         .binding = {simpilot::HotKeyGesture{MOD_CONTROL, VK_MEDIA_PLAY_PAUSE}, true},
@@ -609,6 +726,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
                 "Persist open-folder action value");
         require(content.find("MenuTheme=2") != std::string::npos,
                 "Persist dark popup-menu theme value");
+        require(content.find("MouseShakeLocatorEnabled=1") != std::string::npos,
+                "Persist mouse shake cursor locator state");
         require(content.find("Language=zh-TW") != std::string::npos,
                 "Persist the UI language in the unified settings file");
         require(content.find("EverythingSearchCode=8,81") != std::string::npos
@@ -628,6 +747,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     require(loaded.language == simpilot::UiLanguage::traditional_chinese,
             "Load the UI language from the unified settings file");
     require(loaded.start_with_windows, "Persist startup setting");
+    require(loaded.mouse_shake_locator_enabled,
+            "Load mouse shake cursor locator state");
     require(loaded.menu_theme == simpilot::MenuTheme::dark,
             "Load popup-menu theme");
     require_equal(loaded.main_menu, settings.main_menu,
@@ -685,6 +806,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     const auto defaults = simpilot::AppSettingsStore::load(root / L"missing.ini");
     require(defaults.language == simpilot::UiLanguage::simplified_chinese,
             "Missing settings default to Simplified Chinese");
+    require(!defaults.mouse_shake_locator_enabled,
+            "Mouse shake cursor locator is disabled by default");
     require(defaults.main_menu.binding.gesture
             && defaults.main_menu.binding.gesture->virtual_key == VK_OEM_3
             && defaults.main_menu.enabled,
@@ -716,9 +839,11 @@ int wmain() {
         program_resolution_cache_persists_and_removes_stale_entries();
         resolver_uses_persistent_cache_without_everything();
         logger_removes_entries_older_than_ninety_days_at_startup();
+        atomic_file_replacements_use_unique_temporary_paths();
         config_watcher_reports_menu_file_changes();
         bundled_everything_sdk_exports_load();
         localization_resources_cover_supported_languages();
+        mouse_shake_detector_requires_fast_direction_changes();
         hotkeys_display_canonical_gestures();
         app_settings_persist_captured_hotkeys_and_force_override();
         std::wcout << L"All Simpilot core tests passed.\n";

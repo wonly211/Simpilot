@@ -1,7 +1,6 @@
 #include "simpilot/program_cache.hpp"
+#include "simpilot/atomic_file.hpp"
 #include "simpilot/text_encoding.hpp"
-
-#include <Windows.h>
 
 #include <algorithm>
 #include <cwctype>
@@ -110,10 +109,10 @@ void ProgramResolutionCache::load() noexcept {
 
 void ProgramResolutionCache::save() noexcept {
     try {
-        std::filesystem::create_directories(path_.parent_path());
-        const auto temporary = std::filesystem::path(path_.wstring() + L".tmp");
+        AtomicFileReplacement replacement(path_);
         {
-            std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+            std::ofstream stream(
+                replacement.temporary_path(), std::ios::binary | std::ios::trunc);
             if (!stream) return;
             stream << cache_header << "\r\n";
             for (const auto& [key, cached_path] : entries_) {
@@ -122,11 +121,7 @@ void ProgramResolutionCache::save() noexcept {
             }
             if (!stream) return;
         }
-        if (!MoveFileExW(temporary.c_str(), path_.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-            std::error_code error;
-            std::filesystem::remove(temporary, error);
-        }
+        (void)replacement.commit();
     } catch (...) {
     }
 }

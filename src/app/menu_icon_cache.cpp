@@ -1,5 +1,7 @@
 #include "menu_icon_cache.hpp"
 
+#include "simpilot/atomic_file.hpp"
+
 #include "simpilot/command.hpp"
 
 #include <commctrl.h>
@@ -154,8 +156,9 @@ bool save_icon(const std::filesystem::path& path, const HICON icon) {
     std::error_code error;
     std::filesystem::create_directories(path.parent_path(), error);
     if (error) return false;
-    const auto temporary = std::filesystem::path(path.wstring() + L".tmp");
-    std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+    AtomicFileReplacement replacement(path);
+    std::ofstream stream(
+        replacement.temporary_path(), std::ios::binary | std::ios::trunc);
     if (!stream) return false;
     stream.write(reinterpret_cast<const char*>(&directory), sizeof(directory));
     stream.write(reinterpret_cast<const char*>(&entry), sizeof(entry));
@@ -168,9 +171,7 @@ bool save_icon(const std::filesystem::path& path, const HICON icon) {
     stream.write(reinterpret_cast<const char*>(mask.data()),
                  static_cast<std::streamsize>(mask.size()));
     stream.close();
-    if (!stream || !MoveFileExW(temporary.c_str(), path.c_str(),
-                                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-        std::filesystem::remove(temporary, error);
+    if (!stream || !replacement.commit()) {
         return false;
     }
     return true;

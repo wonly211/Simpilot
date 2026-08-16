@@ -3,6 +3,7 @@
 #include <Windows.h>
 
 #include <chrono>
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <string>
@@ -33,13 +34,16 @@ public:
 private:
     struct FileState {
         bool exists = false;
+        bool readable = false;
         std::uintmax_t size = 0;
         std::filesystem::file_time_type last_write{};
+        std::uint64_t content_hash = 0;
 
         bool operator==(const FileState&) const = default;
     };
 
     [[nodiscard]] std::vector<FileState> snapshot() const noexcept;
+    void report_changes(std::vector<FileState>& previous) noexcept;
     void watch_loop() noexcept;
     void log(std::wstring_view message) const noexcept;
 

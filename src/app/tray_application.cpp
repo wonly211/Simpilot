@@ -15,9 +15,11 @@
 #include "simpilot/variable_expander.hpp"
 
 #include <shellapi.h>
+#include <shlobj_core.h>
 #include <tlhelp32.h>
 
 #include <algorithm>
+#include <cstdlib>
 #include <format>
 #include <iterator>
 #include <stdexcept>
@@ -178,6 +180,23 @@ int show_command(const LaunchVisibility visibility) noexcept {
     }
 }
 
+std::wstring user_profile_directory() {
+    PWSTR profile = nullptr;
+    if (FAILED(SHGetKnownFolderPath(
+            FOLDERID_Profile, KF_FLAG_DEFAULT, nullptr, &profile))) {
+        return {};
+    }
+    std::wstring result;
+    try {
+        result = profile;
+    } catch (...) {
+        CoTaskMemFree(profile);
+        throw;
+    }
+    CoTaskMemFree(profile);
+    return result;
+}
+
 KeyboardManager::State effective_windows_hotkey_blocking_state(
     const AppSettings& settings) noexcept {
     auto result = settings.disabled_windows_hotkeys;
@@ -202,6 +221,7 @@ TrayApplication::TrayApplication(HINSTANCE instance, std::filesystem::path execu
           && !settings_.language_code.empty()
           ? settings_.language_code
           : std::string(Localization::language_code(settings_.language))),
+      cursor_locator_(instance),
       menu_icons_(executable_path_.parent_path() / L"Cache" / L"RunIcon") {}
 
 TrayApplication::~TrayApplication() {
@@ -235,6 +255,14 @@ int TrayApplication::run() {
                                   GetLastError()));
     }
     add_tray_icon();
+    if (settings_.mouse_shake_locator_enabled) {
+        if (cursor_locator_.set_enabled(true)) {
+            logger_.write(L"mouse shake cursor locator enabled");
+        } else {
+            logger_.write(std::format(
+                L"mouse shake cursor locator could not start error={}", GetLastError()));
+        }
+    }
     if (!keyboard_manager_.start(window_, effective_windows_hotkey_blocking_state(settings_))) {
         logger_.write(std::format(L"Keyboard hook could not start error={}",
                                   keyboard_manager_.last_error()));
@@ -264,12 +292,19 @@ int TrayApplication::run() {
         },
         [this](const std::wstring_view message) { logger_.write(message); });
     (void)config_watcher_->start();
-    MSG message;
-    while (GetMessageW(&message, nullptr, 0, 0) > 0) {
-        TranslateMessage(&message);
-        DispatchMessageW(&message);
+    MSG message{};
+    while (true) {
+        const auto result = GetMessageW(&message, nullptr, 0, 0);
+        if (result > 0) {
+            TranslateMessage(&message);
+            DispatchMessageW(&message);
+            continue;
+        }
+        if (result == 0) return static_cast<int>(message.wParam);
+        const auto error = GetLastError();
+        logger_.write(std::format(L"message loop failed error={}", error));
+        return EXIT_FAILURE;
     }
-    return static_cast<int>(message.wParam);
 }
 
 LRESULT CALLBACK TrayApplication::window_procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
@@ -667,7 +702,23 @@ void TrayApplication::show_settings() {
 
 bool TrayApplication::apply_settings(const AppSettings& updated) {
     const auto settings_path = config_directory_ / L"Setting.ini";
+    const auto previous_cursor_locator_state = cursor_locator_.enabled();
+    const auto cursor_locator_changed = previous_cursor_locator_state
+        != updated.mouse_shake_locator_enabled;
+    if (cursor_locator_changed
+        && !cursor_locator_.set_enabled(updated.mouse_shake_locator_enabled)) {
+        logger_.write(std::format(
+            L"mouse shake cursor locator update failed error={}", GetLastError()));
+        MessageBoxW(window_,
+            localization_.text("ui.cursor_locator_update_failed").data(),
+            localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return false;
+    }
     if (!AppSettingsStore::save(settings_path, updated)) {
+        if (cursor_locator_changed
+            && !cursor_locator_.set_enabled(previous_cursor_locator_state)) {
+            logger_.write(L"mouse shake cursor locator rollback failed");
+        }
         logger_.write(L"settings save failed");
         MessageBoxW(window_,
             localization_.text("ui.settings_save_failed").data(),
@@ -679,6 +730,11 @@ bool TrayApplication::apply_settings(const AppSettings& updated) {
     const auto menu_theme_changed = settings_.menu_theme != updated.menu_theme;
     settings_ = updated;
     if (menu_theme_changed) logger_.write(L"popup menu theme preference updated");
+    if (cursor_locator_changed) {
+        logger_.write(settings_.mouse_shake_locator_enabled
+            ? L"mouse shake cursor locator enabled"
+            : L"mouse shake cursor locator disabled");
+    }
     keyboard_manager_.update(effective_windows_hotkey_blocking_state(settings_));
     register_global_hotkeys();
     logger_.write(L"settings saved; keyboard hook updated");
@@ -818,10 +874,13 @@ void TrayApplication::execute_entry(const MenuEntry& entry) {
     const auto parsed = ParsedCommand::try_parse(entry.effective_value());
     if (!parsed) return;
     const auto operation = entry.run_as_administrator ? L"runas" : L"open";
+    const auto working_directory = is_terminal_executable(parsed->executable)
+        ? user_profile_directory() : config_directory_.wstring();
     const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(
         window_, operation, parsed->executable.c_str(),
         parsed->arguments.empty() ? nullptr : parsed->arguments.c_str(),
-        config_directory_.c_str(), SW_SHOWNORMAL));
+        working_directory.empty() ? nullptr : working_directory.c_str(),
+        SW_SHOWNORMAL));
     if (result <= 32) show_launch_error(parsed->executable, static_cast<std::uint64_t>(result));
 }
 

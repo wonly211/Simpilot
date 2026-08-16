@@ -1,4 +1,5 @@
 #include "simpilot/app_settings.hpp"
+#include "simpilot/atomic_file.hpp"
 #include "simpilot/text_encoding.hpp"
 
 #include <Windows.h>
@@ -250,6 +251,8 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
         }
         result.language = language_value(values, result.language_code);
         result.start_with_windows = boolean_value(values, L"startwithwindows", false);
+        result.mouse_shake_locator_enabled = boolean_value(
+            values, L"mouseshakelocatorenabled", false);
         result.menu_theme = static_cast<MenuTheme>(
             unsigned_value(values, L"MenuTheme", 0, 2));
         load_binding(values, L"MainMenu", result.main_menu.binding);
@@ -280,16 +283,18 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
 bool AppSettingsStore::save(const std::filesystem::path& path,
                             const AppSettings& settings) noexcept {
     try {
-        std::filesystem::create_directories(path.parent_path());
-        const auto temporary = std::filesystem::path(path.wstring() + L".tmp");
+        AtomicFileReplacement replacement(path);
         {
-            std::ofstream stream(temporary, std::ios::binary | std::ios::trunc);
+            std::ofstream stream(
+                replacement.temporary_path(), std::ios::binary | std::ios::trunc);
             if (!stream) return false;
             const auto language = settings.language == UiLanguage::external
                 ? settings.language_code
                 : std::string(Localization::language_code(settings.language));
             stream << "[General]\r\nLanguage=" << language
                    << "\r\nStartWithWindows=" << (settings.start_with_windows ? 1 : 0)
+                   << "\r\nMouseShakeLocatorEnabled="
+                   << (settings.mouse_shake_locator_enabled ? 1 : 0)
                    << "\r\nMenuTheme=" << static_cast<unsigned int>(settings.menu_theme)
                    << "\r\n\r\n[Hotkeys]\r\n";
             write_binding(stream, "MainMenu", settings.main_menu.binding);
@@ -305,13 +310,7 @@ bool AppSettingsStore::save(const std::filesystem::path& path,
             write_custom_global_hotkeys(stream, settings.custom_global_hotkeys);
             if (!stream) return false;
         }
-        if (!MoveFileExW(temporary.c_str(), path.c_str(),
-                         MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
-            std::error_code error;
-            std::filesystem::remove(temporary, error);
-            return false;
-        }
-        return true;
+        return replacement.commit();
     } catch (...) {
         return false;
     }

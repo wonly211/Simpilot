@@ -399,36 +399,38 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
     MoveWindow(splitter_, splitter_x_, content_top, splitter_width,
                content_bottom - content_top, TRUE);
 
-    MoveWindow(detail_title_, right_x, content_top, right_width, scale(30), TRUE);
-    const auto field_height = scale(34);
+    const auto delete_width = scale(104);
+    MoveWindow(detail_title_, right_x, content_top,
+               std::max(1, right_width - delete_width - gap), scale(30), TRUE);
+    MoveWindow(delete_button_, right_x + right_width - delete_width, content_top,
+               delete_width, button_height, TRUE);
+    const auto field_height = scale(30);
     const auto browse_width = scale(112);
-    auto row_y = content_top + scale(42);
+    auto row_y = content_top + scale(40);
     const auto place_field = [&](const HWND label, const HWND control, const HWND browse) {
-        MoveWindow(label, right_x, row_y, right_width, scale(22), TRUE);
-        row_y += scale(24);
+        MoveWindow(label, right_x, row_y, right_width, scale(18), TRUE);
+        row_y += scale(20);
         MoveWindow(control, right_x, row_y,
             right_width - (browse ? browse_width + scale(8) : 0), field_height, TRUE);
         if (browse) {
             MoveWindow(browse, right_x + right_width - browse_width, row_y,
                        browse_width, field_height, TRUE);
         }
-        row_y += field_height + scale(12);
+        row_y += field_height + scale(6);
     };
     place_field(name_label_, name_edit_, nullptr);
     place_field(access_key_label_, access_key_edit_, nullptr);
-    MoveWindow(type_label_, right_x, row_y, right_width, scale(22), TRUE);
-    row_y += scale(24);
+    MoveWindow(type_label_, right_x, row_y, right_width, scale(18), TRUE);
+    row_y += scale(20);
     MoveWindow(type_combo_, right_x, row_y, right_width, scale(180), TRUE);
-    row_y += field_height + scale(12);
+    row_y += field_height + scale(6);
     place_field(target_label_, target_edit_, browse_button_);
     if (IsWindowVisible(resolved_path_label_)) {
         place_field(resolved_path_label_, resolved_path_edit_,
             IsWindowVisible(reselect_program_button_) ? reselect_program_button_ : nullptr);
     }
     place_field(arguments_label_, arguments_edit_, nullptr);
-    MoveWindow(administrator_checkbox_, right_x, row_y, right_width, scale(32), TRUE);
-    MoveWindow(delete_button_, right_x, content_bottom - button_height,
-               scale(104), button_height, TRUE);
+    MoveWindow(administrator_checkbox_, right_x, row_y, right_width, scale(30), TRUE);
 }
 
 void MenuEditorWindow::rebuild_tree(MenuElement* selection) {
