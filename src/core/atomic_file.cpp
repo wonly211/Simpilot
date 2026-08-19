@@ -27,7 +27,7 @@ std::filesystem::path reserve_temporary_path(
         const auto candidate = directory / file_name;
         const auto handle = CreateFileW(
             candidate.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
-            FILE_ATTRIBUTE_TEMPORARY | FILE_ATTRIBUTE_NOT_CONTENT_INDEXED, nullptr);
+            FILE_ATTRIBUTE_NORMAL, nullptr);
         if (handle != INVALID_HANDLE_VALUE) {
             CloseHandle(handle);
             return candidate;

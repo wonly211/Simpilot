@@ -107,19 +107,31 @@ std::optional<std::filesystem::path> ProgramSelectionDialog::run() {
     if (owner_) EnableWindow(owner_, FALSE);
     ShowWindow(window_, SW_SHOW);
     UpdateWindow(window_);
+    bool repost_quit = false;
+    int quit_code = 0;
     MSG message{};
-    while (IsWindow(window_) && GetMessageW(&message, nullptr, 0, 0) > 0) {
+    while (IsWindow(window_)) {
+        const auto message_result = GetMessageW(&message, nullptr, 0, 0);
+        if (message_result <= 0) {
+            if (message_result == 0) {
+                repost_quit = true;
+                quit_code = static_cast<int>(message.wParam);
+            }
+            break;
+        }
         if (!IsDialogMessageW(window_, &message)) {
             TranslateMessage(&message);
             DispatchMessageW(&message);
         }
     }
+    if (window_) DestroyWindow(window_);
     if (owner_) {
         EnableWindow(owner_, TRUE);
         SetForegroundWindow(owner_);
     }
     if (font_) DeleteObject(font_);
     font_ = nullptr;
+    if (repost_quit) PostQuitMessage(quit_code);
     return result_;
 }
 

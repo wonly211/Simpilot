@@ -15,6 +15,7 @@
 #include "simpilot/variable_expander.hpp"
 
 #include <shellapi.h>
+#include <shellscalingapi.h>
 #include <shlobj_core.h>
 #include <tlhelp32.h>
 
@@ -42,6 +43,8 @@ constexpr UINT about_command = 10;
 constexpr UINT configuration_changed_message = WM_APP + 2;
 constexpr UINT open_settings_message = WM_APP + 4;
 constexpr UINT_PTR everything_ready_timer = 1;
+constexpr UINT_PTR keyboard_health_timer = 2;
+constexpr UINT keyboard_health_interval_ms = 2000;
 constexpr int main_menu_hotkey_identifier = 100;
 constexpr int second_menu_hotkey_identifier = 101;
 constexpr int settings_hotkey_identifier = 102;
@@ -71,6 +74,42 @@ std::wstring wide_error(const char* value) {
     MultiByteToWideChar(CP_UTF8, 0, value, -1, result.data(), size);
     result.pop_back();
     return result;
+}
+
+POINT current_cursor_position(const HWND fallback_window) noexcept {
+    POINT cursor{};
+    if (GetCursorPos(&cursor)) return cursor;
+
+    const auto message_position = GetMessagePos();
+    if (message_position != static_cast<DWORD>(-1)) {
+        cursor.x = static_cast<SHORT>(LOWORD(message_position));
+        cursor.y = static_cast<SHORT>(HIWORD(message_position));
+        return cursor;
+    }
+
+    RECT bounds{};
+    if (fallback_window && GetWindowRect(fallback_window, &bounds)) {
+        cursor.x = bounds.left + (bounds.right - bounds.left) / 2;
+        cursor.y = bounds.top + (bounds.bottom - bounds.top) / 2;
+        return cursor;
+    }
+
+    cursor.x = GetSystemMetrics(SM_XVIRTUALSCREEN)
+        + GetSystemMetrics(SM_CXVIRTUALSCREEN) / 2;
+    cursor.y = GetSystemMetrics(SM_YVIRTUALSCREEN)
+        + GetSystemMetrics(SM_CYVIRTUALSCREEN) / 2;
+    return cursor;
+}
+
+UINT effective_dpi_for_point(const POINT point) noexcept {
+    const auto monitor = MonitorFromPoint(point, MONITOR_DEFAULTTONEAREST);
+    UINT dpi_x = 0;
+    UINT dpi_y = 0;
+    if (monitor && SUCCEEDED(GetDpiForMonitor(
+            monitor, MDT_EFFECTIVE_DPI, &dpi_x, &dpi_y)) && dpi_x != 0) {
+        return dpi_x;
+    }
+    return GetDpiForSystem();
 }
 
 template <typename... Args>
@@ -269,6 +308,10 @@ int TrayApplication::run() {
     } else {
         logger_.write(L"Keyboard hook ready");
     }
+    if (SetTimer(window_, keyboard_health_timer, keyboard_health_interval_ms, nullptr) == 0) {
+        logger_.write(std::format(L"Keyboard hook health timer could not start error={}",
+                                  GetLastError()));
+    }
     if (!StartupRegistration::apply(settings_.start_with_windows, executable_path_)) {
         logger_.write(L"startup registration synchronization failed");
     }
@@ -285,10 +328,13 @@ int TrayApplication::run() {
         logger_.write(L"everything SDK could not be loaded; file search disabled");
     }
     (void)reload_menu();
+    const auto notification_window = window_;
     config_watcher_ = std::make_unique<ConfigWatcher>(
         config_directory_, std::vector<std::wstring>{L"Simpilot.ini", L"Simpilot2.ini"},
-        [this] {
-            if (window_) PostMessageW(window_, configuration_changed_message, 0, 0);
+        [notification_window] {
+            if (IsWindow(notification_window)) {
+                PostMessageW(notification_window, configuration_changed_message, 0, 0);
+            }
         },
         [this](const std::wstring_view message) { logger_.write(message); });
     (void)config_watcher_->start();
@@ -371,6 +417,21 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         }
         return 0;
     }
+    if (message == WM_TIMER && wparam == keyboard_health_timer) {
+        if (!keyboard_manager_.running()) {
+            logger_.write(L"Keyboard hook thread stopped unexpectedly; restarting");
+            unregister_global_hotkeys();
+            if (keyboard_manager_.start(
+                    window_, effective_windows_hotkey_blocking_state(settings_))) {
+                register_global_hotkeys();
+                logger_.write(L"Keyboard hook thread restarted successfully");
+            } else {
+                logger_.write(std::format(L"Keyboard hook restart failed error={}",
+                                          keyboard_manager_.last_error()));
+            }
+        }
+        return 0;
+    }
     if (message == WM_HOTKEY) {
         const auto identifier = static_cast<int>(wparam);
         if (identifier == main_menu_hotkey_identifier) {
@@ -422,6 +483,9 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         return 0;
     }
     if (message == WM_DESTROY) {
+        KillTimer(window_, everything_ready_timer);
+        KillTimer(window_, keyboard_health_timer);
+        config_watcher_.reset();
         remove_tray_icon();
         window_ = nullptr;
         PostQuitMessage(0);
@@ -518,7 +582,8 @@ void TrayApplication::show_launch_menu(const int menu_number) {
     command_entries_.clear();
     next_command_id_ = 1000;
     (void)MenuThemeController::apply(settings_.menu_theme);
-    launch_menu_renderer_.begin(settings_.menu_theme, GetDpiForSystem());
+    const auto cursor = current_cursor_position(window_);
+    launch_menu_renderer_.begin(settings_.menu_theme, effective_dpi_for_point(cursor));
     const auto menu = CreatePopupMenu();
     add_menu_children(menu, *selected_document->root);
     if (menu_number == 1 && secondary_document_) {
@@ -595,8 +660,7 @@ void TrayApplication::show_context_menu() {
 }
 
 void TrayApplication::track_menu(const HMENU menu, const bool adaptive_launch_position) {
-    POINT cursor;
-    GetCursorPos(&cursor);
+    const auto cursor = current_cursor_position(window_);
     (void)MenuThemeController::apply(settings_.menu_theme);
     SetForegroundWindow(window_);
     menu_active_ = true;
@@ -617,7 +681,7 @@ void TrayApplication::track_menu(const HMENU menu, const bool adaptive_launch_po
     PostMessageW(window_, WM_NULL, 0, 0);
     DestroyMenu(menu);
     launch_menu_renderer_.end();
-    (void)MenuThemeController::apply(MenuTheme::light);
+    (void)MenuThemeController::apply(MenuTheme::system);
     const auto open_settings_after_menu = settings_pending_;
     settings_pending_ = false;
     if (selected != 0 && !open_settings_after_menu) {

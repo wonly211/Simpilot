@@ -187,8 +187,28 @@ std::uint32_t KeyboardManager::mask_for_state(const State& state) noexcept {
 bool KeyboardManager::start(
     const HWND target_window, const State& state) noexcept {
     if (hook_thread_) {
-        update(state);
-        return true;
+        const auto wait = WaitForSingleObject(hook_thread_, 0);
+        if (wait == WAIT_TIMEOUT) {
+            update(state);
+            return true;
+        }
+        if (wait != WAIT_OBJECT_0) {
+            last_error_ = GetLastError();
+            return false;
+        }
+        if (capture_active_) {
+            capture_active_ = false;
+            auto handler = std::move(capture_handler_);
+            capture_handler_ = {};
+            if (handler) {
+                try {
+                    handler({.kind = KeyboardCaptureResultKind::cancelled});
+                } catch (...) {
+                }
+            }
+        }
+        unregister_all();
+        release_hook_thread_resources();
     }
     if (owner_ && owner_ != this) {
         last_error_ = ERROR_ALREADY_EXISTS;
@@ -204,6 +224,7 @@ bool KeyboardManager::start(
 }
 
 bool KeyboardManager::create_capture_window() noexcept {
+    if (capture_window_) return true;
     const auto instance = GetModuleHandleW(nullptr);
     const WNDCLASSW window_class{
         .lpfnWndProc = &KeyboardManager::capture_window_procedure,
@@ -309,7 +330,7 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
 bool KeyboardManager::send_control(
     const UINT message, const WPARAM wparam, const LPARAM lparam,
     DWORD_PTR* result) noexcept {
-    if (!hook_window_) {
+    if (!running() || !hook_window_) {
         last_error_ = ERROR_NOT_READY;
         return false;
     }
@@ -329,7 +350,7 @@ bool KeyboardManager::send_control(
 
 void KeyboardManager::update(const State& state) noexcept {
     const auto mask = mask_for_state(state);
-    if (hook_window_) {
+    if (running() && hook_window_) {
         (void)send_control(update_state_message, mask);
     } else {
         blocked_mask_ = mask;
@@ -340,7 +361,7 @@ bool KeyboardManager::register_binding(
     const int identifier, const HotKeyBinding& binding) {
     if (!binding.gesture) return true;
     if (!binding.force_override) return register_standard(identifier, *binding.gesture);
-    if (!hook_window_
+    if (!running() || !hook_window_
         || std::ranges::find(used_gestures_, *binding.gesture) != used_gestures_.end()) {
         return false;
     }
@@ -377,7 +398,7 @@ void KeyboardManager::unregister_all() noexcept {
     }
     standard_identifiers_.clear();
     used_gestures_.clear();
-    if (hook_window_) (void)send_control(clear_registrations_message);
+    if (running() && hook_window_) (void)send_control(clear_registrations_message);
 }
 
 bool KeyboardManager::probe_available(const HotKeyGesture& gesture) const noexcept {
@@ -392,7 +413,7 @@ bool KeyboardManager::probe_available(const HotKeyGesture& gesture) const noexce
 }
 
 bool KeyboardManager::begin_capture(CaptureHandler handler) noexcept {
-    if (!hook_window_ || !capture_window_) {
+    if (!running() || !hook_window_ || !capture_window_) {
         last_error_ = ERROR_NOT_READY;
         return false;
     }
@@ -412,7 +433,7 @@ bool KeyboardManager::begin_capture(CaptureHandler handler) noexcept {
 }
 
 void KeyboardManager::end_capture() noexcept {
-    if (capture_active_ && hook_window_) {
+    if (capture_active_ && running() && hook_window_) {
         (void)send_control(end_capture_message, capture_session_);
     }
     capture_active_ = false;
@@ -423,18 +444,12 @@ DWORD KeyboardManager::last_error() const noexcept {
     return last_error_;
 }
 
-void KeyboardManager::stop() noexcept {
-    end_capture();
-    stop_requested_.store(true, std::memory_order_release);
-    auto shutdown_sent = false;
-    if (hook_window_) shutdown_sent = send_control(shutdown_hook_message);
-    if (!shutdown_sent && hook_thread_id_ != 0) {
-        (void)PostThreadMessageW(hook_thread_id_, WM_QUIT, 0, 0);
-    }
+bool KeyboardManager::running() const noexcept {
+    return hook_thread_ && WaitForSingleObject(hook_thread_, 0) == WAIT_TIMEOUT;
+}
+
+void KeyboardManager::release_hook_thread_resources() noexcept {
     if (hook_thread_) {
-        // The hook thread owns callbacks and window procedures that reference
-        // this object. Destruction must not continue until that thread has
-        // fully exited, even if its synchronous shutdown message timed out.
         (void)WaitForSingleObject(hook_thread_, INFINITE);
         CloseHandle(hook_thread_);
         hook_thread_ = nullptr;
@@ -444,6 +459,32 @@ void KeyboardManager::stop() noexcept {
         hook_ready_event_ = nullptr;
     }
     hook_thread_id_ = 0;
+    hook_window_ = nullptr;
+    hook_ = nullptr;
+    if (owner_ == this) owner_ = nullptr;
+    pressed_keys_.fill(false);
+    forced_registrations_.clear();
+    windows_override_mask_ = 0;
+    windows_override_identifiers_.fill(0);
+    windows_override_keys_down_.fill(false);
+    hook_capture_session_ = 0;
+    windows_hotkey_state_ = {};
+    recording_state_->state.SetRecording(false);
+}
+
+void KeyboardManager::stop() noexcept {
+    end_capture();
+    stop_requested_.store(true, std::memory_order_release);
+    auto shutdown_sent = false;
+    if (running() && hook_window_) shutdown_sent = send_control(shutdown_hook_message);
+    if (!shutdown_sent && hook_thread_id_ != 0) {
+        (void)PostThreadMessageW(hook_thread_id_, WM_QUIT, 0, 0);
+    }
+    // The hook thread owns callbacks and window procedures that reference
+    // this object. Destruction must not continue until that thread has fully
+    // exited, even if its synchronous shutdown message timed out. The helper
+    // also closes a ready event left behind when thread creation failed.
+    release_hook_thread_resources();
     if (capture_window_) {
         DestroyWindow(capture_window_);
         capture_window_ = nullptr;

@@ -20,6 +20,7 @@ class MenuEditorWindow final {
 public:
     using DiagnosticSink = std::function<void(std::wstring_view)>;
     using DirtySink = std::function<void()>;
+    using SourceSnapshot = std::array<std::optional<std::wstring>, 2>;
 
     struct ProgramResolutionInfo {
         std::optional<std::filesystem::path> path;
@@ -53,6 +54,8 @@ public:
     void set_language(std::string language_code);
     [[nodiscard]] bool apply();
     [[nodiscard]] bool dirty() const noexcept;
+    [[nodiscard]] bool capture_source_snapshot(SourceSnapshot& snapshot) const noexcept;
+    [[nodiscard]] bool restore_source_snapshot(const SourceSnapshot& snapshot) noexcept;
 
 private:
     void load_documents();

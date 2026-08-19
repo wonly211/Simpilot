@@ -74,6 +74,7 @@ public:
     [[nodiscard]] bool begin_capture(CaptureHandler handler) noexcept;
     void end_capture() noexcept;
 
+    [[nodiscard]] bool running() const noexcept;
     [[nodiscard]] DWORD last_error() const noexcept;
 
 private:
@@ -94,6 +95,7 @@ private:
     [[nodiscard]] bool send_control(
         UINT message, WPARAM wparam = 0, LPARAM lparam = 0,
         DWORD_PTR* result = nullptr) noexcept;
+    void release_hook_thread_resources() noexcept;
     void stop() noexcept;
 
     static DWORD WINAPI hook_thread_entry(void* context) noexcept;

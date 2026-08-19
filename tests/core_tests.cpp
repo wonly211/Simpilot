@@ -420,6 +420,14 @@ void atomic_file_replacements_use_unique_temporary_paths() {
         simpilot::AtomicFileReplacement second(path);
         require(first.temporary_path() != second.temporary_path(),
                 "Concurrent atomic writes reserve different temporary files");
+        const auto first_attributes = GetFileAttributesW(first.temporary_path().c_str());
+        const auto second_attributes = GetFileAttributesW(second.temporary_path().c_str());
+        require(first_attributes != INVALID_FILE_ATTRIBUTES
+                    && second_attributes != INVALID_FILE_ATTRIBUTES,
+                "Atomic replacement reserves both temporary paths");
+        require((first_attributes & FILE_ATTRIBUTE_TEMPORARY) == 0
+                    && (second_attributes & FILE_ATTRIBUTE_TEMPORARY) == 0,
+                "Atomic replacement does not persist temporary cache attributes");
         {
             std::ofstream stream(first.temporary_path(), std::ios::binary | std::ios::trunc);
             stream << "first";

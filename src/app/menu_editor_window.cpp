@@ -177,6 +177,42 @@ bool MenuEditorWindow::dirty() const noexcept {
     return dirty_;
 }
 
+bool MenuEditorWindow::capture_source_snapshot(SourceSnapshot& snapshot) const noexcept {
+    try {
+        for (std::size_t index = 0; index < paths_.size(); ++index) {
+            snapshot[index] = read_source(paths_[index]);
+        }
+        return true;
+    } catch (...) {
+        diagnose(L"menu editor source snapshot failed");
+        return false;
+    }
+}
+
+bool MenuEditorWindow::restore_source_snapshot(const SourceSnapshot& snapshot) noexcept {
+    try {
+        for (std::size_t reverse = paths_.size(); reverse > 0; --reverse) {
+            const auto index = reverse - 1;
+            if (snapshot[index]) {
+                write_configuration_text(paths_[index], *snapshot[index]);
+            } else {
+                std::error_code error;
+                std::filesystem::remove(paths_[index], error);
+                if (error) throw std::filesystem::filesystem_error(
+                    "Unable to remove rolled-back menu configuration", paths_[index], error);
+            }
+        }
+        original_sources_ = snapshot;
+        dirty_ = true;
+        if (dirty_sink_) dirty_sink_();
+        diagnose(L"menu editor restored configuration after failed settings apply");
+        return true;
+    } catch (...) {
+        diagnose(L"menu editor configuration restore failed");
+        return false;
+    }
+}
+
 void MenuEditorWindow::load_documents() {
     for (std::size_t index = 0; index < paths_.size(); ++index) {
         original_sources_[index] = read_source(paths_[index]);

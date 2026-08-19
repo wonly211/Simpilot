@@ -15,6 +15,7 @@
 #include <format>
 #include <iterator>
 #include <string>
+#include <vector>
 
 namespace simpilot {
 namespace {
@@ -212,8 +213,20 @@ std::optional<AppSettings> SettingsWindow::run() {
 
     ShowWindow(window_, SW_SHOW);
     UpdateWindow(window_);
+    bool repost_quit = false;
+    int quit_code = 0;
     MSG message{};
-    while (IsWindow(window_) && GetMessageW(&message, nullptr, 0, 0) > 0) {
+    while (IsWindow(window_)) {
+        const auto message_result = GetMessageW(&message, nullptr, 0, 0);
+        if (message_result <= 0) {
+            if (message_result == 0) {
+                repost_quit = true;
+                quit_code = static_cast<int>(message.wParam);
+            } else {
+                diagnose(std::format(L"settings message loop failed error={}", GetLastError()));
+            }
+            break;
+        }
         if (message.message == WM_KEYDOWN
             && (GetKeyState(VK_CONTROL) & 0x8000) != 0
             && (message.wParam == L'S' || message.wParam == VK_TAB)) {
@@ -238,6 +251,7 @@ std::optional<AppSettings> SettingsWindow::run() {
             DispatchMessageW(&message);
         }
     }
+    if (window_) DestroyWindow(window_);
     if (font_) DeleteObject(font_);
     if (section_font_) DeleteObject(section_font_);
     if (title_font_) DeleteObject(title_font_);
@@ -245,6 +259,7 @@ std::optional<AppSettings> SettingsWindow::run() {
     section_font_ = nullptr;
     title_font_ = nullptr;
     discard_icon_snapshot();
+    if (repost_quit) PostQuitMessage(quit_code);
     return result_;
 }
 
@@ -1528,70 +1543,126 @@ void SettingsWindow::create_icon_snapshot() {
 
 bool SettingsWindow::commit_icon_snapshot() {
     if (!icon_snapshot_ready_) return false;
-    const auto rollback_directory = icon_snapshot_directory_ / L"Rollback";
-    std::error_code error;
-    std::filesystem::remove_all(rollback_directory, error);
-    error.clear();
-    std::filesystem::create_directories(rollback_directory, error);
-    if (error) return false;
-    if (std::filesystem::is_directory(icon_cache_directory_, error)) {
-        for (const auto& entry : std::filesystem::directory_iterator(icon_cache_directory_, error)) {
-            if (error) break;
-            if (!entry.is_regular_file(error)
-                || !entry.path().filename().wstring().ends_with(L".custom.ico")) continue;
-            std::filesystem::copy_file(entry.path(),
-                rollback_directory / entry.path().filename(),
-                std::filesystem::copy_options::overwrite_existing, error);
-            if (error) break;
+    auto rollback_directory = icon_snapshot_directory_.parent_path()
+        / std::format(L"SettingsRollback-{}-{}", GetCurrentProcessId(), GetTickCount64());
+    const auto collect_custom_icons = [](const std::filesystem::path& directory,
+                                         std::error_code& error) {
+        std::vector<std::filesystem::path> result;
+        error.clear();
+        if (!std::filesystem::exists(directory, error)) {
+            if (!error) return result;
+            return result;
         }
-    }
-    if (!error) {
-        std::filesystem::create_directories(icon_cache_directory_, error);
-    }
-    if (!error) {
-        for (const auto& entry : std::filesystem::directory_iterator(icon_cache_directory_, error)) {
-            if (error) break;
-            if (entry.is_regular_file(error)
-                && entry.path().filename().wstring().ends_with(L".custom.ico")) {
-                std::filesystem::remove(entry.path(), error);
-                if (error) break;
+        if (!std::filesystem::is_directory(directory, error)) {
+            if (!error) error = std::make_error_code(std::errc::not_a_directory);
+            return result;
+        }
+        for (std::filesystem::directory_iterator iterator(directory, error), end;
+             !error && iterator != end; iterator.increment(error)) {
+            std::error_code entry_error;
+            if (iterator->is_regular_file(entry_error)
+                && iterator->path().filename().wstring().ends_with(L".custom.ico")) {
+                result.push_back(iterator->path());
+            }
+            if (entry_error) {
+                error = entry_error;
+                break;
             }
         }
-    }
-    if (!error) {
-        for (const auto& entry : std::filesystem::directory_iterator(icon_snapshot_directory_, error)) {
-            if (error) break;
-            if (!entry.is_regular_file(error)
-                || !entry.path().filename().wstring().ends_with(L".custom.ico")) continue;
-            std::filesystem::copy_file(entry.path(), icon_cache_directory_ / entry.path().filename(),
-                std::filesystem::copy_options::overwrite_existing, error);
-            if (error) break;
+        return result;
+    };
+
+    std::error_code error;
+    for (unsigned int attempt = 0; attempt < 32; ++attempt) {
+        if (attempt != 0) {
+            rollback_directory = icon_snapshot_directory_.parent_path()
+                / std::format(L"SettingsRollback-{}-{}-{}",
+                              GetCurrentProcessId(), GetTickCount64(), attempt);
         }
-    }
-    if (!error) {
-        std::filesystem::remove_all(rollback_directory, error);
-        return true;
+        if (std::filesystem::create_directory(rollback_directory, error)) break;
+        if (error) return false;
+        if (attempt == 31) return false;
     }
 
-    std::error_code rollback_error;
-    for (const auto& entry : std::filesystem::directory_iterator(icon_cache_directory_, rollback_error)) {
-        if (rollback_error) break;
-        if (entry.is_regular_file(rollback_error)
-            && entry.path().filename().wstring().ends_with(L".custom.ico")) {
-            std::filesystem::remove(entry.path(), rollback_error);
-            rollback_error.clear();
+    const auto original_icons = collect_custom_icons(icon_cache_directory_, error);
+    if (error) {
+        std::filesystem::remove_all(rollback_directory, error);
+        return false;
+    }
+    for (const auto& path : original_icons) {
+        std::filesystem::copy_file(path, rollback_directory / path.filename(),
+            std::filesystem::copy_options::overwrite_existing, error);
+        if (error) {
+            std::error_code cleanup_error;
+            std::filesystem::remove_all(rollback_directory, cleanup_error);
+            diagnose(L"menu icon backup failed; original icons were not modified");
+            return false;
         }
     }
-    rollback_error.clear();
-    for (const auto& entry : std::filesystem::directory_iterator(rollback_directory, rollback_error)) {
-        if (rollback_error) break;
-        if (!entry.is_regular_file(rollback_error)) continue;
-        std::filesystem::copy_file(entry.path(), icon_cache_directory_ / entry.path().filename(),
-            std::filesystem::copy_options::overwrite_existing, rollback_error);
-        rollback_error.clear();
+
+    const auto restore_original_icons = [&] {
+        std::error_code rollback_error;
+        const auto current_icons = collect_custom_icons(icon_cache_directory_, rollback_error);
+        if (!rollback_error) {
+            for (const auto& path : current_icons) {
+                std::filesystem::remove(path, rollback_error);
+                if (rollback_error) break;
+            }
+        }
+        if (!rollback_error) {
+            std::filesystem::create_directories(icon_cache_directory_, rollback_error);
+        }
+        std::vector<std::filesystem::path> backup_icons;
+        if (!rollback_error) {
+            backup_icons = collect_custom_icons(rollback_directory, rollback_error);
+        }
+        if (!rollback_error) {
+            for (const auto& path : backup_icons) {
+                std::filesystem::copy_file(path, icon_cache_directory_ / path.filename(),
+                    std::filesystem::copy_options::overwrite_existing, rollback_error);
+                if (rollback_error) break;
+            }
+        }
+        if (rollback_error) {
+            diagnose(L"menu icon rollback failed; backup files were preserved");
+            return false;
+        }
+        std::filesystem::remove_all(rollback_directory, rollback_error);
+        return !rollback_error;
+    };
+
+    std::filesystem::create_directories(icon_cache_directory_, error);
+    if (error) {
+        std::filesystem::remove_all(rollback_directory, error);
+        return false;
     }
-    diagnose(L"menu icon draft commit failed");
-    return false;
+    for (const auto& path : original_icons) {
+        std::filesystem::remove(path, error);
+        if (error) {
+            (void)restore_original_icons();
+            diagnose(L"menu icon removal failed; original icons were restored");
+            return false;
+        }
+    }
+
+    const auto draft_icons = collect_custom_icons(icon_snapshot_directory_, error);
+    if (error) {
+        (void)restore_original_icons();
+        return false;
+    }
+    for (const auto& path : draft_icons) {
+        std::filesystem::copy_file(path, icon_cache_directory_ / path.filename(),
+            std::filesystem::copy_options::overwrite_existing, error);
+        if (error) {
+            (void)restore_original_icons();
+            diagnose(L"menu icon draft commit failed; original icons were restored");
+            return false;
+        }
+    }
+
+    std::filesystem::remove_all(rollback_directory, error);
+    if (error) diagnose(L"menu icon rollback directory cleanup failed");
+    return true;
 }
 
 void SettingsWindow::discard_icon_snapshot() noexcept {
@@ -1611,18 +1682,38 @@ bool SettingsWindow::apply_current() {
         SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0)));
     read_windows_hotkey_controls();
     const auto menu_changed = menu_editor_ && menu_editor_->dirty();
-    if (menu_editor_ && !menu_editor_->apply()) return false;
-    if (menu_changed && menu_change_sink_) {
-        menu_icon_targets_ = menu_change_sink_();
-        refresh_menu_icon_list();
+    MenuEditorWindow::SourceSnapshot menu_snapshot;
+    if (menu_changed && !menu_editor_->capture_source_snapshot(menu_snapshot)) {
+        MessageBoxW(window_, text("menu_editor.save_failed"), text(title_text),
+                    MB_OK | MB_ICONERROR);
+        return false;
     }
-    if (apply_sink_ && !apply_sink_(settings_)) return false;
+    if (menu_editor_ && !menu_editor_->apply()) return false;
+    const auto restore_menu = [this, menu_changed, &menu_snapshot] {
+        if (!menu_changed || !menu_editor_) return true;
+        return menu_editor_->restore_source_snapshot(menu_snapshot);
+    };
+    if (apply_sink_ && !apply_sink_(settings_)) {
+        const auto settings_restored = apply_sink_(applied_settings_);
+        const auto menu_restored = restore_menu();
+        if (!settings_restored) diagnose(L"settings rollback failed after settings apply error");
+        if (!menu_restored) diagnose(L"menu rollback failed after settings apply error");
+        return false;
+    }
     if (icon_dirty_ && !commit_icon_snapshot()) {
+        const auto settings_restored = !apply_sink_ || apply_sink_(applied_settings_);
+        const auto menu_restored = restore_menu();
+        if (!settings_restored) diagnose(L"settings rollback failed after icon commit error");
+        if (!menu_restored) diagnose(L"menu rollback failed after icon commit error");
         MessageBoxW(window_, text(icon_selection_failed_text), text(title_text),
                     MB_OK | MB_ICONWARNING);
         return false;
     }
     if (icon_dirty_ && icon_change_sink_) icon_change_sink_();
+    if (menu_changed && menu_change_sink_) {
+        menu_icon_targets_ = menu_change_sink_();
+        refresh_menu_icon_list();
+    }
     applied_settings_ = settings_;
     icon_dirty_ = false;
     result_ = settings_;
