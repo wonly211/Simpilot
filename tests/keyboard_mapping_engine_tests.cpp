@@ -1,10 +1,13 @@
 #include "keyboard_mapping_engine.hpp"
+#include "keyboard_mapping_editor_model.hpp"
 
 #include <Windows.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -13,6 +16,8 @@
 namespace {
 
 using simpilot::KeyboardMappingEngine;
+using simpilot::KeyboardMappingDraftError;
+using simpilot::KeyboardMappingEditorModel;
 using simpilot::KeyboardMappingRule;
 using simpilot::KeyboardOutput;
 using simpilot::KeyboardTrigger;
@@ -25,6 +30,11 @@ void require(const bool condition, const char* message) {
 
 PhysicalKey key(const UINT virtual_key, const UINT scan_code) {
     return {.virtual_key = virtual_key, .scan_code = scan_code, .extended = false};
+}
+
+bool contains_key(
+    const std::vector<PhysicalKey>& keys, const PhysicalKey& expected) {
+    return std::ranges::find(keys, expected) != keys.end();
 }
 
 KBDLLHOOKSTRUCT event_for(const PhysicalKey physical, const ULONG_PTR extra = 0) {
@@ -650,6 +660,111 @@ void failed_output_injection_is_reported_and_cleaned() {
             "failed activation must attempt a best-effort key-up cleanup");
 }
 
+void editor_model_saves_recorded_shortcuts_without_text_parsing() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto f23 = simpilot::keyboard_mapping_catalog_key(VK_F23);
+    const auto f24 = simpilot::keyboard_mapping_catalog_key(VK_F24);
+
+    KeyboardMappingRule rule;
+    rule.trigger.modifier_count = 2;
+    rule.trigger.modifiers[0] = modifiers[4]; // Left Shift.
+    rule.trigger.modifiers[1] = modifiers[6]; // Left Win.
+    rule.trigger.action = f23;
+    rule.output.modifier_count = 1;
+    rule.output.modifiers[0] = modifiers[1]; // Right Ctrl.
+    rule.output.action = f24;
+
+    const KeyboardMappingEditorModel editor(rule);
+    const auto result = editor.build();
+    require(static_cast<bool>(result),
+            "recorded shortcuts must save without a text round trip");
+    require(result.trigger.modifier_count == 2
+                && result.trigger.modifiers[0] == modifiers[4]
+                && result.trigger.modifiers[1] == modifiers[6]
+                && result.trigger.action == f23,
+            "the editor must preserve Left Shift + Left Win + F23");
+    require(result.output.modifier_count == 1
+                && result.output.modifiers[0] == modifiers[1]
+                && result.output.action == f24,
+            "the editor must preserve a recorded shortcut target");
+}
+
+void editor_model_validates_structured_chords_and_modifiers() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto f23 = simpilot::keyboard_mapping_catalog_key(VK_F23);
+    const auto f24 = simpilot::keyboard_mapping_catalog_key(VK_F24);
+    const auto action = simpilot::keyboard_mapping_catalog_key(L'A');
+
+    KeyboardMappingEditorModel editor;
+    editor.set_source_modifier(0, modifiers[6]); // Deliberately before Shift.
+    editor.set_source_modifier(1, modifiers[4]);
+    editor.set_source_action(f23);
+    editor.set_source_chord_action(action);
+    editor.set_target_action(f24);
+    auto result = editor.build();
+    require(static_cast<bool>(result)
+                && result.trigger.modifier_count == 2
+                && result.trigger.modifiers[0] == modifiers[4]
+                && result.trigger.modifiers[1] == modifiers[6]
+                && result.trigger.chord_action == action,
+            "structured chord modifiers must be canonicalized");
+
+    editor.set_source_modifier(2, modifiers[4]);
+    require(editor.build().error
+                == KeyboardMappingDraftError::source_modifier_duplicate,
+            "duplicate physical source modifiers must be rejected");
+    editor.set_source_modifier(2, modifiers[0]);
+    editor.set_source_modifier(3, modifiers[2]);
+    require(editor.build().error
+                == KeyboardMappingDraftError::source_chord_modifier_limit,
+            "a chord must reject a fourth source modifier");
+
+    editor.set_source_modifier(3, std::nullopt);
+    editor.set_source_chord_action(f23);
+    require(editor.build().error
+                == KeyboardMappingDraftError::source_chord_invalid,
+            "a chord action must differ from its primary action");
+}
+
+void editor_catalog_uses_hook_compatible_physical_keys() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    require(modifiers[4] == PhysicalKey{VK_LSHIFT, 0x2A, false},
+            "Left Shift must use the low-level hook identity");
+    require(modifiers[1] == PhysicalKey{VK_RCONTROL, 0x1D, true},
+            "Right Ctrl must split the extended flag from its scan code");
+    require(modifiers[6] == PhysicalKey{VK_LWIN, 0x5B, true},
+            "Left Win must use an extended low-byte scan code");
+
+    const auto actions = simpilot::keyboard_mapping_action_catalog();
+    for (auto virtual_key = static_cast<UINT>(VK_F1);
+         virtual_key <= static_cast<UINT>(VK_F24); ++virtual_key) {
+        require(contains_key(actions,
+                    simpilot::keyboard_mapping_catalog_key(virtual_key)),
+                "the action catalog must contain every key from F1 through F24");
+    }
+    require(std::ranges::none_of(actions, [](const PhysicalKey& candidate) {
+                return simpilot::is_mapping_modifier(candidate.virtual_key);
+            }),
+            "the action catalog must not expose modifier keys as actions");
+    require(contains_key(actions, PhysicalKey{VK_RETURN, 0x1C, false})
+                && contains_key(actions, PhysicalKey{VK_RETURN, 0x1C, true}),
+            "main Enter and numpad Enter must remain distinct");
+}
+
+void editor_model_preserves_unlisted_recorded_keys() {
+    KeyboardMappingRule rule;
+    rule.trigger.single_key = true;
+    rule.trigger.action = PhysicalKey{VK_F13, 0x777, false};
+    rule.output.single_key = true;
+    rule.output.action = PhysicalKey{VK_F14, 0x778, true};
+
+    const auto result = KeyboardMappingEditorModel(rule).build();
+    require(static_cast<bool>(result)
+                && result.trigger.action == rule.trigger.action
+                && result.output.action == rule.output.action,
+            "editing must preserve physical keys outside the standard catalog");
+}
+
 } // namespace
 
 int wmain() {
@@ -674,6 +789,10 @@ int wmain() {
         replay_marker_does_not_recurse();
         arbitrary_injected_input_bypasses_mapping();
         failed_output_injection_is_reported_and_cleaned();
+        editor_model_saves_recorded_shortcuts_without_text_parsing();
+        editor_model_validates_structured_chords_and_modifiers();
+        editor_catalog_uses_hook_compatible_physical_keys();
+        editor_model_preserves_unlisted_recorded_keys();
         std::wcout << L"All keyboard mapping engine tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

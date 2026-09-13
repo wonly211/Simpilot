@@ -35,7 +35,7 @@ Simpilot 是 Windows 10/11 x64 的便携式托盘快捷启动器和全局热键�
 | `third_party/` | 仓库内置第三方源码及 Everything 发布文件 | 已确认事实 |
 | `tools/` | 语言包构建器、Wiki 发布及固定 CI 脚本 | 已确认事实 |
 | `docs/` | 用户手册、Wiki 源、历史设计记录和工程文档 | 已确认事实 |
-| `.github/` | GitHub Actions 工作流和发布体积基线 | 本地固定 CI 与 GitHub Actions run `34730732670` 已验证；`main` 已要求 `Windows x64 Release` |
+| `.github/` | GitHub Actions 工作流和发布体积基线 | 本地固定 CI 与 `v0.18.6` 标签 run `34732966160` 已验证；`main` 已要求 `Windows x64 Release` |
 
 ## 构建、测试与打包
 

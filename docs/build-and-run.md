@@ -125,17 +125,17 @@ THIRD-PARTY-NOTICES.txt
 | 正式 `v0.18.5` ZIP 基线 | 2,474,630 |
 | 本次重建 ZIP | 2,474,631 |
 
-上表是新增键盘映射前的 Phase 2 历史基线。2026-09-13 的当前固定 CI 结果为：
+上表是新增键盘映射前的 Phase 2 历史基线。2026-09-13 发布的 `v0.18.6` 正式产物为：
 
 | 产物 | 字节数 |
 |---|---:|
-| 当前 `Simpilot.exe` | 1,156,608 |
-| 当前 ZIP | 2,534,499 |
+| 正式 `Simpilot.exe` | 1,156,608 |
+| 正式 ZIP | 2,534,696 |
 
-当前 ZIP SHA-256 为
-`587F3F14DF1FD70CEC10F52CD62E1AEC82D450F2FAAB877C9EBCE98339EFED42`。
-EXE 的功能性增长由发布基线中的限额批准覆盖，具体理由和上限见
-`.github/ci/release-baseline.json`。
+正式 ZIP SHA-256 为
+`6B5932318F7FBC667472FB3394B8738CB86087BA3FA780FA9903847EDF95B90E`。
+该正式产物已写入 `.github/ci/release-baseline.json`，`approvedGrowth` 已清空；后续构建
+直接与 `v0.18.6` 比较。
 
 ZIP 中的时间戳和压缩元数据可能造成不同构建之间的少量字节或哈希差异。每个 ZIP 必须与自身 `.sha256` 一致，并通过内容和体积检查；不要求重建哈希等于历史哈希。
 

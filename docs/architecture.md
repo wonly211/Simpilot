@@ -29,8 +29,9 @@ Simpilot 为 Windows 桌面用户提供托盘快捷启动菜单、全局热键�
 
 ### Keyboard
 
-`simpilot_keyboard` 由 `KeyboardManager`、`KeyboardCaptureState` 和
-`KeyboardMappingEngine` 组成。它管理专用线程、消息窗口、唯一
+`simpilot_keyboard` 由 `KeyboardManager`、`KeyboardCaptureState`、
+`KeyboardMappingEditorModel` 和 `KeyboardMappingEngine` 组成。编辑模型在 UI 线程把
+录制结果或结构化下拉选择规范化为物理键规则；其余组件管理专用线程、消息窗口、唯一
 `WH_KEYBOARD_LL`、标准/强制热键注册、热键录制、物理键盘映射及 Win+字母屏蔽。
 映射规则在 UI 线程校验并复制到键盘线程；键盘线程只使用预构建规则表维护前缀、
 待回放事件和活动目标按键，不在低级钩子回调中访问文件、等待或写日志。
@@ -77,8 +78,8 @@ simpilot ---------------------> simpilot_core
 录制与运行时映射使用两个独立状态机。`KeyboardCaptureState` 接收
 `WM_KEYDOWN`、`WM_SYSKEYDOWN`、`WM_KEYUP` 和 `WM_SYSKEYUP` 四类低级钩子消息，
 在会话期间抑制消息，等所有已按下的键释放后发布一次结果；裸 `Esc` 取消 legacy
-录制，`Backspace` 可作为普通物理键录制。映射编辑器使用物理键和单级 chord 录制，
-裸 `Esc` 仍可作为源键，取消由对话框命令完成。结果通过会话号 mailbox 传递，迟到
+录制，`Backspace` 可作为普通物理键录制。映射编辑器可使用物理键和单级 chord 录制，
+也可通过左右修饰键及动作键下拉框编辑同一份结构化草稿；裸 `Esc` 仍可作为源键，取消由对话框命令完成。结果通过会话号 mailbox 传递，迟到
 结果不会覆盖新会话。
 
 `KeyboardMappingEngine` 只在键盘线程维护按下集合、前缀队列和活动目标组合。只有

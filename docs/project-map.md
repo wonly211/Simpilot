@@ -31,6 +31,7 @@ simpilot_core (static library)
 simpilot_keyboard (static library)
   ├─ KeyboardManager
   ├─ KeyboardCaptureState
+  ├─ KeyboardMappingEditorModel and physical-key catalog
   ├─ KeyboardMappingEngine
   └─ depends on simpilot_core
 
@@ -50,6 +51,7 @@ Win32 UI / TrayApplication
 KeyboardManager ----> simpilot_core
         |
         ├─ KeyboardCaptureState
+        ├─ KeyboardMappingEditorModel
         └─ KeyboardMappingEngine
 
 simpilot_core ---> Windows APIs / Everything SDK / nlohmann-json

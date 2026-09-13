@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.18.6 LANGUAGES CXX)
+project(Simpilot VERSION 0.18.7 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -69,6 +69,7 @@ configure_file(
 add_library(simpilot_keyboard STATIC
     src/app/keyboard_manager.cpp
     src/app/keyboard_capture_state.cpp
+    src/app/keyboard_mapping_editor_model.cpp
     src/app/keyboard_mapping_engine.cpp
 )
 target_include_directories(simpilot_keyboard PUBLIC

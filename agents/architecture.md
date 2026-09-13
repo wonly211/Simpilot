@@ -15,7 +15,7 @@ simpilot -> simpilot_core
 ```
 
 - `include/simpilot/` 与 `src/core/` 是可脱离托盘 UI 测试的核心能力；
-- `src/app/keyboard_manager.*`、`keyboard_capture_state.*` 与 `keyboard_mapping_engine.*` 组成键盘层；
+- `src/app/keyboard_manager.*`、`keyboard_capture_state.*`、`keyboard_mapping_editor_model.*` 与 `keyboard_mapping_engine.*` 组成键盘层；
 - `src/app/` 其余文件是 Win32 应用与 UI；
 - 第三方实现固定在 `third_party/`，不要把应用策略下沉到第三方目录。
 
@@ -26,7 +26,7 @@ simpilot -> simpilot_core
 - 设置与持久化：`app_settings`、`atomic_file`、`settings_window`；
 - 托盘、启动、运行时协调：`main.cpp`、`tray_application.*`；
 - 菜单呈现与图标：`launch_menu_renderer`、`menu_icon_cache`、`menu_theme`；
-- 热键、录制、物理映射与屏蔽：`keyboard_manager`、`keyboard_capture_state`、`keyboard_mapping_engine`、`keyboard_mapping_dialog`、`keyboard_mapping`、`hotkey`；
+- 热键、录制、物理映射与屏蔽：`keyboard_manager`、`keyboard_capture_state`、`keyboard_mapping_editor_model`、`keyboard_mapping_engine`、`keyboard_mapping_dialog`、`keyboard_mapping`、`hotkey`；
 - 本地化：`localization`、`Languages/`、`language_pack_builder`。
 
 ## 修改约束
