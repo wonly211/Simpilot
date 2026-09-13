@@ -18,8 +18,8 @@
 | Local fixed CI | PASS | `pwsh -NoProfile -File .\tools\ci.ps1` |
 | Vendor source removal | PASS | 第三方键盘管理器目录已从文件系统、构建输入和生成工程移除；CI 有残留门禁 |
 | Interactive package smoke | PARTIAL | 从最终 ZIP 解压后可启动，便携 `Config/`、`Log/`、键盘线程、菜单加载、配置监听和 Everything 就绪均已确认；当前自动化桌面会话中托盘图标注册返回 `2147500037`，菜单、设置和正常退出未验证 |
-| GitHub Actions run | NOT VERIFIED | workflow 尚未提交/推送，无法验证远端 runner 与上传产物 |
-| Required branch check | NOT CONFIGURED | 首次远端成功后仍需仓库管理员把 `Windows x64 Release` 设为必需检查 |
+| GitHub Actions run | PASS | `main` 提交 `340c5a1` 的 run `34730113011` 成功；唯一 job `Windows x64 Release` 全部步骤通过 |
+| Required branch check | PASS | `main` 已要求 `Windows x64 Release`，`strict=true`；检查绑定 GitHub Actions app `15368` |
 
 ## Verified Baseline
 
@@ -51,6 +51,17 @@ ZIP delta:                                  59,872 bytes (2.4194%)
 ```text
 C0B75B410095FF7C1D0F0C169F03206276A8E191C097C4375048EE9C2F61E2D0
 ```
+
+GitHub Actions run `34730113011` 上传的 artifact 名称为
+`Simpilot-340c5a1505be84fc179aeeffa90a35f392ad60d5-win-x64`。下载后确认其中仅有
+`Simpilot-0.18.5-win-x64.zip` 与对应 `.sha256`；ZIP 为 `2,534,699` 字节，SHA-256 为：
+
+```text
+CCEF5E80148FAD13AC2DD16E3D6F67588022C605640E349A5DFD34F42D1FF5C7
+```
+
+该远端哈希与本地构建不同属于预期的 ZIP 元数据差异；两者均通过自身校验和、内容白名单和
+同一体积门禁。
 
 EXE 因新增独立物理键映射引擎、录制状态机、运行时保护、设置 UI、语言资源和测试支持而
 超过全局 5% 阈值。`.github/ci/release-baseline.json` 使用有理由的 `approvedGrowth`，上限
@@ -107,7 +118,6 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 - 数字签名、安装器或未来发布渠道策略；
 - 完整支持的 Windows build、SKU、权限级别和远程桌面矩阵；
 - Debug PDB 失败具体由同步客户端、过滤驱动还是安全软件触发；
-- GitHub 仓库规则集、远端首次 Actions 结果及维护者是否有权限设置必需检查；
 - 没有正式性能基线、完整安全威胁模型或自动化 Windows 桌面兼容矩阵；
 - 发布包启动和便携目录已验证；真实按键、托盘菜单、设置交互、正常退出及退出后的按键恢复仍需在可用的交互式桌面会话中验证。
 
@@ -124,18 +134,18 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 
 ### Phase 5 — CI
 
-**Completed**：建立唯一 GitHub Actions workflow、独立 CMake presets、统一 PowerShell 入口、供应源码残留检查和结构化产物基线；本地完整运行通过。
-**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试与上述产物摘要。
+**Completed**：建立唯一 GitHub Actions workflow、独立 CMake presets、统一 PowerShell 入口、供应源码残留检查和结构化产物基线；本地与 GitHub Actions 完整运行通过，`main` 已启用必需检查。
+**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、run `34730113011`、下载产物摘要与 `main` 分支保护 API 返回值。
 **Findings**：当前 EXE 超过历史基线 5%，已使用有理由且有上限的批准记录；ZIP 未超过 5%。
-**Problems**：远端 workflow、产物下载和分支必需检查尚不能在未提交状态验证。
-**Unknowns**：GitHub runner 首次执行结果与仓库管理权限。
-**Next**：推送后观察 `Windows x64 Release`，复核上传产物并配置分支规则。
+**Problems**：无已知 CI 固化阻塞。
+**Unknowns**：未来 GitHub hosted runner 镜像更新仍可能改变工具链小版本，workflow 固定的 runner 系列保持不变。
+**Next**：发布正式新版本后更新产物基线并清空 `approvedGrowth`。
 
 ### Phase 6 — Final Validation
 
 **Completed**：Release、Debug 非同步构建、9 项 CTest、固定 CI、版本资源、ZIP 内容、SHA-256、体积门禁和供应源码残留门禁均通过。
 **Evidence**：本文件 Verified Baseline 与 `build/ci-vs2022-x64`；同步目录 Debug 的 `C1090` 已由非同步全新构建排除为代码缺陷。
 **Findings**：没有依赖升级、版本变更或发布包目录结构变化；新增的可选映射配置保持旧用户行为。
-**Problems**：发布包启动已验证，但当前自动化桌面会话中托盘图标注册失败，无法验证菜单、设置和正常退出；远端 CI 和主分支必需检查尚未验证。
-**Unknowns**：真实物理键、权限边界、远端 runner 和桌面兼容矩阵的结果。
-**Next**：在可用的交互式桌面会话中完成剩余发布包冒烟；提交推送后完成远端验证和分支保护。
+**Problems**：发布包启动已验证，但当前自动化桌面会话中托盘图标注册失败，无法验证菜单、设置和正常退出。
+**Unknowns**：真实物理键、权限边界和桌面兼容矩阵的结果。
+**Next**：在可用的交互式桌面会话中完成剩余发布包冒烟。
