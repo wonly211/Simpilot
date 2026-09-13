@@ -49,7 +49,7 @@ ZIP delta:                                  59,872 bytes (2.4194%)
 当前固定 CI 生成的 ZIP SHA-256：
 
 ```text
-C0B75B410095FF7C1D0F0C169F03206276A8E191C097C4375048EE9C2F61E2D0
+CBF785CDE86DC370DEC50719FFD821C84C039A7465235E79C8147CF185836F1B
 ```
 
 GitHub Actions run `34730113011` 上传的 artifact 名称为
@@ -137,6 +137,7 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 **Completed**：建立唯一 GitHub Actions workflow、独立 CMake presets、统一 PowerShell 入口、供应源码残留检查和结构化产物基线；本地与 GitHub Actions 完整运行通过，`main` 已启用必需检查。
 **Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、run `34730113011`、下载产物摘要与 `main` 分支保护 API 返回值。
 **Findings**：当前 EXE 超过历史基线 5%，已使用有理由且有上限的批准记录；ZIP 未超过 5%。
+GitHub Actions 固定到官方 `checkout v7.0.1` 与 `upload-artifact v7.0.1` 的完整提交 SHA，二者原生使用 Node 24。
 **Problems**：无已知 CI 固化阻塞。
 **Unknowns**：未来 GitHub hosted runner 镜像更新仍可能改变工具链小版本，workflow 固定的 runner 系列保持不变。
 **Next**：发布正式新版本后更新产物基线并清空 `approvedGrowth`。
