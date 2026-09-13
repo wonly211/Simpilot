@@ -58,11 +58,11 @@
 ## Keyboard And Hotkeys
 
 **Purpose**：注册功能及自定义热键、录制按键、执行物理键盘映射并屏蔽受支持的 Win+字母。
-**Key Files**：`src/app/keyboard_manager.cpp`、`src/app/keyboard_capture_state.*`、`src/app/keyboard_mapping_engine.*`、`src/core/keyboard_mapping.cpp`、`src/core/hotkey.cpp`。
-**Key Types**：`KeyboardManager`、`KeyboardCaptureState`、`KeyboardMappingEngine`、`HotKeyGesture`、`HotKeyBinding`、`PhysicalKey`、`KeyboardTrigger`、`KeyboardOutput`、`KeyboardMappingRule`。
+**Key Files**：`src/app/keyboard_manager.cpp`、`src/app/keyboard_capture_state.*`、`src/app/keyboard_mapping_editor_model.*`、`src/app/keyboard_mapping_engine.*`、`src/core/keyboard_mapping.cpp`、`src/core/hotkey.cpp`。
+**Key Types**：`KeyboardManager`、`KeyboardCaptureState`、`KeyboardMappingEditorModel`、`KeyboardMappingEngine`、`HotKeyGesture`、`HotKeyBinding`、`PhysicalKey`、`KeyboardTrigger`、`KeyboardOutput`、`KeyboardMappingRule`。
 **Dependencies**：`RegisterHotKey`、`WH_KEYBOARD_LL`、`SendInput`、线程消息。
 **Used By**：`TrayApplication`、设置及自定义热键窗口、键盘映射编辑对话框。
-**Important Behaviors**：单一常驻低级钩子；录制优先于映射和运行时动作；映射按 `vkCode + scanCode + extended` 区分物理键；快捷键前缀最多缓冲 16 个事件并由键盘线程定时器处理 250 ms 超时；目标注入和超时回放带独立标记；Win+L 及安全组合不可映射。
+**Important Behaviors**：单一常驻低级钩子；录制优先于映射和运行时动作；编辑模型让录制和下拉选择生成同一结构化规则；映射按 `vkCode + scanCode + extended` 区分物理键；快捷键前缀最多缓冲 16 个事件并由键盘线程定时器处理 250 ms 超时；目标注入和超时回放带独立标记；Win+L 及安全组合不可映射。
 **Tests**：`simpilot_keyboard_capture_state_tests`、`simpilot_keyboard_mapping_tests`、`simpilot_windows_hotkey_blocker_tests`、`simpilot_keyboard_thread_lifecycle_test`、核心设置测试。
 **Known Issues**：健康检查不能检测静默钩子丢失；挂死线程停止可能无限等待；UIPI 或权限可能导致 `SendInput` 回放失败；真实输入仍需人工验证。
 
@@ -95,7 +95,7 @@
 **Key Types**：`SettingsWindow`、`MenuEditorWindow`、`CustomHotKeyDialog`、`KeyboardMappingDialog`、`ProgramSelectionDialog`、`AboutWindow`。
 **Dependencies**：核心模型、键盘管理器、Common Controls、Shell 和 GDI。
 **Used By**：`TrayApplication`。
-**Important Behaviors**：模态嵌套消息循环、设置草稿、跨资源保存和回滚、即时语言切换。
+**Important Behaviors**：模态嵌套消息循环、设置草稿、键盘映射录制与结构化下拉回填、跨资源保存和回滚、即时语言切换。
 **Tests**：程序选择、关于窗口、菜单呈现、键盘映射状态/引擎及核心设置测试。
 **Known Issues**：大型手写 UI 文件、复杂补偿事务、多 DPI 和完整交互覆盖不足。
 

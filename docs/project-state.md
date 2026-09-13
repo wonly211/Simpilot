@@ -20,7 +20,7 @@
 | Interactive package smoke | PARTIAL | 公开 `v0.18.6` ZIP 可启动，版本、便携 `Config/`、`Log/`、键盘线程、菜单加载、配置监听和 Everything 就绪均已确认；当前自动化桌面会话中托盘图标注册返回 `2147500037`，菜单、设置和正常退出未验证 |
 | GitHub Actions run | PASS | `v0.18.6` 标签 run `34732966160` 成功；唯一 job `Windows x64 Release` 全部步骤通过 |
 | Required branch check | PASS | `main` 已要求 `Windows x64 Release`，`strict=true`；检查绑定 GitHub Actions app `15368` |
-| GitHub Release | PASS | `v0.18.6` 已公开并设为 Latest；公开下载的 ZIP 与 `.sha256` 复核通过 |
+| GitHub Release | PASS / pending update | `v0.18.6` 已公开并设为 Latest；`v0.18.7` 编辑器修复候选正等待远端发布 |
 
 ## Verified Baseline
 
@@ -69,12 +69,27 @@ EXE 因新增独立物理键映射引擎、录制状态机、运行时保护、�
 ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能变化，因此不同构建不要求
 哈希相同；内容白名单、自身校验和和体积门禁必须通过。
 
+## v0.18.7 Release Candidate
+
+键盘映射编辑器已经取消 `vk:scan:extended` 原始文本输入，录制结果和结构化下拉选择
+共同写入 `KeyboardMappingEditorModel`。源端提供四个左右修饰键槽、主键和可选 chord
+动作键，目标端提供四个修饰键槽和主键；动作键目录覆盖 `F1` 至 `F24`，并保留目录外
+录制键的完整物理身份。该修改修复了旧编辑器生成 `=>`、解析器却无法读回而造成的
+快捷键和 chord 保存失败。
+
+2026-09-13 本地候选验证：Release 和非同步全新 Debug 均为 9/9 测试通过；固定 CI
+生成的 `Simpilot.exe` 为 `1,170,432` 字节，ZIP 为 `2,540,194` 字节，ZIP SHA-256 为
+`2E2A4258C93235D98B7C630E37E3987BB6B974084243A4965F27ED741CEA4FDA`。相对正式
+`v0.18.6` 基线，EXE 增长 `1.1952%`，ZIP 增长 `0.2169%`，无需 `approvedGrowth`。
+正式发布后的远端产物数据将替换本候选记录并写入发布基线。
+
 ## Keyboard Mapping State
 
 - 键盘录制、热键处理和物理键盘映射均为 Simpilot 独立实现；仓库不再包含外部键盘管理器源码；
 - 保留既有 `KeyboardManager` 热键/线程行为，并新增映射录制和同步规则替换接口；
 - `[KeyboardMappings]` 是向后兼容的可选设置节；旧配置没有该节时规则为空，既有行为不变；
 - 源支持单键、快捷键和两个同时按住动作键的单级 chord；目标支持单键或标准快捷键；
+- 映射编辑器支持录制和结构化下拉选择，左右修饰键、主键盘/数字键盘 Enter 及目录外录制键保持物理区分；
 - 运行时使用 16 项固定前缀队列、250 ms 键盘线程定时器、独立 target/replay 标记和失败诊断；
 - 自动测试不使用真实 `SendInput` 或物理键盘，真实桌面、UIPI 和安全桌面仍是人工边界。
 

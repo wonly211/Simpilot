@@ -26,13 +26,13 @@ ctest --test-dir build/vs2022-x64 -C Release --output-on-failure
 | `simpilot_windows_hotkey_blocker_tests` | Win+字母屏蔽纯状态机 | PASS，0.01s |
 | `simpilot_keyboard_thread_lifecycle_test` | 键盘线程和钩子生命周期重复启动/停止 | PASS，0.05s |
 | `simpilot_keyboard_capture_state_tests` | legacy 热键和物理映射录制状态机、消息变体、释放顺序、Esc/Backspace、重置 | PASS |
-| `simpilot_keyboard_mapping_tests` | 严格物理键匹配、单键/快捷键/chord、自动重复、250 ms 回放、安全组合旁路、进程范围优先级、注入标记、失败清理和运行时替换释放 | PASS |
+| `simpilot_keyboard_mapping_tests` | 编辑草稿、F1-F24/扩展键目录、严格物理键匹配、单键/快捷键/chord、自动重复、250 ms 回放、安全组合旁路、进程范围优先级、注入标记、失败清理和运行时替换释放 | PASS |
 | `simpilot_menu_presentation_tests` | 菜单 owner-draw、主题、定位、图标缓存和人工图标 | PASS，0.10s |
 | `simpilot_program_selection_dialog_test` | 程序候选窗口创建与基本交互 | PASS，0.11s |
 | `simpilot_about_window_test` | 关于窗口布局、链接、版本资源和本地化 | PASS，0.13s |
 
-2026-09-13 的 Release 总计：9/9 通过，0 失败，0 跳过，1.01 秒；非同步全新 Debug
-总计：9/9 通过，0 失败，0 跳过，1.10 秒。同步目录 Debug 的 PDB `C1090 / error 3`
+2026-09-13 的 `v0.18.7` 候选 Release 总计：9/9 通过，0 失败，0 跳过，1.19 秒；
+非同步全新 Debug 总计：9/9 通过，0 失败，0 跳过，1.17 秒。同步目录 Debug 的 PDB `C1090 / error 3`
 属于已记录环境问题。
 
 ## What To Run
@@ -57,7 +57,8 @@ ctest --test-dir build/vs2022-x64 -C Release --output-on-failure
 - 隔离桌面中的真实键盘人工验证。
 
 人工验证至少覆盖 legacy 录制与取消、映射单键/快捷键/同时按住的单级 chord、左右修饰键、
-应用范围、重复输入、强制 Win+字母热键、未屏蔽相邻按键和退出后系统快捷键恢复。
+录制和下拉框回填、F1-F24、添加/编辑/应用后的配置往返、应用范围、重复输入、强制
+Win+字母热键、未屏蔽相邻按键和退出后系统快捷键恢复。
 
 ### 修改配置或存储
 

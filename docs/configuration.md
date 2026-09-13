@@ -67,6 +67,10 @@ Enabled
 `[KeyboardMappings]` 是独立的物理键映射配置节。旧配置没有此节时，
 `keyboard_mappings_enabled` 默认为启用但规则列表为空，其他设置行为不变。
 
+设置界面通过录制或结构化下拉框编辑规则；下拉选择仍会转换为完整的
+`vk + scan code + extended` 物理键，因此不改变以下持久化格式。动作键目录覆盖
+`F1` 至 `F24`，并明确区分左右修饰键、主键盘 Enter 和数字键盘 Enter。
+
 | 键 | 含义 |
 |---|---|
 | `KeyboardMappingsEnabled` | 总开关，`0` 或 `1` |

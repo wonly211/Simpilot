@@ -21,7 +21,7 @@ ctest --preset release
 | 菜单、配置、缓存、日志、Everything 解析、本地化 | `simpilot_core_tests`、相关专项测试、完整 CTest |
 | Windows 快捷键屏蔽 | `simpilot_windows_hotkey_blocker_tests`、完整 CTest、人工真实按键验证 |
 | 键盘录制状态机 | `simpilot_keyboard_capture_state_tests`、`simpilot_keyboard_thread_lifecycle_test`、完整 CTest、人工真实按键验证 |
-| 键盘映射模型或运行时 | `simpilot_core_tests`、`simpilot_keyboard_mapping_tests`、`simpilot_keyboard_thread_lifecycle_test`、完整 CTest、人工真实按键验证 |
+| 键盘映射编辑、模型或运行时 | `simpilot_core_tests`、`simpilot_keyboard_mapping_tests`、`simpilot_keyboard_thread_lifecycle_test`、完整 CTest、人工验证录制/下拉回填与真实按键 |
 | 菜单、主题、图标 | `simpilot_menu_presentation_tests`、完整 CTest、人工菜单验证 |
 | 程序候选窗口 | `simpilot_program_selection_dialog_test`、完整 CTest |
 | 关于窗口、版本资源 | `simpilot_about_window_test`、完整 CTest |

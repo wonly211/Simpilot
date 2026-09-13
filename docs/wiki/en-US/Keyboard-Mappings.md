@@ -17,10 +17,14 @@ Mappings are active only while Simpilot runs and do not modify Windows system po
 ## Add a mapping
 
 1. Select **Add**.
-2. Select **Record Source**, press the source key or combination, then release every key.
-3. Select **Record Target**, press the target key or shortcut, then release every key.
+2. Select **Record Source**, press the source key or combination, then release every key. You can instead select up to four physical modifiers, a primary key, and an optional simultaneous key from the lists.
+3. Select **Record Target**, press the target key or shortcut, then release every key. You can instead select up to four physical modifiers and one primary key.
 4. Optionally enter an application scope. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
 5. Save the rule, then select **Apply** or **Save** in Settings.
+
+The action-key lists include letters, digits, `F1` through `F24`, editing and navigation keys,
+numpad keys, common punctuation, and media keys. Modifier choices always identify the left or
+right physical key. A recorded hardware key outside the standard list retains its exact identity.
 
 Both action keys in a source chord must be down at the same time; either action may be pressed first.
 Bare `Esc` is recordable in the mapping editor. Use the dialog's **Cancel** command to abandon an edit.
