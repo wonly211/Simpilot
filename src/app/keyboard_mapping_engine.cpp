@@ -317,6 +317,9 @@ bool KeyboardMappingEngine::matches_rule(
     }
     if (!all_pressed_are_source(trigger)) return false;
     if (trigger.single_key) {
+        if (is_mapping_physical_modifier(trigger.action.virtual_key)) {
+            return pressed_count_ == 1 && pressed_contains(trigger.action);
+        }
         const auto pressed_modifier = [this](const UINT generic,
                                               const UINT left,
                                               const UINT right) noexcept {
@@ -480,6 +483,7 @@ void KeyboardMappingEngine::clear_pending() noexcept {
     pending_events_.fill({});
     pending_count_ = 0;
     pending_deadline_ = 0;
+    pending_modifier_rule_index_.reset();
 }
 
 bool KeyboardMappingEngine::replay_pending() noexcept {
@@ -536,6 +540,23 @@ bool KeyboardMappingEngine::send_output_up(
         }
     }
     return send_events(inputs.data(), count);
+}
+
+bool KeyboardMappingEngine::send_output_tap(
+    const KeyboardOutput& output) noexcept {
+    if (!send_output_down(output)) {
+        (void)send_output_up(output);
+        mark_diagnostic();
+        return false;
+    }
+    if (!send_output_up(output)) {
+        // A partial key-up failure can leave a target modifier logically down.
+        // Retry the complete reverse sequence before the source is replayed.
+        (void)send_output_up(output);
+        mark_diagnostic();
+        return false;
+    }
+    return true;
 }
 
 bool KeyboardMappingEngine::send_single(
@@ -690,6 +711,48 @@ MappingEventResult KeyboardMappingEngine::handle(
     const auto was_active = belongs_to_active(key);
     mark_pressed(key, down);
 
+    const auto pending_modifier_matches = [this, &key]() noexcept {
+        if (!pending_modifier_rule_index_
+            || *pending_modifier_rule_index_ >= rules_.size()) {
+            return false;
+        }
+        const auto& action = rules_[*pending_modifier_rule_index_]
+            .rule.trigger.action;
+        return same_key(action, key)
+            || (key.scan_code == 0
+                && action.virtual_key == key.virtual_key);
+    };
+
+    // A physical modifier can be used as a single source key, but its initial
+    // key-down must remain reversible so ordinary shortcuts such as Ctrl+C
+    // still work. A release before the deadline commits a one-shot target;
+    // any different key invalidates the single-modifier candidate and lets
+    // the normal prefix machinery replay or complete the longer shortcut.
+    if (!down && was_pending && pending_modifier_matches()) {
+        const auto rule_index = *pending_modifier_rule_index_;
+        if (!append_pending(message, event)) {
+            (void)replay_pending();
+            result.diagnostic = true;
+            result.decision = MappingEventDecision::pass;
+            return result;
+        }
+        if (rule_index < rules_.size()
+            && send_output_tap(rules_[rule_index].rule.output)) {
+            clear_pending();
+            result.decision = MappingEventDecision::suppress;
+            return result;
+        }
+        const auto replayed = replay_pending();
+        result.diagnostic = true;
+        result.decision = replayed
+            ? MappingEventDecision::suppress : MappingEventDecision::pass;
+        return result;
+    }
+    if (down && pending_modifier_rule_index_
+        && !pending_modifier_matches()) {
+        pending_modifier_rule_index_.reset();
+    }
+
     // A prefix can be disproved by the current event.  Once the buffered
     // events are replayed, a genuinely new key-down should still get a chance
     // to start its own mapping; otherwise a mapping such as Q->W would be
@@ -786,6 +849,20 @@ MappingEventResult KeyboardMappingEngine::handle(
     // been delivered to the target application; activating at the later
     // modifier key-down would swallow that key's release and leave the target
     // in a stuck state.
+    if (complete && complete->rule.trigger.single_key
+        && is_mapping_physical_modifier(
+            complete->rule.trigger.action.virtual_key)
+        && pending_count_ == 0 && !was_pressed) {
+        if (!append_pending(message, event)) {
+            result.diagnostic = true;
+            return result;
+        }
+        pending_modifier_rule_index_ = static_cast<std::size_t>(
+            complete - rules_.data());
+        result.decision = MappingEventDecision::suppress;
+        return result;
+    }
+
     const auto can_activate = complete
         && ((!complete->rule.trigger.single_key && pending_count_ != 0)
             || (complete->rule.trigger.single_key && !was_pressed));
@@ -849,6 +926,19 @@ void KeyboardMappingEngine::on_timer() noexcept {
         return;
     }
     if (now < pending_deadline_) return;
+
+    if (pending_modifier_rule_index_) {
+        const auto rule_index = *pending_modifier_rule_index_;
+        if (rule_index < rules_.size()
+            && pressed_contains(rules_[rule_index].rule.trigger.action)) {
+            if (activate(rules_[rule_index])) {
+                clear_pending();
+                return;
+            }
+            (void)replay_pending();
+            return;
+        }
+    }
     (void)replay_pending();
 }
 

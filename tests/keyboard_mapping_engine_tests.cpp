@@ -1,13 +1,16 @@
 #include "keyboard_mapping_engine.hpp"
 #include "keyboard_mapping_editor_model.hpp"
+#include "simpilot/localization.hpp"
 
 #include <Windows.h>
 
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <filesystem>
 #include <iostream>
 #include <ranges>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -115,6 +118,136 @@ void single_key_lifecycle() {
     require(engine.handle(WM_KEYDOWN, target_event).decision
                 == MappingEventDecision::pass,
             "target-marked input must bypass mapping");
+}
+
+void physical_modifier_single_key_disambiguation() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto right_control = modifiers[1];
+    const auto left_shift = modifiers[4];
+    const auto left_win = modifiers[6];
+    const auto f23 = simpilot::keyboard_mapping_catalog_key(VK_F23);
+
+    KeyboardMappingRule copilot;
+    copilot.trigger.single_key = true;
+    copilot.trigger.action = right_control;
+    copilot.output.modifier_count = 2;
+    copilot.output.modifiers[0] = left_shift;
+    copilot.output.modifiers[1] = left_win;
+    copilot.output.action = f23;
+
+    std::uint64_t now = 0;
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        },
+        [&now] { return now; });
+    require(engine.replace_rules(true, {copilot}),
+            "a physical modifier must be accepted as a single source key");
+
+    const auto control_event = event_for(right_control);
+    require(engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress
+                && engine.pending() && injected.empty(),
+            "Right Ctrl down must wait for modifier disambiguation");
+    require(engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress
+                && injected.empty(),
+            "Right Ctrl auto-repeat must stay buffered without duplicate events");
+    require(engine.handle(WM_KEYUP, control_event).decision
+                == MappingEventDecision::suppress
+                && !engine.pending() && injected.size() == 6,
+            "a short Right Ctrl tap must emit one complete Copilot shortcut");
+    require(injected[0].ki.wScan == left_shift.scan_code
+                && injected[1].ki.wScan == left_win.scan_code
+                && injected[2].ki.wScan == f23.scan_code
+                && (injected[3].ki.dwFlags & KEYEVENTF_KEYUP) != 0
+                && injected[3].ki.wScan == f23.scan_code
+                && (injected[4].ki.dwFlags & KEYEVENTF_KEYUP) != 0
+                && injected[4].ki.wScan == left_win.scan_code
+                && (injected[5].ki.dwFlags & KEYEVENTF_KEYUP) != 0
+                && injected[5].ki.wScan == left_shift.scan_code
+                && std::ranges::all_of(injected, [](const INPUT& input) {
+                    return input.ki.dwExtraInfo
+                        == KeyboardMappingEngine::target_injected_marker;
+                }),
+            "Copilot target must be Left Shift + Left Win + F23 with reverse release");
+
+    injected.clear();
+    require(engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress,
+            "a second Right Ctrl gesture must enter disambiguation");
+    const auto c_event = event_for(key(L'C', 46));
+    require(engine.handle(WM_KEYDOWN, c_event).decision
+                == MappingEventDecision::pass
+                && injected.size() == 1
+                && injected[0].ki.wScan == right_control.scan_code
+                && (injected[0].ki.dwFlags & KEYEVENTF_KEYUP) == 0
+                && injected[0].ki.dwExtraInfo
+                    == KeyboardMappingEngine::replay_injected_marker,
+            "Ctrl+C must replay Right Ctrl down before passing C through");
+    require(engine.handle(WM_KEYUP, c_event).decision
+                == MappingEventDecision::pass
+                && engine.handle(WM_KEYUP, control_event).decision
+                    == MappingEventDecision::pass,
+            "ordinary Ctrl+C releases must pass after disambiguation");
+
+    injected.clear();
+    require(engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress,
+            "a held Right Ctrl must enter disambiguation");
+    now = KeyboardMappingEngine::pending_timeout_ms;
+    engine.on_timer();
+    require(!engine.pending() && injected.size() == 3,
+            "a held Right Ctrl must activate the target at the deadline");
+    require(engine.handle(WM_KEYUP, control_event).decision
+                == MappingEventDecision::suppress
+                && injected.size() == 6,
+            "releasing a committed Right Ctrl mapping must release the target");
+
+    injected.clear();
+    now = 0;
+    require(engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress,
+            "a pending modifier must be resettable");
+    engine.reset(true);
+    require(!engine.pending() && injected.size() == 1
+                && injected[0].ki.dwExtraInfo
+                    == KeyboardMappingEngine::replay_injected_marker,
+            "reset must replay a buffered physical modifier");
+    require(engine.handle(WM_KEYUP, control_event).decision
+                == MappingEventDecision::pass,
+            "the physical modifier release must pass after reset replay");
+
+    injected.clear();
+    KeyboardMappingEngine shortcut_engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    const auto shortcut = shortcut_rule(
+        right_control, key(L'C', 46), key(L'B', 48));
+    require(shortcut_engine.replace_rules(true, {copilot, shortcut}),
+            "a bare modifier and its longer shortcut must coexist");
+    require(shortcut_engine.handle(WM_KEYDOWN, control_event).decision
+                == MappingEventDecision::suppress,
+            "the overlapping Right Ctrl prefix must be buffered");
+    require(shortcut_engine.handle(WM_KEYDOWN, c_event).decision
+                == MappingEventDecision::suppress
+                && injected.size() == 1
+                && injected[0].ki.wScan == 48
+                && injected[0].ki.dwExtraInfo
+                    == KeyboardMappingEngine::target_injected_marker,
+            "a configured Right Ctrl+C rule must beat the bare modifier candidate");
+    require(shortcut_engine.handle(WM_KEYUP, c_event).decision
+                == MappingEventDecision::suppress,
+            "the longer mapping must retain its target until all sources release");
+    require(shortcut_engine.handle(WM_KEYUP, control_event).decision
+                == MappingEventDecision::suppress
+                && injected.size() == 2
+                && (injected[1].ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "the longer mapping target must release with the final source key");
 }
 
 void auto_repeat_repeats_the_target_action() {
@@ -726,6 +859,46 @@ void editor_model_validates_structured_chords_and_modifiers() {
             "a chord action must differ from its primary action");
 }
 
+void editor_model_supports_a_physical_modifier_source() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto right_control = modifiers[1];
+    const auto left_shift = modifiers[4];
+    const auto left_win = modifiers[6];
+    const auto f23 = simpilot::keyboard_mapping_catalog_key(VK_F23);
+
+    KeyboardMappingEditorModel editor;
+    editor.set_source_action(right_control);
+    editor.set_target_modifier(0, left_shift);
+    editor.set_target_modifier(1, left_win);
+    editor.set_target_action(f23);
+    auto result = editor.build();
+    require(static_cast<bool>(result)
+                && result.trigger.single_key
+                && result.trigger.action == right_control
+                && result.output.modifier_count == 2
+                && result.output.action == f23,
+            "Right Ctrl must build as a single physical source for Copilot");
+    KeyboardMappingRule rule;
+    rule.trigger = result.trigger;
+    rule.output = result.output;
+    require(simpilot::validate_keyboard_mappings({rule}).empty(),
+            "the complete Right Ctrl to Copilot rule must validate");
+
+    editor.set_source_modifier(0, left_shift);
+    require(editor.build().error
+                == KeyboardMappingDraftError::source_modifier_action_requires_single,
+            "a modifier source action cannot also have source modifiers");
+    editor.set_source_modifier(0, std::nullopt);
+    editor.set_source_chord_action(simpilot::keyboard_mapping_catalog_key(L'A'));
+    require(editor.build().error
+                == KeyboardMappingDraftError::source_modifier_action_requires_single,
+            "a modifier source action cannot also have a chord action");
+    editor.set_source_chord_action(std::nullopt);
+    editor.set_source_action(PhysicalKey{VK_CONTROL, 0x1D, false});
+    require(editor.build().error == KeyboardMappingDraftError::source_action_invalid,
+            "a generic Ctrl identity must not replace a sided physical source");
+}
+
 void editor_catalog_uses_hook_compatible_physical_keys() {
     const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
     require(modifiers[4] == PhysicalKey{VK_LSHIFT, 0x2A, false},
@@ -736,6 +909,7 @@ void editor_catalog_uses_hook_compatible_physical_keys() {
             "Left Win must use an extended low-byte scan code");
 
     const auto actions = simpilot::keyboard_mapping_action_catalog();
+    std::set<std::wstring> action_labels;
     for (auto virtual_key = static_cast<UINT>(VK_F1);
          virtual_key <= static_cast<UINT>(VK_F24); ++virtual_key) {
         require(contains_key(actions,
@@ -746,9 +920,68 @@ void editor_catalog_uses_hook_compatible_physical_keys() {
                 return simpilot::is_mapping_modifier(candidate.virtual_key);
             }),
             "the action catalog must not expose modifier keys as actions");
+    for (const auto& action : actions) {
+        require(action_labels.insert(simpilot::format_mapping_key(action)).second,
+                "every catalog action must have a distinct visible label");
+    }
     require(contains_key(actions, PhysicalKey{VK_RETURN, 0x1C, false})
                 && contains_key(actions, PhysicalKey{VK_RETURN, 0x1C, true}),
             "main Enter and numpad Enter must remain distinct");
+
+    const auto source_actions = simpilot::keyboard_mapping_source_action_catalog();
+    require(contains_key(source_actions, modifiers[1])
+                && contains_key(source_actions, modifiers[7]),
+            "the source primary-key catalog must expose sided modifiers");
+    require(simpilot::format_mapping_key(
+                simpilot::keyboard_mapping_catalog_key(VK_F23)) == L"F23",
+            "VK_F23 must be displayed as F23 instead of decimal VK134");
+    require(simpilot::format_mapping_key(
+                simpilot::keyboard_mapping_catalog_key(VK_BROWSER_BACK))
+                == L"Browser Back",
+            "browser keys must not fall back to raw VK values");
+    require(simpilot::format_mapping_key(
+                simpilot::keyboard_mapping_catalog_key(VK_VOLUME_MUTE))
+                == L"Volume Mute",
+            "media scan-code collisions must not be displayed as letters");
+    require(simpilot::format_mapping_key(
+                PhysicalKey{VK_RETURN, 0x1C, false})
+                != simpilot::format_mapping_key(
+                    PhysicalKey{VK_RETURN, 0x1C, true}),
+            "main Enter and numpad Enter labels must differ");
+    require(simpilot::format_mapping_key(
+                simpilot::keyboard_mapping_catalog_key(VK_OEM_5))
+                != simpilot::format_mapping_key(
+                    simpilot::keyboard_mapping_catalog_key(VK_OEM_102)),
+            "distinct OEM keys must have disambiguated labels");
+
+    constexpr std::array languages{
+        simpilot::UiLanguage::english,
+        simpilot::UiLanguage::simplified_chinese,
+        simpilot::UiLanguage::traditional_chinese,
+    };
+    const auto language_directory = std::filesystem::path(__FILE__)
+        .parent_path().parent_path() / L"Languages";
+    for (const auto language : languages) {
+        const simpilot::Localization localization(language, language_directory);
+        std::set<std::wstring> localized_labels;
+        for (const auto& action : source_actions) {
+            const auto label = simpilot::localized_keyboard_mapping_key_label(
+                action, localization);
+            const auto inserted = localized_labels.insert(label).second;
+            if (!inserted) {
+                std::wcerr << L"Duplicate key label in "
+                           << std::wstring(localization.language_code().begin(),
+                                           localization.language_code().end())
+                           << L": " << label << L'\n';
+            }
+            require(inserted,
+                    "every source-key option must have a distinct localized label");
+        }
+        require(simpilot::localized_keyboard_mapping_key_label(
+                    simpilot::keyboard_mapping_catalog_key(VK_F23),
+                    localization) == L"F23",
+                "F23 must have the documented label in every language");
+    }
 }
 
 void editor_model_preserves_unlisted_recorded_keys() {
@@ -770,6 +1003,7 @@ void editor_model_preserves_unlisted_recorded_keys() {
 int wmain() {
     try {
         single_key_lifecycle();
+        physical_modifier_single_key_disambiguation();
         auto_repeat_repeats_the_target_action();
         secure_combinations_bypass_single_key_mapping();
         prefix_timeout_replays_original_events();
@@ -791,6 +1025,7 @@ int wmain() {
         failed_output_injection_is_reported_and_cleaned();
         editor_model_saves_recorded_shortcuts_without_text_parsing();
         editor_model_validates_structured_chords_and_modifiers();
+        editor_model_supports_a_physical_modifier_source();
         editor_catalog_uses_hook_compatible_physical_keys();
         editor_model_preserves_unlisted_recorded_keys();
         std::wcout << L"All keyboard mapping engine tests passed.\n";

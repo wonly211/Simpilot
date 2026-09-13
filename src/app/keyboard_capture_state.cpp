@@ -59,6 +59,7 @@ void KeyboardCaptureState::reset() noexcept {
     legacy_candidate_ = {};
     trigger_candidate_ = {};
     output_candidate_ = {};
+    standalone_modifier_candidate_.reset();
     has_action_ = false;
     invalid_candidate_ = false;
     live_modifier_mask_ = 0;
@@ -272,6 +273,7 @@ CaptureEventResult KeyboardCaptureState::complete() noexcept {
     legacy_candidate_ = {};
     trigger_candidate_ = {};
     output_candidate_ = {};
+    standalone_modifier_candidate_.reset();
     has_action_ = false;
     invalid_candidate_ = false;
     live_modifier_mask_ = 0;
@@ -293,6 +295,7 @@ CaptureEventResult KeyboardCaptureState::cancel() noexcept {
     legacy_candidate_ = {};
     trigger_candidate_ = {};
     output_candidate_ = {};
+    standalone_modifier_candidate_.reset();
     has_action_ = false;
     invalid_candidate_ = false;
     live_modifier_mask_ = 0;
@@ -327,6 +330,15 @@ CaptureEventResult KeyboardCaptureState::handle(
         if (!add_pressed(key)) return cancel();
         if (already_captured(key)) return result;
 
+        if (mode_ == CaptureMode::mapping_trigger) {
+            if (is_modifier(key) && pressed_count_ == 1 && !has_action_
+                && trigger_candidate_.modifier_count == 0) {
+                standalone_modifier_candidate_ = key;
+            } else {
+                standalone_modifier_candidate_.reset();
+            }
+        }
+
         const auto accepted = is_modifier(key)
             ? add_modifier(key) : add_action(key);
         if (!accepted) return cancel();
@@ -335,6 +347,17 @@ CaptureEventResult KeyboardCaptureState::handle(
 
     const auto pressed_index = find_pressed(key);
     if (pressed_index != no_index) remove_pressed(pressed_index);
+
+    if (mode_ == CaptureMode::mapping_trigger && !has_action_
+        && all_released() && standalone_modifier_candidate_
+        && trigger_candidate_.modifier_count == 1) {
+        trigger_candidate_.action = *standalone_modifier_candidate_;
+        trigger_candidate_.modifiers[0] = {};
+        trigger_candidate_.modifier_count = 0;
+        standalone_modifier_candidate_.reset();
+        has_action_ = true;
+        return complete();
+    }
 
     // A modifier released before an action is pressed is not part of the
     // gesture.  Once an action exists, retain all candidates until the final

@@ -154,9 +154,13 @@ std::optional<KeyboardMappingRule> KeyboardMappingDialog::run() {
 
 void KeyboardMappingDialog::create_key_options() {
     modifier_options_.clear();
+    source_action_options_.clear();
     action_options_.clear();
     for (const auto& key : keyboard_mapping_modifier_catalog()) {
         modifier_options_.push_back({.key = key});
+    }
+    for (const auto& key : keyboard_mapping_source_action_catalog()) {
+        source_action_options_.push_back({.key = key});
     }
     for (const auto& key : keyboard_mapping_action_catalog()) {
         action_options_.push_back({.key = key});
@@ -199,11 +203,11 @@ void KeyboardMappingDialog::create_controls() {
     source_action_label_ = create_static(
         text("settings.keyboard_mappings.primary_key"));
     source_action_combo_ = create_combo(source_action_identifier);
-    populate_action_combo(source_action_combo_, false);
+    populate_action_combo(source_action_combo_, false, source_action_options_);
     source_chord_label_ = create_static(
         text("settings.keyboard_mappings.chord_key"));
     source_chord_combo_ = create_combo(source_chord_identifier);
-    populate_action_combo(source_chord_combo_, true);
+    populate_action_combo(source_chord_combo_, true, action_options_);
 
     target_heading_ = create_static(text("settings.keyboard_mappings.target"));
     target_hint_ = create_static(text("settings.keyboard_mappings.target_hint"));
@@ -225,7 +229,7 @@ void KeyboardMappingDialog::create_controls() {
     target_action_label_ = create_static(
         text("settings.keyboard_mappings.primary_key"));
     target_action_combo_ = create_combo(target_action_identifier);
-    populate_action_combo(target_action_combo_, false);
+    populate_action_combo(target_action_combo_, false, action_options_);
 
     divider_ = create_static(L"", SS_ETCHEDHORZ);
     process_label_ = create_static(text("settings.keyboard_mappings.process"),
@@ -285,15 +289,16 @@ void KeyboardMappingDialog::populate_modifier_combo(const HWND combo) {
 }
 
 void KeyboardMappingDialog::populate_action_combo(
-    const HWND combo, const bool optional) {
+    const HWND combo, const bool optional,
+    const std::vector<KeyOption>& options) {
     const auto placeholder = text(optional
         ? "settings.keyboard_mappings.none"
         : "settings.keyboard_mappings.select_key");
     const auto empty = SendMessageW(combo, CB_ADDSTRING, 0,
         reinterpret_cast<LPARAM>(placeholder));
     SendMessageW(combo, CB_SETITEMDATA, empty, static_cast<LPARAM>(no_option));
-    for (std::size_t index = 0; index < action_options_.size(); ++index) {
-        const auto label = option_label(action_options_[index]);
+    for (std::size_t index = 0; index < options.size(); ++index) {
+        const auto label = option_label(options[index]);
         const auto row = SendMessageW(combo, CB_ADDSTRING, 0,
             reinterpret_cast<LPARAM>(label.c_str()));
         SendMessageW(combo, CB_SETITEMDATA, row, static_cast<LPARAM>(index));
@@ -310,7 +315,7 @@ void KeyboardMappingDialog::ensure_model_options() {
         if (key) (void)ensure_modifier_option(*key, true);
     }
     if (editor_.source_action()) {
-        (void)ensure_action_option(*editor_.source_action(), true);
+        (void)ensure_source_action_option(*editor_.source_action(), true);
     }
     if (editor_.source_chord_action()) {
         (void)ensure_action_option(*editor_.source_chord_action(), true);
@@ -318,6 +323,20 @@ void KeyboardMappingDialog::ensure_model_options() {
     if (editor_.target_action()) {
         (void)ensure_action_option(*editor_.target_action(), true);
     }
+}
+
+std::size_t KeyboardMappingDialog::ensure_source_action_option(
+    const PhysicalKey& key, const bool recorded) {
+    const auto found = std::ranges::find(
+        source_action_options_, key, &KeyOption::key);
+    if (found != source_action_options_.end()) {
+        return static_cast<std::size_t>(
+            found - source_action_options_.begin());
+    }
+    source_action_options_.push_back({.key = key, .recorded = recorded});
+    const auto index = source_action_options_.size() - 1;
+    if (source_action_combo_) append_source_action_option_to_control(index);
+    return index;
 }
 
 std::size_t KeyboardMappingDialog::ensure_modifier_option(
@@ -362,12 +381,20 @@ void KeyboardMappingDialog::append_modifier_option_to_controls(
 void KeyboardMappingDialog::append_action_option_to_controls(
     const std::size_t index) {
     const auto label = option_label(action_options_[index]);
-    for (const auto combo : {source_action_combo_, source_chord_combo_,
-                             target_action_combo_}) {
+    for (const auto combo : {source_chord_combo_, target_action_combo_}) {
         const auto row = SendMessageW(combo, CB_ADDSTRING, 0,
             reinterpret_cast<LPARAM>(label.c_str()));
         SendMessageW(combo, CB_SETITEMDATA, row, static_cast<LPARAM>(index));
     }
+}
+
+void KeyboardMappingDialog::append_source_action_option_to_control(
+    const std::size_t index) {
+    const auto label = option_label(source_action_options_[index]);
+    const auto row = SendMessageW(source_action_combo_, CB_ADDSTRING, 0,
+        reinterpret_cast<LPARAM>(label.c_str()));
+    SendMessageW(source_action_combo_, CB_SETITEMDATA, row,
+                 static_cast<LPARAM>(index));
 }
 
 void KeyboardMappingDialog::select_combo_key(
@@ -411,7 +438,8 @@ void KeyboardMappingDialog::sync_controls_from_model() {
         select_combo_key(target_modifier_combos_[index], modifier_options_,
                          editor_.target_modifiers()[index]);
     }
-    select_combo_key(source_action_combo_, action_options_, editor_.source_action());
+    select_combo_key(source_action_combo_, source_action_options_,
+                     editor_.source_action());
     select_combo_key(source_chord_combo_, action_options_,
                      editor_.source_chord_action());
     select_combo_key(target_action_combo_, action_options_, editor_.target_action());
@@ -426,7 +454,8 @@ void KeyboardMappingDialog::sync_model_from_controls() {
         editor_.set_target_modifier(index,
             combo_key(target_modifier_combos_[index], modifier_options_));
     }
-    editor_.set_source_action(combo_key(source_action_combo_, action_options_));
+    editor_.set_source_action(
+        combo_key(source_action_combo_, source_action_options_));
     editor_.set_source_chord_action(combo_key(source_chord_combo_, action_options_));
     editor_.set_target_action(combo_key(target_action_combo_, action_options_));
 }
@@ -701,6 +730,9 @@ void KeyboardMappingDialog::show_draft_error(
     case KeyboardMappingDraftError::source_chord_invalid:
         key = "settings.keyboard_mappings.chord_invalid";
         break;
+    case KeyboardMappingDraftError::source_modifier_action_requires_single:
+        key = "settings.keyboard_mappings.modifier_source_must_be_single";
+        break;
     default:
         break;
     }
@@ -710,33 +742,7 @@ void KeyboardMappingDialog::show_draft_error(
 }
 
 std::wstring KeyboardMappingDialog::key_label(const PhysicalKey& key) const {
-    switch (key.virtual_key) {
-    case VK_CONTROL: return text("settings.keyboard_mappings.key.ctrl");
-    case VK_LCONTROL: return text("settings.keyboard_mappings.key.left_ctrl");
-    case VK_RCONTROL: return text("settings.keyboard_mappings.key.right_ctrl");
-    case VK_MENU: return text("settings.keyboard_mappings.key.alt");
-    case VK_LMENU: return text("settings.keyboard_mappings.key.left_alt");
-    case VK_RMENU: return text("settings.keyboard_mappings.key.right_alt");
-    case VK_SHIFT: return text("settings.keyboard_mappings.key.shift");
-    case VK_LSHIFT: return text("settings.keyboard_mappings.key.left_shift");
-    case VK_RSHIFT: return text("settings.keyboard_mappings.key.right_shift");
-    case VK_LWIN: return text("settings.keyboard_mappings.key.left_win");
-    case VK_RWIN: return text("settings.keyboard_mappings.key.right_win");
-    case VK_ESCAPE: return text("settings.keyboard_mappings.key.escape");
-    case VK_BACK: return text("settings.keyboard_mappings.key.backspace");
-    case VK_RETURN:
-        return key.extended ? text("settings.keyboard_mappings.key.numpad_enter")
-                            : text("settings.keyboard_mappings.key.enter");
-    case VK_SPACE: return text("settings.keyboard_mappings.key.space");
-    case VK_TAB: return text("settings.keyboard_mappings.key.tab");
-    case VK_DELETE: return text("settings.keyboard_mappings.key.delete");
-    default:
-        if (key.virtual_key >= VK_NUMPAD0 && key.virtual_key <= VK_NUMPAD9) {
-            return std::wstring(text("settings.keyboard_mappings.key.numpad_prefix"))
-                + std::to_wstring(key.virtual_key - VK_NUMPAD0);
-        }
-        return format_mapping_key(key);
-    }
+    return localized_keyboard_mapping_key_label(key, localization_);
 }
 
 std::wstring KeyboardMappingDialog::option_label(const KeyOption& option) const {

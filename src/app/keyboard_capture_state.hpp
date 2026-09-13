@@ -112,6 +112,7 @@ private:
     HotKeyGesture legacy_candidate_{};
     KeyboardTrigger trigger_candidate_{};
     KeyboardOutput output_candidate_{};
+    std::optional<PhysicalKey> standalone_modifier_candidate_;
     bool has_action_ = false;
     bool invalid_candidate_ = false;
     UINT live_modifier_mask_ = 0;

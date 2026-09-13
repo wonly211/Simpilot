@@ -321,6 +321,50 @@ void captures_physical_modifiers_and_simultaneous_chords() {
         "A captured bare chord must remain a chord");
 }
 
+void captures_a_standalone_physical_modifier_source() {
+    KeyboardCaptureState state;
+    state.begin(CaptureMode::mapping_trigger);
+    const auto right_control = physical(VK_RCONTROL, 0x1D, true);
+    require_suppressed(state.handle(WM_KEYDOWN, right_control),
+        "A standalone Right Ctrl down must be suppressed while recording");
+    const auto released = state.handle(WM_KEYUP, right_control);
+    require_suppressed(released,
+        "A standalone Right Ctrl up must be suppressed while recording");
+    require(released.completed && !state.active(),
+        "A standalone physical modifier must complete mapping capture");
+    const auto completion = state.take_completed();
+    require(completion.has_value()
+                && completion->trigger.single_key
+                && completion->trigger.modifier_count == 0
+                && completion->trigger.action == right_control,
+        "Right Ctrl must be promoted from a modifier to a single source action");
+
+    state.begin(CaptureMode::mapping_trigger);
+    const auto left_shift = physical(VK_LSHIFT, 0x2A, false);
+    require_suppressed(state.handle(WM_KEYDOWN, right_control),
+        "The first modifier of an incomplete combination must be suppressed");
+    require_suppressed(state.handle(WM_KEYDOWN, left_shift),
+        "The second modifier of an incomplete combination must be suppressed");
+    require_suppressed(state.handle(WM_KEYUP, left_shift),
+        "An incomplete modifier combination release must be suppressed");
+    const auto final_release = state.handle(WM_KEYUP, right_control);
+    require_suppressed(final_release,
+        "The final incomplete modifier release must be suppressed");
+    require(!final_release.completed && state.active(),
+        "Multiple modifiers without an action must not become a single source");
+    state.end();
+
+    state.begin(CaptureMode::mapping_output);
+    require_suppressed(state.handle(WM_KEYDOWN, right_control),
+        "A target modifier down must still be recordable as a prefix");
+    const auto output_release = state.handle(WM_KEYUP, right_control);
+    require_suppressed(output_release,
+        "A target modifier release must remain suppressed while recording");
+    require(!output_release.completed && state.active(),
+        "A modifier alone must remain invalid as a mapping target");
+    state.end();
+}
+
 } // namespace
 
 int wmain() {
@@ -332,6 +376,7 @@ int wmain() {
         handles_escape_and_backspace_boundaries();
         reset_and_begin_clear_pending_state();
         captures_physical_modifiers_and_simultaneous_chords();
+        captures_a_standalone_physical_modifier_source();
         std::wcout << L"All keyboard capture state tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

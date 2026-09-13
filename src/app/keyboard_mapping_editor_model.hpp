@@ -7,15 +7,19 @@
 #include <array>
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <vector>
 
 namespace simpilot {
+
+class Localization;
 
 enum class KeyboardMappingDraftError {
     none,
     source_action_required,
     target_action_required,
     source_action_invalid,
+    source_modifier_action_requires_single,
     target_action_invalid,
     source_modifier_invalid,
     target_modifier_invalid,
@@ -75,6 +79,10 @@ private:
     UINT virtual_key, bool extended_hint = false) noexcept;
 [[nodiscard]] std::array<PhysicalKey, 8>
 keyboard_mapping_modifier_catalog() noexcept;
+[[nodiscard]] std::vector<PhysicalKey>
+keyboard_mapping_source_action_catalog();
 [[nodiscard]] std::vector<PhysicalKey> keyboard_mapping_action_catalog();
+[[nodiscard]] std::wstring localized_keyboard_mapping_key_label(
+    const PhysicalKey& key, const Localization& localization);
 
 } // namespace simpilot

@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -98,6 +99,7 @@ private:
     [[nodiscard]] bool replay_pending() noexcept;
     [[nodiscard]] bool send_output_down(const KeyboardOutput& output) noexcept;
     [[nodiscard]] bool send_output_up(const KeyboardOutput& output) noexcept;
+    [[nodiscard]] bool send_output_tap(const KeyboardOutput& output) noexcept;
     [[nodiscard]] bool send_single(
         const PhysicalKey& key, bool key_down, ULONG_PTR marker) noexcept;
     [[nodiscard]] bool send_events(
@@ -119,6 +121,7 @@ private:
     std::array<PendingEvent, 16> pending_events_{};
     std::size_t pending_count_ = 0;
     std::uint64_t pending_deadline_ = 0;
+    std::optional<std::size_t> pending_modifier_rule_index_;
     std::array<ActiveMapping, 8> active_mappings_{};
     bool diagnostic_ = false;
 };

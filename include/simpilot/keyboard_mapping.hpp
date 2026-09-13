@@ -54,6 +54,7 @@ struct KeyboardMappingValidationError {
 };
 
 [[nodiscard]] bool is_mapping_modifier(UINT virtual_key) noexcept;
+[[nodiscard]] bool is_mapping_physical_modifier(UINT virtual_key) noexcept;
 [[nodiscard]] bool is_mapping_key_valid(const PhysicalKey& key) noexcept;
 [[nodiscard]] std::wstring normalize_mapping_process_name(
     std::wstring value);

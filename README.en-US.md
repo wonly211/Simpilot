@@ -63,7 +63,7 @@ Simpilot is a tray application and does not show a conventional main window afte
 - Visually edit the main and second menus, including categories, separators, ordering, hierarchy, and menu access keys.
 - Custom hotkeys can open applications, folders, or files. Application actions support arguments, a working directory, administrator privileges, existing-process behavior, and initial window state.
 - Built-in hotkeys are available for the main menu, second menu, Settings window, and Everything Search. Each can be recorded, cleared, enabled, or paused independently.
-- Physical-key mappings distinguish left and right modifiers and support single keys, shortcuts, and one-level chords. Add or edit a rule by recording it or selecting keys including F1-F24, then apply it globally or to a process scope.
+- Physical-key mappings distinguish left and right modifiers and support single keys, shortcuts, and one-level chords. A sided Ctrl, Alt, Shift, or Win key can also be used alone as the source. Add or edit a rule by recording it or selecting keys including F1-F24, then apply it globally or to a process scope. For example, map an ordinary keyboard's Right Ctrl to `Left Win + Left Shift + F23` to emit the Copilot key sequence.
 - Supported `Win+A` through `Win+Z` combinations can be blocked in real time. `Win+L` cannot be overridden because of Windows security restrictions.
 - Menu configuration changes are monitored automatically. If a reload fails, the last valid menu remains active.
 - The tray icon is restored automatically when Windows Explorer restarts.

@@ -1179,26 +1179,7 @@ void SettingsWindow::update_custom_hotkey_buttons() {
 
 std::wstring SettingsWindow::keyboard_mapping_key_label(
     const PhysicalKey& key) const {
-    switch (key.virtual_key) {
-    case VK_CONTROL: return text("settings.keyboard_mappings.key.ctrl");
-    case VK_LCONTROL: return text("settings.keyboard_mappings.key.left_ctrl");
-    case VK_RCONTROL: return text("settings.keyboard_mappings.key.right_ctrl");
-    case VK_MENU: return text("settings.keyboard_mappings.key.alt");
-    case VK_LMENU: return text("settings.keyboard_mappings.key.left_alt");
-    case VK_RMENU: return text("settings.keyboard_mappings.key.right_alt");
-    case VK_SHIFT: return text("settings.keyboard_mappings.key.shift");
-    case VK_LSHIFT: return text("settings.keyboard_mappings.key.left_shift");
-    case VK_RSHIFT: return text("settings.keyboard_mappings.key.right_shift");
-    case VK_LWIN: return text("settings.keyboard_mappings.key.left_win");
-    case VK_RWIN: return text("settings.keyboard_mappings.key.right_win");
-    case VK_ESCAPE: return text("settings.keyboard_mappings.key.escape");
-    case VK_BACK: return text("settings.keyboard_mappings.key.backspace");
-    case VK_RETURN: return text("settings.keyboard_mappings.key.enter");
-    case VK_SPACE: return text("settings.keyboard_mappings.key.space");
-    case VK_TAB: return text("settings.keyboard_mappings.key.tab");
-    case VK_DELETE: return text("settings.keyboard_mappings.key.delete");
-    default: return format_mapping_key(key);
-    }
+    return localized_keyboard_mapping_key_label(key, localization_);
 }
 
 std::wstring SettingsWindow::keyboard_mapping_trigger_label(

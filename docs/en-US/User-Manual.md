@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 0.18.7
+Applies to version: 0.18.8
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -263,10 +263,15 @@ Exact `Win+A` through `Win+Z` combinations integrate with Windows Hotkey Blockin
 Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. Use **Add**, **Edit**, and **Delete** to manage rules.
 
 - A **source trigger** can be one key, one to four modifiers plus an action key, or up to three modifiers plus two action keys held at the same time. Either chord action may be pressed first.
+- A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. A standalone modifier waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.
 - A **target output** can be one key or up to four modifiers plus one action key. Target chords are not supported.
 - **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
 - Leave Application empty for a global rule. Enter an executable base name without a path to limit a rule to the foreground application. With **Exact application match** disabled, matching uses a case-insensitive process-name prefix. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
 - **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
+
+An ordinary keyboard can map **Right Ctrl** to **Left Win + Left Shift + F23** to emit the Copilot
+key sequence. Windows defines F23 as `VK_F23` (`0x86`); the interface displays explicit key names
+and distinguishes main/numpad Enter and physically distinct OEM keys.
 
 Mappings are active only while Simpilot runs, and active target keys are released on shutdown. Windows UIPI, elevation boundaries, or the secure desktop may block injection; a normally running Simpilot process cannot guarantee input delivery to a higher-privilege window.
 
