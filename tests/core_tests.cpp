@@ -890,6 +890,28 @@ void app_settings_rejects_malformed_keyboard_mappings() {
                 && loaded.keyboard_mappings.front().process_name == L"editor.exe",
             "Canonical process scope must round-trip");
 
+    simpilot::KeyboardMappingRule copilot;
+    copilot.trigger.single_key = true;
+    copilot.trigger.action = {VK_RCONTROL, 0x1D, true};
+    copilot.output.modifier_count = 2;
+    copilot.output.modifiers[0] = {VK_LSHIFT, 0x2A, false};
+    copilot.output.modifiers[1] = {VK_LWIN, 0x5B, true};
+    copilot.output.action = {VK_F23, 0x6E, false};
+    malformed.keyboard_mappings = {copilot};
+    require(simpilot::validate_keyboard_mappings(
+                malformed.keyboard_mappings).empty(),
+            "A sided modifier must be valid as a standalone physical source");
+    require(simpilot::AppSettingsStore::save(path, malformed),
+            "A Right Ctrl to Copilot mapping must save");
+    const auto loaded_copilot = simpilot::AppSettingsStore::load(path);
+    require(loaded_copilot.keyboard_mappings == malformed.keyboard_mappings,
+            "A Right Ctrl to Copilot mapping must round-trip unchanged");
+
+    auto generic_modifier = copilot;
+    generic_modifier.trigger.action = {VK_CONTROL, 0x1D, false};
+    require(!simpilot::validate_keyboard_mappings({generic_modifier}).empty(),
+            "A generic Ctrl identity must not be accepted as a physical source");
+
     const auto malformed_config = root / L"malformed.ini";
     {
         std::ofstream stream(malformed_config, std::ios::binary | std::ios::trunc);

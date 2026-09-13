@@ -62,7 +62,7 @@
 **Key Types**：`KeyboardManager`、`KeyboardCaptureState`、`KeyboardMappingEditorModel`、`KeyboardMappingEngine`、`HotKeyGesture`、`HotKeyBinding`、`PhysicalKey`、`KeyboardTrigger`、`KeyboardOutput`、`KeyboardMappingRule`。
 **Dependencies**：`RegisterHotKey`、`WH_KEYBOARD_LL`、`SendInput`、线程消息。
 **Used By**：`TrayApplication`、设置及自定义热键窗口、键盘映射编辑对话框。
-**Important Behaviors**：单一常驻低级钩子；录制优先于映射和运行时动作；编辑模型让录制和下拉选择生成同一结构化规则；映射按 `vkCode + scanCode + extended` 区分物理键；快捷键前缀最多缓冲 16 个事件并由键盘线程定时器处理 250 ms 超时；目标注入和超时回放带独立标记；Win+L 及安全组合不可映射。
+**Important Behaviors**：单一常驻低级钩子；录制优先于映射和运行时动作；编辑模型让录制和下拉选择生成同一结构化规则；映射按 `vkCode + scanCode + extended` 区分物理键；单独左右修饰键可作为源动作，并以 250 ms 可逆候选保留普通快捷键；快捷键前缀最多缓冲 16 个事件并由键盘线程定时器处理超时；目标注入和超时回放带独立标记；Win+L 及安全组合不可映射。
 **Tests**：`simpilot_keyboard_capture_state_tests`、`simpilot_keyboard_mapping_tests`、`simpilot_windows_hotkey_blocker_tests`、`simpilot_keyboard_thread_lifecycle_test`、核心设置测试。
 **Known Issues**：健康检查不能检测静默钩子丢失；挂死线程停止可能无限等待；UIPI 或权限可能导致 `SendInput` 回放失败；真实输入仍需人工验证。
 

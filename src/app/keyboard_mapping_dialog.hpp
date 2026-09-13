@@ -57,11 +57,15 @@ private:
     void update_fonts();
     void layout_controls(int width, int height);
     void populate_modifier_combo(HWND combo);
-    void populate_action_combo(HWND combo, bool optional);
+    void populate_action_combo(
+        HWND combo, bool optional, const std::vector<KeyOption>& options);
     void ensure_model_options();
     std::size_t ensure_modifier_option(const PhysicalKey& key, bool recorded);
+    std::size_t ensure_source_action_option(
+        const PhysicalKey& key, bool recorded);
     std::size_t ensure_action_option(const PhysicalKey& key, bool recorded);
     void append_modifier_option_to_controls(std::size_t index);
+    void append_source_action_option_to_control(std::size_t index);
     void append_action_option_to_controls(std::size_t index);
     void select_combo_key(HWND combo, const std::vector<KeyOption>& options,
                           const std::optional<PhysicalKey>& key);
@@ -97,6 +101,7 @@ private:
     CaptureCallbacks callbacks_;
     DiagnosticSink diagnostic_sink_;
     std::vector<KeyOption> modifier_options_;
+    std::vector<KeyOption> source_action_options_;
     std::vector<KeyOption> action_options_;
     HWND window_ = nullptr;
     std::optional<KeyboardMappingRule> result_;

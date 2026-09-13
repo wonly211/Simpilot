@@ -10,9 +10,9 @@
 | Dependency restore | N/A | 没有包管理器；依赖由仓库和 Windows SDK 提供 |
 | CMake configure | PASS | VS 2022 x64、SDK `10.0.26100.0`、MSVC `19.44.35228.0` |
 | Debug build | PASS with environment caveat | `C:\Temp\Simpilot-takeover-debug-final` 全新构建通过；SynologyDrive 目录稳定复现 PDB `C1090 / error 3` |
-| Debug tests | PASS | 9/9，0 失败，0 跳过，1.17 秒 |
+| Debug tests | PASS | 9/9，0 失败，0 跳过，1.15 秒 |
 | Release build | PASS | 固定 CI 全新重建 `build/ci-vs2022-x64` |
-| Release tests | PASS | 9/9，0 失败，0 跳过，1.44 秒 |
+| Release tests | PASS | 9/9，0 失败，0 跳过，1.17 秒 |
 | Release configuration | PASS | `/O2 /Ob2 /DNDEBUG`、`/INCREMENTAL:NO`、`MaxSpeed`、`LinkIncremental=false` |
 | Package | PASS | 版本资源、ZIP 白名单和自身 `.sha256` 已验证 |
 | Local fixed CI | PASS | `pwsh -NoProfile -File .\tools\ci.ps1` |
@@ -25,7 +25,8 @@
 ## Verified Baseline
 
 ```text
-Version: 0.18.7
+Current release candidate: 0.18.8
+Official release baseline: 0.18.7
 Platform: Windows x64
 Generator: Visual Studio 17 2022
 MSVC: 19.44.35228.0
@@ -84,13 +85,27 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 ZIP 增长 `0.2247%`，无需 `approvedGrowth`。正式基线回写后的本地固定 CI 再次通过：
 EXE 与基线相同，重建 ZIP 为 `2,540,193` 字节，比正式资产少 `199` 字节（`-0.0078%`）。
 
+## v0.18.8 Right Ctrl Source Release Candidate
+
+单独的物理左/右 Ctrl、Alt、Shift、Win 现可作为映射源动作键。运行时使用 250 ms
+可逆候选区分右 Ctrl 单独触发和普通 `Ctrl+C` 等组合；源录制、结构化下拉、配置校验
+和持久化保持同一物理键模型。键名目录为 F1-F24、浏览器/媒体、数字键盘和 OEM 键提供
+明确且唯一的显示名称，`VK_F23` 不再显示为十进制 `VK134`。
+
+2026-09-13 验证结果：非同步全新 Debug 与固定 Release CI 均为 9/9 测试通过。`v0.18.8`
+候选 `Simpilot.exe` 为 `1,187,840` 字节，ZIP 为 `2,547,308` 字节，SHA-256 为
+`7B8586F8816DC1981A367B0C8AC1CAC0779DC03711B71785215D477AC7E2FB8C`；相对正式
+`v0.18.7` 基线分别增长 `1.4873%` 和 `0.2722%`，无需 `approvedGrowth`。当前桌面已有
+另一份 Simpilot 正在运行，未中断用户进程；真实右 Ctrl、Copilot 启动与设置交互仍需人工验证。
+
 ## Keyboard Mapping State
 
 - 键盘录制、热键处理和物理键盘映射均为 Simpilot 独立实现；仓库不再包含外部键盘管理器源码；
 - 保留既有 `KeyboardManager` 热键/线程行为，并新增映射录制和同步规则替换接口；
 - `[KeyboardMappings]` 是向后兼容的可选设置节；旧配置没有该节时规则为空，既有行为不变；
 - 源支持单键、快捷键和两个同时按住动作键的单级 chord；目标支持单键或标准快捷键；
-- 映射编辑器支持录制和结构化下拉选择，左右修饰键、主键盘/数字键盘 Enter 及目录外录制键保持物理区分；
+- 单独左/右 Ctrl、Alt、Shift、Win 可作为源动作；250 ms 消歧会在出现后续键时回放修饰键，从而保留普通快捷键；
+- 映射编辑器支持录制和结构化下拉选择，F1-F24、左右修饰键、主键盘/数字键盘 Enter、OEM 键及目录外录制键保持明确名称和物理区分；
 - 运行时使用 16 项固定前缀队列、250 ms 键盘线程定时器、独立 target/replay 标记和失败诊断；
 - 自动测试不使用真实 `SendInput` 或物理键盘，真实桌面、UIPI 和安全桌面仍是人工边界。
 

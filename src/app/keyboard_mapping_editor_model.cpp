@@ -1,5 +1,7 @@
 #include "keyboard_mapping_editor_model.hpp"
 
+#include "simpilot/localization.hpp"
+
 #include <algorithm>
 #include <array>
 #include <ranges>
@@ -220,8 +222,17 @@ KeyboardMappingDraftResult KeyboardMappingEditorModel::build() const noexcept {
         return result;
     }
     if (!is_mapping_key_valid(*source_action_)
-        || is_mapping_modifier(source_action_->virtual_key)) {
+        || (is_mapping_modifier(source_action_->virtual_key)
+            && !is_mapping_physical_modifier(source_action_->virtual_key))) {
         result.error = KeyboardMappingDraftError::source_action_invalid;
+        return result;
+    }
+    if (is_mapping_physical_modifier(source_action_->virtual_key)
+        && (std::ranges::any_of(source_modifiers_, [](const auto& key) {
+                return key.has_value();
+            }) || source_chord_action_)) {
+        result.error =
+            KeyboardMappingDraftError::source_modifier_action_requires_single;
         return result;
     }
     if (!is_mapping_key_valid(*target_action_)
@@ -285,6 +296,15 @@ std::array<PhysicalKey, 8> keyboard_mapping_modifier_catalog() noexcept {
     };
 }
 
+std::vector<PhysicalKey> keyboard_mapping_source_action_catalog() {
+    std::vector<PhysicalKey> result;
+    const auto modifiers = keyboard_mapping_modifier_catalog();
+    result.insert(result.end(), modifiers.begin(), modifiers.end());
+    auto actions = keyboard_mapping_action_catalog();
+    result.insert(result.end(), actions.begin(), actions.end());
+    return result;
+}
+
 std::vector<PhysicalKey> keyboard_mapping_action_catalog() {
     std::vector<PhysicalKey> result;
     const auto append = [&result](const UINT virtual_key,
@@ -341,6 +361,78 @@ std::vector<PhysicalKey> keyboard_mapping_action_catalog() {
     };
     for (const auto key : media_keys) append(key);
     return result;
+}
+
+std::wstring localized_keyboard_mapping_key_label(
+    const PhysicalKey& key, const Localization& localization) {
+    const auto text = [&localization](const std::string_view name) {
+        return std::wstring(localization.text(name));
+    };
+    switch (key.virtual_key) {
+    case VK_CONTROL: return text("settings.keyboard_mappings.key.ctrl");
+    case VK_LCONTROL: return text("settings.keyboard_mappings.key.left_ctrl");
+    case VK_RCONTROL: return text("settings.keyboard_mappings.key.right_ctrl");
+    case VK_MENU: return text("settings.keyboard_mappings.key.alt");
+    case VK_LMENU: return text("settings.keyboard_mappings.key.left_alt");
+    case VK_RMENU: return text("settings.keyboard_mappings.key.right_alt");
+    case VK_SHIFT: return text("settings.keyboard_mappings.key.shift");
+    case VK_LSHIFT: return text("settings.keyboard_mappings.key.left_shift");
+    case VK_RSHIFT: return text("settings.keyboard_mappings.key.right_shift");
+    case VK_LWIN: return text("settings.keyboard_mappings.key.left_win");
+    case VK_RWIN: return text("settings.keyboard_mappings.key.right_win");
+    case VK_ESCAPE: return text("settings.keyboard_mappings.key.escape");
+    case VK_TAB: return text("settings.keyboard_mappings.key.tab");
+    case VK_CAPITAL: return text("settings.keyboard_mappings.key.caps_lock");
+    case VK_BACK: return text("settings.keyboard_mappings.key.backspace");
+    case VK_RETURN:
+        return text(key.extended
+            ? "settings.keyboard_mappings.key.numpad_enter"
+            : "settings.keyboard_mappings.key.enter");
+    case VK_SPACE: return text("settings.keyboard_mappings.key.space");
+    case VK_INSERT: return text("settings.keyboard_mappings.key.insert");
+    case VK_DELETE: return text("settings.keyboard_mappings.key.delete");
+    case VK_HOME: return text("settings.keyboard_mappings.key.home");
+    case VK_END: return text("settings.keyboard_mappings.key.end");
+    case VK_PRIOR: return text("settings.keyboard_mappings.key.page_up");
+    case VK_NEXT: return text("settings.keyboard_mappings.key.page_down");
+    case VK_LEFT: return text("settings.keyboard_mappings.key.left_arrow");
+    case VK_RIGHT: return text("settings.keyboard_mappings.key.right_arrow");
+    case VK_UP: return text("settings.keyboard_mappings.key.up_arrow");
+    case VK_DOWN: return text("settings.keyboard_mappings.key.down_arrow");
+    case VK_SNAPSHOT: return text("settings.keyboard_mappings.key.print_screen");
+    case VK_SCROLL: return text("settings.keyboard_mappings.key.scroll_lock");
+    case VK_PAUSE: return text("settings.keyboard_mappings.key.pause");
+    case VK_APPS: return text("settings.keyboard_mappings.key.applications");
+    case VK_DECIMAL: return text("settings.keyboard_mappings.key.numpad_decimal");
+    case VK_DIVIDE: return text("settings.keyboard_mappings.key.numpad_divide");
+    case VK_MULTIPLY: return text("settings.keyboard_mappings.key.numpad_multiply");
+    case VK_SUBTRACT: return text("settings.keyboard_mappings.key.numpad_subtract");
+    case VK_ADD: return text("settings.keyboard_mappings.key.numpad_add");
+    case VK_BROWSER_BACK: return text("settings.keyboard_mappings.key.browser_back");
+    case VK_BROWSER_FORWARD: return text("settings.keyboard_mappings.key.browser_forward");
+    case VK_BROWSER_REFRESH: return text("settings.keyboard_mappings.key.browser_refresh");
+    case VK_BROWSER_STOP: return text("settings.keyboard_mappings.key.browser_stop");
+    case VK_BROWSER_SEARCH: return text("settings.keyboard_mappings.key.browser_search");
+    case VK_BROWSER_FAVORITES: return text("settings.keyboard_mappings.key.browser_favorites");
+    case VK_BROWSER_HOME: return text("settings.keyboard_mappings.key.browser_home");
+    case VK_VOLUME_MUTE: return text("settings.keyboard_mappings.key.volume_mute");
+    case VK_VOLUME_DOWN: return text("settings.keyboard_mappings.key.volume_down");
+    case VK_VOLUME_UP: return text("settings.keyboard_mappings.key.volume_up");
+    case VK_MEDIA_NEXT_TRACK: return text("settings.keyboard_mappings.key.media_next");
+    case VK_MEDIA_PREV_TRACK: return text("settings.keyboard_mappings.key.media_previous");
+    case VK_MEDIA_STOP: return text("settings.keyboard_mappings.key.media_stop");
+    case VK_MEDIA_PLAY_PAUSE: return text("settings.keyboard_mappings.key.media_play_pause");
+    case VK_LAUNCH_MAIL: return text("settings.keyboard_mappings.key.launch_mail");
+    case VK_LAUNCH_MEDIA_SELECT: return text("settings.keyboard_mappings.key.launch_media");
+    case VK_LAUNCH_APP1: return text("settings.keyboard_mappings.key.launch_app1");
+    case VK_LAUNCH_APP2: return text("settings.keyboard_mappings.key.launch_app2");
+    default:
+        if (key.virtual_key >= VK_NUMPAD0 && key.virtual_key <= VK_NUMPAD9) {
+            return text("settings.keyboard_mappings.key.numpad_prefix")
+                + std::to_wstring(key.virtual_key - VK_NUMPAD0);
+        }
+        return format_mapping_key(key);
+    }
 }
 
 } // namespace simpilot
