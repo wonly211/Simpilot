@@ -39,3 +39,8 @@ ZIP 白名单、SHA-256、体积基线以及已移除第三方源码残留检查
 - CI 只验证和上传产物，不创建 Git 标签或 GitHub Release。
 
 完整命令和故障处理见 `docs/build-and-run.md` 与 `docs/troubleshooting.md`。
+
+当前正式基线为 `v0.18.8`：`Simpilot.exe` 为 `1,187,840` 字节，ZIP 为
+`2,547,504` 字节，ZIP SHA-256 为
+`E24652F32FCD978D9A8EF02266CD5E2F9E194F2BCD75A45BFF8B7856D4063011`；
+`approvedGrowth` 为空。后续发布候选必须直接与该基线比较。
