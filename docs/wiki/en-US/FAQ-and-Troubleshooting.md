@@ -74,4 +74,3 @@ Remove usernames, personal paths, and sensitive filenames from logs before posti
 
 - [Wiki Home](Home.en-US)
 - [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)
-- [Translating and Contributing](Translating-and-Contributing)

@@ -26,7 +26,7 @@ Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the f
 | Change the interface language or install `Language.lng` | [Language and Language.lng](Language-and-Language.lng) |
 | Back up settings or inspect diagnostic logs | [Configuration, Logs, and Backup](Configuration-Logs-and-Backup) |
 | Resolve common problems | [FAQ and Troubleshooting](FAQ-and-Troubleshooting) |
-| Translate Simpilot or report a problem | [Translating and Contributing](Translating-and-Contributing) |
+| Report a problem or request a feature | [GitHub Issues](https://github.com/wonly211/Simpilot/issues) |
 | Review licensing, third-party components, or support channels | [About, License, and Third-Party Components](About-License-and-Third-Party-Components) |
 
 ## Core capabilities

@@ -45,4 +45,4 @@ Selected language -> built-in English -> [missing translation]
 
 Therefore, a package with a few missing strings does not leave blank controls, but a production translation should still include every string.
 
-See [Translating and Contributing](Translating-and-Contributing) to create and publish a language package.
+Problems with an external language package can be reported through [GitHub Issues](https://github.com/wonly211/Simpilot/issues).
