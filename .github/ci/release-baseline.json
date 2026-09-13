@@ -1,9 +1,9 @@
 {
-  "version": "0.18.6",
+  "version": "0.18.7",
   "recordedAt": "2026-09-13",
-  "exeBytes": 1156608,
-  "zipBytes": 2534696,
-  "zipSha256": "6b5932318f7fbc667472fb3394b8738cb86087ba3fa780fa9903847edf95b90e",
+  "exeBytes": 1170432,
+  "zipBytes": 2540392,
+  "zipSha256": "23f7188a4c1f660692c6bf8f3be8a77fe86ce5c686fdc2b51871b292992b6ac1",
   "maximumGrowthPercent": 5.0,
   "approvedGrowth": null
 }

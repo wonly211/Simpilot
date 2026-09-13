@@ -10,22 +10,22 @@
 | Dependency restore | N/A | 没有包管理器；依赖由仓库和 Windows SDK 提供 |
 | CMake configure | PASS | VS 2022 x64、SDK `10.0.26100.0`、MSVC `19.44.35228.0` |
 | Debug build | PASS with environment caveat | `C:\Temp\Simpilot-takeover-debug-final` 全新构建通过；SynologyDrive 目录稳定复现 PDB `C1090 / error 3` |
-| Debug tests | PASS | 9/9，0 失败，0 跳过，1.10 秒 |
+| Debug tests | PASS | 9/9，0 失败，0 跳过，1.17 秒 |
 | Release build | PASS | 固定 CI 全新重建 `build/ci-vs2022-x64` |
-| Release tests | PASS | 9/9，0 失败，0 跳过，1.05 秒 |
+| Release tests | PASS | 9/9，0 失败，0 跳过，1.44 秒 |
 | Release configuration | PASS | `/O2 /Ob2 /DNDEBUG`、`/INCREMENTAL:NO`、`MaxSpeed`、`LinkIncremental=false` |
 | Package | PASS | 版本资源、ZIP 白名单和自身 `.sha256` 已验证 |
 | Local fixed CI | PASS | `pwsh -NoProfile -File .\tools\ci.ps1` |
 | Vendor source removal | PASS | 第三方键盘管理器目录已从文件系统、构建输入和生成工程移除；CI 有残留门禁 |
-| Interactive package smoke | PARTIAL | 公开 `v0.18.6` ZIP 可启动，版本、便携 `Config/`、`Log/`、键盘线程、菜单加载、配置监听和 Everything 就绪均已确认；当前自动化桌面会话中托盘图标注册返回 `2147500037`，菜单、设置和正常退出未验证 |
-| GitHub Actions run | PASS | `v0.18.6` 标签 run `34732966160` 成功；唯一 job `Windows x64 Release` 全部步骤通过 |
+| Interactive package smoke | PARTIAL | 公开 `v0.18.7` ZIP 的完整性、目录和版本资源已确认；此前公开 `v0.18.6` ZIP 已验证启动、便携目录、键盘线程、菜单加载、配置监听和 Everything 就绪。当前已有另一份 Simpilot 正在运行，未中断用户进程以重复启动测试；菜单、设置和正常退出仍需人工验证 |
+| GitHub Actions run | PASS / external follow-up | `v0.18.7` PR run `34748960402` 与合并后 `main` run `34749258736` 成功；标签 run `34749357606` 因 GitHub Actions 官方故障仍在排队 |
 | Required branch check | PASS | `main` 已要求 `Windows x64 Release`，`strict=true`；检查绑定 GitHub Actions app `15368` |
-| GitHub Release | PASS / pending update | `v0.18.6` 已公开并设为 Latest；`v0.18.7` 编辑器修复候选正等待远端发布 |
+| GitHub Release | PASS | `v0.18.7` 已公开并设为 Latest；发布 ZIP 与 `.sha256` 已从 Release 重新下载复核 |
 
 ## Verified Baseline
 
 ```text
-Version: 0.18.6
+Version: 0.18.7
 Platform: Windows x64
 Generator: Visual Studio 17 2022
 MSVC: 19.44.35228.0
@@ -38,38 +38,38 @@ Release build: PASS
 Release tests: 9/9 PASS
 Package: PASS
 
-Previous v0.18.5 Simpilot.exe:           1,019,904 bytes
-Official v0.18.6 Simpilot.exe:           1,156,608 bytes
-EXE delta:                                 136,704 bytes (13.4036%)
+Previous v0.18.6 Simpilot.exe:           1,156,608 bytes
+Official v0.18.7 Simpilot.exe:           1,170,432 bytes
+EXE delta:                                  13,824 bytes (1.1952%)
 
-Previous v0.18.5 ZIP:                    2,474,630 bytes
-Official v0.18.6 ZIP:                    2,534,696 bytes
-ZIP delta:                                  60,066 bytes (2.4273%)
+Previous v0.18.6 ZIP:                    2,534,696 bytes
+Official v0.18.7 ZIP:                    2,540,392 bytes
+ZIP delta:                                   5,696 bytes (0.2247%)
 ```
 
-正式 `v0.18.6` ZIP SHA-256：
+正式 `v0.18.7` ZIP SHA-256：
 
 ```text
-6B5932318F7FBC667472FB3394B8738CB86087BA3FA780FA9903847EDF95B90E
+23F7188A4C1F660692C6BF8F3BE8A77FE86CE5C686FDC2B51871B292992B6AC1
 ```
 
-GitHub Actions run `34732966160` 上传的 artifact 名称为
-`Simpilot-d2f1633cd4bacea6250d1e6325042cd83d0256b0-win-x64`。下载后确认其中仅有
-`Simpilot-0.18.6-win-x64.zip` 与对应 `.sha256`；该 ZIP 随后作为正式 Release 资产公开。
-从公开 Release 重新下载后，ZIP 仍为 `2,534,696` 字节，SHA-256 为：
+GitHub Actions `main` run `34749258736` 上传的 artifact 名称为
+`Simpilot-e77f094a7c5e969db701b0625e42ad552ad0c1d7-win-x64`。下载后确认其中仅有
+`Simpilot-0.18.7-win-x64.zip` 与对应 `.sha256`；该 ZIP 随后作为正式 Release 资产公开。
+从公开 Release 重新下载后，ZIP 仍为 `2,540,392` 字节，SHA-256 为：
 
 ```text
-6B5932318F7FBC667472FB3394B8738CB86087BA3FA780FA9903847EDF95B90E
+23F7188A4C1F660692C6BF8F3BE8A77FE86CE5C686FDC2B51871B292992B6AC1
 ```
 
-EXE 因新增独立物理键映射引擎、录制状态机、运行时保护、设置 UI、语言资源和测试支持而
-超过旧基线 5% 阈值，发布前由有理由且有上限的 `approvedGrowth` 放行。`v0.18.6` 正式发布
-后已经把上述真实产物写为新基线并清空该批准记录；全局 5% 阈值没有提高。
+`v0.18.7` 的结构化键盘映射编辑器使 EXE 和 ZIP 相对 `v0.18.6` 分别增长 `1.1952%`
+和 `0.2247%`，无需 `approvedGrowth`。正式发布后已经把上述真实产物写为新基线，
+`approvedGrowth` 保持为空；全局 5% 阈值没有提高。
 
 ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能变化，因此不同构建不要求
 哈希相同；内容白名单、自身校验和和体积门禁必须通过。
 
-## v0.18.7 Release Candidate
+## v0.18.7 Keyboard Mapping Editor Fix
 
 键盘映射编辑器已经取消 `vk:scan:extended` 原始文本输入，录制结果和结构化下拉选择
 共同写入 `KeyboardMappingEditorModel`。源端提供四个左右修饰键槽、主键和可选 chord
@@ -77,11 +77,12 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 录制键的完整物理身份。该修改修复了旧编辑器生成 `=>`、解析器却无法读回而造成的
 快捷键和 chord 保存失败。
 
-2026-09-13 本地候选验证：Release 和非同步全新 Debug 均为 9/9 测试通过；固定 CI
-生成的 `Simpilot.exe` 为 `1,170,432` 字节，ZIP 为 `2,540,194` 字节，ZIP SHA-256 为
-`2E2A4258C93235D98B7C630E37E3987BB6B974084243A4965F27ED741CEA4FDA`。相对正式
-`v0.18.6` 基线，EXE 增长 `1.1952%`，ZIP 增长 `0.2169%`，无需 `approvedGrowth`。
-正式发布后的远端产物数据将替换本候选记录并写入发布基线。
+2026-09-13 验证结果：Release 和非同步全新 Debug 均为 9/9 测试通过，PR 与合并后
+`main` 的固定 GitHub Actions 流水线通过。正式 Release 资产的 `Simpilot.exe` 为
+`1,170,432` 字节，ZIP 为 `2,540,392` 字节；ZIP 白名单、版本资源 `0.18.7.0` 和
+旁车 SHA-256 均已通过重新下载复核。相对正式 `v0.18.6` 基线，EXE 增长 `1.1952%`，
+ZIP 增长 `0.2247%`，无需 `approvedGrowth`。正式基线回写后的本地固定 CI 再次通过：
+EXE 与基线相同，重建 ZIP 为 `2,540,193` 字节，比正式资产少 `199` 字节（`-0.0078%`）。
 
 ## Keyboard Mapping State
 
@@ -132,7 +133,7 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 - 完整支持的 Windows build、SKU、权限级别和远程桌面矩阵；
 - Debug PDB 失败具体由同步客户端、过滤驱动还是安全软件触发；
 - 没有正式性能基线、完整安全威胁模型或自动化 Windows 桌面兼容矩阵；
-- 发布包启动和便携目录已验证；真实按键、托盘菜单、设置交互、正常退出及退出后的按键恢复仍需在可用的交互式桌面会话中验证。
+- `v0.18.7` 发布包的版本、ZIP 内容与完整性已验证；因当前已有另一份 Simpilot 正在运行，未中断用户进程以重复启动。真实按键、托盘菜单、设置交互、正常退出及退出后的按键恢复仍需在可用的交互式桌面会话中验证。
 
 ## Takeover Phase Reports
 
@@ -148,18 +149,18 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 ### Phase 5 — CI
 
 **Completed**：建立唯一 GitHub Actions workflow、独立 CMake presets、统一 PowerShell 入口、供应源码残留检查和结构化产物基线；本地与 GitHub Actions 完整运行通过，`main` 已启用必需检查。
-**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、标签 run `34732966160`、公开 Release 产物摘要与 `main` 分支保护 API 返回值。
-**Findings**：`v0.18.6` 发布前 EXE 相对 `v0.18.5` 超过 5%，曾使用有理由且有上限的批准记录；ZIP 未超过 5%。正式发布后已建立新基线并清空批准记录。
+**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、PR run `34748960402`、`main` run `34749258736`、公开 `v0.18.7` Release 产物摘要与 `main` 分支保护 API 返回值。
+**Findings**：`v0.18.7` 的 EXE 与 ZIP 相对 `v0.18.6` 均未超过 5%；正式发布后已建立新基线且 `approvedGrowth` 为空。
 GitHub Actions 固定到官方 `checkout v7.0.1` 与 `upload-artifact v7.0.1` 的完整提交 SHA，二者原生使用 Node 24。
-**Problems**：无已知 CI 固化阻塞。
-**Unknowns**：未来 GitHub hosted runner 镜像更新仍可能改变工具链小版本，workflow 固定的 runner 系列保持不变。
+**Problems**：GitHub 于 2026-09-13 报告 Actions 性能下降，`v0.18.7` 标签 run `34749357606` 已创建但尚未分配 job；同一提交的 PR 与 `main` 运行已通过。
+**Unknowns**：标签 run 的最终完成时间取决于 GitHub 托管服务恢复；未来 hosted runner 镜像更新仍可能改变工具链小版本，workflow 固定的 runner 系列保持不变。
 **Next**：后续正式版本发布后继续更新产物基线并清空当次 `approvedGrowth`。
 
 ### Phase 6 — Final Validation
 
 **Completed**：Release、Debug 非同步构建、9 项 CTest、固定 CI、版本资源、ZIP 内容、SHA-256、体积门禁和供应源码残留门禁均通过。
 **Evidence**：本文件 Verified Baseline 与 `build/ci-vs2022-x64`；同步目录 Debug 的 `C1090` 已由非同步全新构建排除为代码缺陷。
-**Findings**：没有依赖升级、版本变更或发布包目录结构变化；新增的可选映射配置保持旧用户行为。
-**Problems**：发布包启动已验证，但当前自动化桌面会话中托盘图标注册失败，无法验证菜单、设置和正常退出。
+**Findings**：没有依赖升级、配置格式或发布包目录结构变化；计划内版本更新为 `0.18.7`，可选映射配置保持旧用户行为。
+**Problems**：`v0.18.7` 发布包的静态产物验证完成，但当前已有另一份 Simpilot 正在运行，未中断用户进程以执行重复启动；此前自动化桌面会话也无法验证菜单、设置和正常退出。
 **Unknowns**：真实物理键、权限边界和桌面兼容矩阵的结果。
 **Next**：在可用的交互式桌面会话中完成剩余发布包冒烟。
