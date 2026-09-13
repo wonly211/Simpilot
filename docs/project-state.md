@@ -18,7 +18,7 @@
 | Local fixed CI | PASS | `pwsh -NoProfile -File .\tools\ci.ps1` |
 | Vendor source removal | PASS | 第三方键盘管理器目录已从文件系统、构建输入和生成工程移除；CI 有残留门禁 |
 | Interactive package smoke | PARTIAL | 从最终 ZIP 解压后可启动，便携 `Config/`、`Log/`、键盘线程、菜单加载、配置监听和 Everything 就绪均已确认；当前自动化桌面会话中托盘图标注册返回 `2147500037`，菜单、设置和正常退出未验证 |
-| GitHub Actions run | PASS | `main` 提交 `340c5a1` 的 run `34730113011` 成功；唯一 job `Windows x64 Release` 全部步骤通过 |
+| GitHub Actions run | PASS | `main` 提交 `ad09d2b` 的 run `34730732670` 成功；唯一 job `Windows x64 Release` 全部步骤通过 |
 | Required branch check | PASS | `main` 已要求 `Windows x64 Release`，`strict=true`；检查绑定 GitHub Actions app `15368` |
 
 ## Verified Baseline
@@ -52,12 +52,12 @@ ZIP delta:                                  59,872 bytes (2.4194%)
 CBF785CDE86DC370DEC50719FFD821C84C039A7465235E79C8147CF185836F1B
 ```
 
-GitHub Actions run `34730113011` 上传的 artifact 名称为
-`Simpilot-340c5a1505be84fc179aeeffa90a35f392ad60d5-win-x64`。下载后确认其中仅有
+GitHub Actions run `34730732670` 上传的 artifact 名称为
+`Simpilot-ad09d2b3f39623ff87855345962f1407f71a089a-win-x64`。下载后确认其中仅有
 `Simpilot-0.18.5-win-x64.zip` 与对应 `.sha256`；ZIP 为 `2,534,699` 字节，SHA-256 为：
 
 ```text
-CCEF5E80148FAD13AC2DD16E3D6F67588022C605640E349A5DFD34F42D1FF5C7
+52B32A2CF69284A61AEEE00E18AECFF8E44244E3923A13F6B8BAEB0A2254E443
 ```
 
 该远端哈希与本地构建不同属于预期的 ZIP 元数据差异；两者均通过自身校验和、内容白名单和
@@ -135,7 +135,7 @@ ZIP 哈希只描述本次构建。CPack ZIP 的时间戳或压缩元数据可能
 ### Phase 5 — CI
 
 **Completed**：建立唯一 GitHub Actions workflow、独立 CMake presets、统一 PowerShell 入口、供应源码残留检查和结构化产物基线；本地与 GitHub Actions 完整运行通过，`main` 已启用必需检查。
-**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、run `34730113011`、下载产物摘要与 `main` 分支保护 API 返回值。
+**Evidence**：`.github/workflows/ci.yml`、`.github/ci/release-baseline.json`、`tools/ci.ps1`、`CMakePresets.json`；9/9 测试、run `34730732670`、下载产物摘要与 `main` 分支保护 API 返回值。
 **Findings**：当前 EXE 超过历史基线 5%，已使用有理由且有上限的批准记录；ZIP 未超过 5%。
 GitHub Actions 固定到官方 `checkout v7.0.1` 与 `upload-artifact v7.0.1` 的完整提交 SHA，二者原生使用 Node 24。
 **Problems**：无已知 CI 固化阻塞。
