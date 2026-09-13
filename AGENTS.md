@@ -1,64 +1,105 @@
-# Simpilot 仓库工作约束
+# Simpilot 仓库工作规则
 
-## Release 构建与发布
+## Project Context
 
-以下规则是强制要求。任何代理在构建或发布 Simpilot 正式版本时都必须遵守，不得为了节省时间跳过。
+Simpilot 是面向 Windows 10/11 x64 的便携式托盘快捷启动器和全局热键管理器。项目使用 C++20、原生 Win32、CMake 与 Visual Studio 2022；运行时配置、缓存和日志位于程序目录，不依赖账户、云服务或包管理器。
 
-1. **正式发布不得直接信任或复用现有 CMake 缓存。** 发布前必须使用全新构建目录，或先执行：
+主要代码边界：
 
-   ```powershell
-   cmake --fresh --preset vs2022-x64
-   ```
+- `simpilot_core`：配置、菜单模型、解析与保存、程序定位、本地化、Everything、缓存、日志和文件监听；
+- `simpilot_keyboard`：标准及强制热键、低级键盘钩子、录制、物理键盘映射和 Windows 快捷键屏蔽；
+- `simpilot`：托盘宿主、消息循环、菜单、设置窗口及其他 Win32 UI。
 
-   不得仅因为现有 `build/vs2022-x64` 能成功编译，就认定它适合正式发布。
+## Required Reading
 
-2. **构建前必须验证 Release 优化参数。** `build/vs2022-x64/CMakeCache.txt` 至少应包含：
+开始任何代码任务前至少阅读：
 
-   ```text
-   CMAKE_CXX_FLAGS_RELEASE=/O2 /Ob2 /DNDEBUG
-   CMAKE_EXE_LINKER_FLAGS_RELEASE=/INCREMENTAL:NO
-   ```
+- `docs/architecture.md`
+- `docs/project-map.md`
+- `docs/build-and-run.md`
+- `docs/testing.md`
+- `docs/project-state.md`
 
-   生成的 `simpilot.vcxproj` 中，Release 配置还应满足：
+修改具体子系统前，再阅读 `docs/modules.md` 和对应的 `agents/` 文档。涉及发布或 CI 时必须阅读 `agents/build-and-release.md`。
 
-   ```text
-   Optimization=MaxSpeed
-   LinkIncremental=false
-   ```
+## Source of Truth
 
-   任何值为空、缺失或不符合上述要求时，必须停止发布，重新执行干净配置并查明原因。
+事实来源优先级为：
 
-3. **正式发布必须依次完成以下验证：**
+```text
+Source Code
+Tests
+Build Configuration
+CI
+Documentation
+Assumptions
+```
 
-   - Release 编译成功；
-   - 全部自动测试通过；
-   - 使用 Release 配置生成发布包；
-   - 检查 `Simpilot.exe` 的 FileVersion、ProductVersion 和产品名称；
-   - 检查 ZIP 内容及 SHA-256 校验文件；
-   - 与上一正式版本比较 `Simpilot.exe` 和 ZIP 的字节大小。
+文档与代码、测试或构建配置冲突时，必须调查并修正文档或实现，不能静默依赖过时说明。无法从仓库确认的历史原因必须标记为未知，不得补写推测性的设计理由。
 
-4. **产物体积异常时禁止发布。** 如果 `Simpilot.exe` 或 ZIP 相比上一版本增长超过 5%，且没有明确、可验证的功能或资源变更依据，必须停止发布并检查：
+## Change Discipline
 
-   - Release 优化是否启用；
-   - 是否错误启用了增量链接；
-   - 是否混入 Debug 文件、缓存、PDB 或无关资源；
-   - 包内第三方组件是否发生意外变化。
+- 只修改完成当前任务所需的文件，避免无关重构、批量重命名和全仓格式化；
+- 不为修复局部问题大面积重写现有 Win32 生命周期或消息处理；
+- 修改公共接口、依赖、配置格式、持久化数据或发布结构前，必须说明兼容性影响；
+- 不删除、跳过或放宽测试、警告、校验和错误处理来制造通过结果；
+- 不吞掉本应报告的错误，不把环境问题描述为代码缺陷；
+- 不覆盖或回退用户已有的未提交修改；
+- 不编造产品需求、历史决策或平台保证。
 
-5. **发布前必须报告精确数据，而不是凭文件名或构建成功作判断。** 至少记录上一版本与当前版本的 EXE 大小、ZIP 大小、差值和百分比。
+## Development Workflow
 
-6. **不得用测试通过替代构建配置检查。** 自动测试主要验证行为，不保证 Release 优化参数正确，也不能发现增量链接造成的体积膨胀。
+每项代码任务遵循：
 
-7. **只有在上述检查全部通过后，才允许提交版本号、推送标签并创建或更新 GitHub Release。** 发布后必须回读 Release，确认它不是草稿或预发布版本，并验证所有附件名称、大小和摘要。
+```text
+Understand -> Locate -> Plan -> Implement -> Static Checks
+           -> Build -> Tests -> Review Diff -> Report
+```
 
-## 事故记录：v0.18.1 构建缓存污染
+先确认线程所有权、消息边界和持久化影响，再修改相关实现。Windows UI、键盘钩子、配置监听和 Everything 的特殊约束见 `agents/windows-runtime.md`。
 
-2026-08-09，v0.18.1 首次发布时复用了异常的 `build/vs2022-x64/CMakeCache.txt`。其中 `CMAKE_CXX_FLAGS_RELEASE` 和 `CMAKE_EXE_LINKER_FLAGS_RELEASE` 被清空，导致 `/O2 /Ob2 /DNDEBUG` 与 `/INCREMENTAL:NO` 均未生效。
+## Verification
 
-结果：
+- Core、配置、解析或存储修改：构建并运行 `simpilot_core_tests`，随后运行完整 CTest；
+- 键盘或热键修改：运行热键状态测试、键盘线程生命周期测试和完整 CTest，并记录仍需人工键盘验证的部分；
+- UI 修改：运行相关窗口或菜单测试及完整 CTest，并完成交互式冒烟验证；
+- 构建、打包或 CI 修改：完整运行 `tools/ci.ps1`；
+- 无法执行的检查必须明确说明原因、影响和剩余风险。
 
-- v0.18.0 `Simpilot.exe`：1,002,496 字节；
-- 错误构建的 v0.18.1 `Simpilot.exe`：2,567,168 字节；
-- 使用全新构建目录生成的正常 v0.18.1 `Simpilot.exe`：1,002,496 字节；
-- 发布 ZIP 因此增加 225,198 字节（9.13%），而 Everything 等其他文件没有变化。
+不能仅凭代码审阅或“看起来正确”宣告完成。
 
-结论：正式发布必须从干净配置开始，并独立验证 Release 优化参数与产物体积。不得再次从未经验证的历史构建缓存直接发布。
+## Documentation Rule
+
+修改以下内容时必须同步更新相应工程文档：
+
+- 架构、模块边界、线程或关键运行流程；
+- 公共接口、配置项、数据格式或存储位置；
+- 构建、测试、依赖、打包或 CI；
+- 已知问题、验证基线或重要故障排查方法。
+
+用户行为变化还必须同步检查中英文 README、用户手册和 Wiki 源文件。
+
+## CI 工作流
+
+1. 仓库的唯一正式 CI 入口是 `.github/workflows/ci.yml`，本地与 GitHub Actions 必须共同调用 `tools/ci.ps1`。不得在 YAML 中复制另一套构建或发布校验逻辑。
+
+2. GitHub Actions 的 `uses:` 必须固定到完整的 40 位提交 SHA，并在同一行注释对应的发布标签。禁止使用 `@main`、`@master`、`@v4` 等可移动引用。
+
+3. CI 固定使用 `windows-2022`、Visual Studio 2022、x64、Release 和 `ci-vs2022-x64` preset。修改 runner、生成器、架构、配置或 preset 时，必须作为独立的 CI 基础设施变更审查。
+
+4. `tools/ci.ps1` 每次必须删除并重新创建专用的 `build/ci-vs2022-x64`，随后依次完成：
+
+   - 验证 CMake 与 Visual Studio Release 配置；
+   - Release 编译；
+   - 全部自动测试；
+   - Release 打包；
+   - 版本资源、ZIP 白名单和 SHA-256 校验；
+   - 与 `.github/ci/release-baseline.json` 中上一正式版本的 EXE、ZIP 大小比较。
+
+5. `.github/ci/release-baseline.json` 必须记录最近一个已发布正式版本的精确产物数据。正常发布后应更新基线并清空 `approvedGrowth`。超过 5% 的合理增长只能通过填写有明确原因和上限的 `approvedGrowth` 放行，不得直接提高全局阈值或删除体积检查。
+
+6. 修改 `.github/workflows/ci.yml`、`tools/ci.ps1`、`CMakePresets.json` 或发布基线后，必须在 Windows 环境完整运行一次 `tools/ci.ps1`，并保持工作区无意外跟踪文件变化。
+
+## Completion Criteria
+
+只有在实现完整、适用的静态检查和构建通过、相关及完整测试通过、必要的人工验证完成、文档同步且最终差异已审阅后，才能宣告任务完成。

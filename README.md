@@ -30,6 +30,7 @@
 |---|---|
 | 分层快捷启动菜单 | 把应用、文件夹、文件和网址按自己的工作方式分类整理 |
 | 全局热键 | 从任何普通桌面应用中直接触发常用操作 |
+| 物理键盘映射 | 将单键、快捷键或双动作键 chord 映射为新的单键或快捷键，并可限定前台应用 |
 | Windows 快捷键接管 | 在简驭运行期间屏蔽选定的 `Win+字母`，并优先执行自定义动作 |
 | Everything 集成 | 一键打开或恢复搜索窗口，并帮助定位没有填写完整路径的程序 |
 | 菜单图标与主题 | 自动提取清晰图标，也可人工指定；支持跟随系统、浅色和深色主题 |
@@ -62,6 +63,7 @@
 - 可视化编辑主菜单与第二菜单，支持分类、分隔线、排序、层级和菜单访问键。
 - 自定义热键可打开应用、文件夹或文件；应用动作支持参数、工作目录、管理员权限、重复启动策略和窗口状态。
 - 内置快捷启动菜单、第二菜单、设置窗口和 Everything 搜索四类功能热键，可分别录制、清除、启用或暂停。
+- 支持按物理键区分左右修饰键的单键、快捷键和单级 chord 映射，并可设置全局或应用进程范围。
 - 支持实时屏蔽受支持的 `Win+A` 至 `Win+Z`，其中 `Win+L` 因 Windows 安全限制不提供覆盖。
 - 自动监听菜单配置变化；读取失败时保留上一份有效菜单。
 - Windows 资源管理器重启后自动恢复托盘图标。
@@ -130,13 +132,24 @@ Log/
 <details>
 <summary><strong>开发与设计文档</strong></summary>
 
+- **[工程文档总索引](docs/README.md)**
+- [项目接管审计](docs/project-takeover-audit.md)
+- [项目地图](docs/project-map.md)
+- [架构](docs/architecture.md)
+- [模块导航](docs/modules.md)
+- [构建与运行](docs/build-and-run.md)
+- [测试](docs/testing.md)
+- [项目状态](docs/project-state.md)
+
+专项功能与历史设计记录：
+
 - [多语言资源设计](docs/zh-CN/多语言资源与发布.md)
 - [快捷启动菜单编辑器](docs/zh-CN/development/快捷启动菜单编辑器.md)
 - [自定义全局热键](docs/zh-CN/development/自定义全局热键.md)
 - [人工指定菜单图标](docs/zh-CN/development/人工指定菜单图标.md)
 - [菜单图标与主题](docs/zh-CN/development/菜单图标与主题.md)
 - [Windows 快捷键复核与屏蔽方案](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
-- [PowerToys Keyboard Manager 录制架构复用说明](docs/zh-CN/development/PowerToys键盘录制架构.md)
+- [键盘录制架构说明](docs/zh-CN/development/键盘录制架构.md)
 
 </details>
 
@@ -144,4 +157,4 @@ Log/
 
 简驭依据 [GNU General Public License v3.0](LICENSE) 开源。
 
-发布包包含 Everything 运行组件，并复用 Microsoft PowerToys Keyboard Manager 的部分源码；完整许可与来源说明见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)。Everything 组件位于独立的 `Everything/` 目录，不会嵌入 `Simpilot.exe`，也不会在运行时下载。
+发布包包含 Everything 运行组件；完整许可与来源说明见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)。键盘录制、快捷键处理和物理键盘映射由 Simpilot 独立实现，设计参考公开可观察的键盘重映射行为，不包含外部键盘管理器源码。Everything 组件位于独立的 `Everything/` 目录，不会嵌入 `Simpilot.exe`，也不会在运行时下载。

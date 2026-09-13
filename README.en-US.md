@@ -30,6 +30,7 @@ It is designed for office users, developers, content creators, and productivity 
 |---|---|
 | Hierarchical quick-launch menus | Organize apps, folders, files, and websites around the way you work |
 | Global hotkeys | Trigger frequent actions directly from any standard desktop application |
+| Physical keyboard mappings | Remap a key, shortcut, or two-action chord to a key or shortcut, globally or for selected applications |
 | Windows shortcut takeover | Block selected `Win+letter` combinations while Simpilot is running and give custom actions priority |
 | Everything integration | Open or restore the search window with one action and locate programs whose full paths were not specified |
 | Menu icons and themes | Extract clear icons automatically or select them manually; follow the system theme or choose light or dark mode |
@@ -62,6 +63,7 @@ Simpilot is a tray application and does not show a conventional main window afte
 - Visually edit the main and second menus, including categories, separators, ordering, hierarchy, and menu access keys.
 - Custom hotkeys can open applications, folders, or files. Application actions support arguments, a working directory, administrator privileges, existing-process behavior, and initial window state.
 - Built-in hotkeys are available for the main menu, second menu, Settings window, and Everything Search. Each can be recorded, cleared, enabled, or paused independently.
+- Physical-key mappings distinguish left and right modifiers, support single keys, shortcuts, and one-level chords, and can be global or process-scoped.
 - Supported `Win+A` through `Win+Z` combinations can be blocked in real time. `Win+L` cannot be overridden because of Windows security restrictions.
 - Menu configuration changes are monitored automatically. If a reload fails, the last valid menu remains active.
 - The tray icon is restored automatically when Windows Explorer restarts.
@@ -130,13 +132,24 @@ Log/
 <details>
 <summary><strong>Development and Design Documentation (Simplified Chinese)</strong></summary>
 
+- **[Engineering documentation index](docs/README.md)**
+- [Project takeover audit](docs/project-takeover-audit.md)
+- [Project map](docs/project-map.md)
+- [Architecture](docs/architecture.md)
+- [Module guide](docs/modules.md)
+- [Build and run](docs/build-and-run.md)
+- [Testing](docs/testing.md)
+- [Project state](docs/project-state.md)
+
+Feature-specific and historical design records:
+
 - [Localization resources](docs/zh-CN/多语言资源与发布.md)
 - [Quick-launch menu editor](docs/zh-CN/development/快捷启动菜单编辑器.md)
 - [Custom global hotkeys](docs/zh-CN/development/自定义全局热键.md)
 - [Custom menu icons](docs/en-US/development/menu-custom-icons.md)
 - [Menu icons and themes](docs/zh-CN/development/菜单图标与主题.md)
 - [Windows shortcut audit and blocking](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
-- [PowerToys Keyboard Manager recording architecture](docs/zh-CN/development/PowerToys键盘录制架构.md)
+- [Keyboard capture architecture](docs/zh-CN/development/键盘录制架构.md)
 
 </details>
 
@@ -144,4 +157,4 @@ Log/
 
 Simpilot is open source under the [GNU General Public License v3.0](LICENSE).
 
-The release package includes Everything runtime components and reuses portions of Microsoft PowerToys Keyboard Manager. See [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) for complete source and license notices. Everything components remain in the separate `Everything/` directory; they are not embedded in `Simpilot.exe` or downloaded at runtime.
+The release package includes Everything runtime components. See [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) for complete third-party license notices. Keyboard capture, hotkey handling, and physical-key mapping are independently implemented by Simpilot from publicly observable remapping behavior; no external keyboard-manager source is included. Everything components remain in the separate `Everything/` directory; they are not embedded in `Simpilot.exe` or downloaded at runtime.

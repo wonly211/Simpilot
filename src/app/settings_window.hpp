@@ -84,6 +84,20 @@ private:
     void update_menu_icon_buttons();
     void choose_selected_menu_icon();
     void restore_selected_menu_icon();
+    void refresh_keyboard_mapping_list(std::optional<std::size_t> selection = std::nullopt);
+    [[nodiscard]] std::wstring keyboard_mapping_key_label(
+        const PhysicalKey& key) const;
+    [[nodiscard]] std::wstring keyboard_mapping_trigger_label(
+        const KeyboardTrigger& trigger) const;
+    [[nodiscard]] std::wstring keyboard_mapping_output_label(
+        const KeyboardOutput& output) const;
+    [[nodiscard]] std::optional<std::size_t> selected_keyboard_mapping_index() const;
+    void update_keyboard_mapping_buttons();
+    void add_keyboard_mapping();
+    void edit_selected_keyboard_mapping();
+    void delete_selected_keyboard_mapping();
+    [[nodiscard]] bool commit_keyboard_mapping(
+        KeyboardMappingRule candidate, std::optional<std::size_t> editing_index);
     [[nodiscard]] bool commit_custom_hotkey(
         CustomGlobalHotKey candidate, std::optional<std::size_t> editing_index);
     void begin_capture(std::size_t index);
@@ -185,12 +199,20 @@ private:
     HWND menu_icon_restore_button_ = nullptr;
     HWND menu_editor_heading_ = nullptr;
     HWND menu_editor_scope_ = nullptr;
+    HWND keyboard_mapping_heading_ = nullptr;
+    HWND keyboard_mapping_scope_ = nullptr;
+    HWND keyboard_mapping_switch_ = nullptr;
+    HWND keyboard_mapping_list_ = nullptr;
+    HWND keyboard_mapping_add_button_ = nullptr;
+    HWND keyboard_mapping_edit_button_ = nullptr;
+    HWND keyboard_mapping_delete_button_ = nullptr;
     HIMAGELIST menu_icon_images_ = nullptr;
     HIMAGELIST custom_hotkey_state_images_ = nullptr;
     HWND save_button_ = nullptr;
     HWND apply_button_ = nullptr;
     HWND cancel_button_ = nullptr;
     bool refreshing_custom_hotkeys_ = false;
+    bool refreshing_keyboard_mappings_ = false;
     bool icon_dirty_ = false;
     bool icon_snapshot_ready_ = false;
     int selected_page_ = 0;

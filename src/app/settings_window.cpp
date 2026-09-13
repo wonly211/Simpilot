@@ -2,6 +2,7 @@
 
 #include "custom_hotkey_dialog.hpp"
 #include "hotkey_capture_button.hpp"
+#include "keyboard_mapping_dialog.hpp"
 #include "resource.h"
 #include "settings_visual_style.hpp"
 #include "toggle_switch.hpp"
@@ -40,8 +41,14 @@ constexpr int custom_hotkey_edit_identifier = 403;
 constexpr int menu_icon_list_identifier = 500;
 constexpr int menu_icon_select_identifier = 501;
 constexpr int menu_icon_restore_identifier = 502;
+constexpr int keyboard_mapping_list_identifier = 600;
+constexpr int keyboard_mapping_add_identifier = 601;
+constexpr int keyboard_mapping_delete_identifier = 602;
+constexpr int keyboard_mapping_edit_identifier = 603;
+constexpr int keyboard_mapping_switch_identifier = 604;
 constexpr std::size_t unsupported_windows_hotkey_index = static_cast<std::size_t>(L'L' - L'A');
 constexpr std::size_t visible_windows_hotkey_count = 25;
+constexpr int settings_page_count = 6;
 using enum SettingsText;
 
 constexpr std::size_t windows_hotkey_index_from_visual(
@@ -52,6 +59,42 @@ constexpr std::size_t windows_hotkey_index_from_visual(
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+}
+
+KeyboardMappingDialog::CaptureCallbacks mapping_capture_callbacks(
+    KeyboardManager& keyboard_manager) {
+    KeyboardMappingDialog::CaptureCallbacks callbacks;
+    callbacks.begin_trigger = [&keyboard_manager](
+        KeyboardMappingDialog::TriggerCaptureHandler handler) {
+        return keyboard_manager.begin_mapping_capture(
+            CaptureMode::mapping_trigger,
+            [handler = std::move(handler)](
+                const KeyboardMappingCaptureResult& result) mutable {
+                if (result.kind == KeyboardMappingCaptureResultKind::captured) {
+                    handler(result.trigger);
+                } else {
+                    handler(std::nullopt);
+                }
+            });
+    };
+    callbacks.begin_output = [&keyboard_manager](
+        KeyboardMappingDialog::OutputCaptureHandler handler) {
+        return keyboard_manager.begin_mapping_capture(
+            CaptureMode::mapping_output,
+            [handler = std::move(handler)](
+                const KeyboardMappingCaptureResult& result) mutable {
+                if (result.kind == KeyboardMappingCaptureResultKind::captured) {
+                    handler(result.output);
+                } else {
+                    handler(std::nullopt);
+                }
+            });
+    };
+    callbacks.end = [&keyboard_manager] { keyboard_manager.end_mapping_capture(); };
+    callbacks.foreground_process = [&keyboard_manager] {
+        return keyboard_manager.last_external_foreground_process();
+    };
+    return callbacks;
 }
 
 template <typename... Args>
@@ -234,7 +277,8 @@ std::optional<AppSettings> SettingsWindow::run() {
                 (void)apply_current();
             } else {
                 const auto direction = (GetKeyState(VK_SHIFT) & 0x8000) != 0 ? -1 : 1;
-                selected_page_ = (selected_page_ + direction + 5) % 5;
+                selected_page_ = (selected_page_ + direction + settings_page_count)
+                    % settings_page_count;
                 SendMessageW(navigation_, LB_SETCURSEL, selected_page_, 0);
                 update_page_visibility();
                 SetFocus(navigation_);
@@ -270,11 +314,14 @@ void SettingsWindow::create_controls() {
             | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(navigation_identifier)), instance_, nullptr);
-    for (const auto identifier : {general_tab_text, quick_launch_tab_text,
-                                  menu_icons_tab_text, custom_hotkeys_tab_text,
-                                  system_hotkeys_tab_text}) {
+    const std::array navigation_labels{
+        text(general_tab_text), text(quick_launch_tab_text),
+        text(menu_icons_tab_text), text(custom_hotkeys_tab_text),
+        text("settings.tab.keyboard_mappings"), text(system_hotkeys_tab_text),
+    };
+    for (const auto label : navigation_labels) {
         SendMessageW(navigation_, LB_ADDSTRING, 0,
-                     reinterpret_cast<LPARAM>(text(identifier)));
+                     reinterpret_cast<LPARAM>(label));
     }
     SendMessageW(navigation_, LB_SETCURSEL, 0, 0);
     SendMessageW(navigation_, LB_SETITEMHEIGHT, 0, MulDiv(42, dpi_, 96));
@@ -425,6 +472,58 @@ void SettingsWindow::create_controls() {
         instance_, nullptr);
     refresh_custom_hotkey_list();
 
+    keyboard_mapping_heading_ = CreateWindowW(
+        L"STATIC", text("settings.keyboard_mappings.heading"), WS_CHILD,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    keyboard_mapping_scope_ = CreateWindowW(
+        L"STATIC", text("settings.keyboard_mappings.scope"), WS_CHILD,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    keyboard_mapping_switch_ = toggle_switch::create(
+        instance_, window_, keyboard_mapping_switch_identifier,
+        text("settings.keyboard_mappings.enabled"),
+        settings_.keyboard_mappings_enabled, true);
+    keyboard_mapping_list_ = CreateWindowExW(
+        WS_EX_STATICEDGE, WC_LISTVIEWW, L"",
+        WS_CHILD | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(keyboard_mapping_list_identifier)), instance_, nullptr);
+    ListView_SetExtendedListViewStyle(keyboard_mapping_list_,
+        LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP);
+    settings_visual_style::style_list_view(keyboard_mapping_list_);
+    LVCOLUMNW mapping_column{.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM,
+                             .cx = 72,
+                             .pszText = const_cast<wchar_t*>(
+                                 text("settings.keyboard_mappings.column.enabled"))};
+    ListView_InsertColumn(keyboard_mapping_list_, 0, &mapping_column);
+    mapping_column.iSubItem = 1;
+    mapping_column.cx = 250;
+    mapping_column.pszText = const_cast<wchar_t*>(
+        text("settings.keyboard_mappings.column.source"));
+    ListView_InsertColumn(keyboard_mapping_list_, 1, &mapping_column);
+    mapping_column.iSubItem = 2;
+    mapping_column.cx = 220;
+    mapping_column.pszText = const_cast<wchar_t*>(
+        text("settings.keyboard_mappings.column.target"));
+    ListView_InsertColumn(keyboard_mapping_list_, 2, &mapping_column);
+    mapping_column.iSubItem = 3;
+    mapping_column.cx = 180;
+    mapping_column.pszText = const_cast<wchar_t*>(
+        text("settings.keyboard_mappings.column.process"));
+    ListView_InsertColumn(keyboard_mapping_list_, 3, &mapping_column);
+    keyboard_mapping_add_button_ = CreateWindowW(
+        L"BUTTON", text(add_text), WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(keyboard_mapping_add_identifier)), instance_, nullptr);
+    keyboard_mapping_edit_button_ = CreateWindowW(
+        L"BUTTON", text(edit_text), WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(keyboard_mapping_edit_identifier)), instance_, nullptr);
+    keyboard_mapping_delete_button_ = CreateWindowW(
+        L"BUTTON", text(delete_text), WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
+            static_cast<INT_PTR>(keyboard_mapping_delete_identifier)), instance_, nullptr);
+    refresh_keyboard_mapping_list();
+
     menu_icon_heading_ = CreateWindowW(L"STATIC", text(menu_icons_heading_text),
         WS_CHILD, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     menu_icon_scope_ = CreateWindowW(L"STATIC", text(menu_icons_scope_text),
@@ -497,11 +596,14 @@ void SettingsWindow::refresh_localized_text() {
     SetWindowTextW(window_, text(title_text));
     const auto selected_navigation = selected_page_;
     SendMessageW(navigation_, LB_RESETCONTENT, 0, 0);
-    for (const auto identifier : {general_tab_text, quick_launch_tab_text,
-                                  menu_icons_tab_text, custom_hotkeys_tab_text,
-                                  system_hotkeys_tab_text}) {
+    const std::array navigation_labels{
+        text(general_tab_text), text(quick_launch_tab_text),
+        text(menu_icons_tab_text), text(custom_hotkeys_tab_text),
+        text("settings.tab.keyboard_mappings"), text(system_hotkeys_tab_text),
+    };
+    for (const auto label : navigation_labels) {
         SendMessageW(navigation_, LB_ADDSTRING, 0,
-                     reinterpret_cast<LPARAM>(text(identifier)));
+                     reinterpret_cast<LPARAM>(label));
     }
     SendMessageW(navigation_, LB_SETCURSEL, selected_navigation, 0);
 
@@ -569,6 +671,28 @@ void SettingsWindow::refresh_localized_text() {
     SetWindowTextW(custom_hotkey_delete_button_, text(delete_text));
     const auto custom_selection = selected_custom_hotkey_index();
     refresh_custom_hotkey_list(custom_selection);
+
+    SetWindowTextW(keyboard_mapping_heading_,
+                   text("settings.keyboard_mappings.heading"));
+    SetWindowTextW(keyboard_mapping_scope_,
+                   text("settings.keyboard_mappings.scope"));
+    SetWindowTextW(keyboard_mapping_switch_,
+                   text("settings.keyboard_mappings.enabled"));
+    const std::array mapping_columns{
+        text("settings.keyboard_mappings.column.enabled"),
+        text("settings.keyboard_mappings.column.source"),
+        text("settings.keyboard_mappings.column.target"),
+        text("settings.keyboard_mappings.column.process"),
+    };
+    for (int index = 0; index < static_cast<int>(mapping_columns.size()); ++index) {
+        column.pszText = const_cast<wchar_t*>(mapping_columns[static_cast<std::size_t>(index)]);
+        ListView_SetColumn(keyboard_mapping_list_, index, &column);
+    }
+    SetWindowTextW(keyboard_mapping_add_button_, text(add_text));
+    SetWindowTextW(keyboard_mapping_edit_button_, text(edit_text));
+    SetWindowTextW(keyboard_mapping_delete_button_, text(delete_text));
+    const auto mapping_selection = selected_keyboard_mapping_index();
+    refresh_keyboard_mapping_list(mapping_selection);
 
     SetWindowTextW(menu_icon_heading_, text(menu_icons_heading_text));
     SetWindowTextW(menu_icon_scope_, text(menu_icons_scope_text));
@@ -701,6 +825,13 @@ void SettingsWindow::update_fonts() {
     set_font(menu_icon_restore_button_, font_);
     set_font(menu_editor_heading_, title_font_);
     set_font(menu_editor_scope_, font_);
+    set_font(keyboard_mapping_heading_, title_font_);
+    set_font(keyboard_mapping_scope_, font_);
+    set_font(keyboard_mapping_switch_, font_);
+    set_font(keyboard_mapping_list_, font_);
+    set_font(keyboard_mapping_add_button_, font_);
+    set_font(keyboard_mapping_edit_button_, font_);
+    set_font(keyboard_mapping_delete_button_, font_);
     set_font(save_button_, font_);
     set_font(apply_button_, font_);
     set_font(cancel_button_, font_);
@@ -842,6 +973,32 @@ void SettingsWindow::layout_controls(const int width, const int height) {
         std::max(wide(180), content_width - enabled_column_width
             - hotkey_column_width - action_column_width - wide(6)));
 
+    MoveWindow(keyboard_mapping_heading_, content_x, page_title_y,
+               content_width, scale(32), TRUE);
+    MoveWindow(keyboard_mapping_scope_, content_x, page_scope_y,
+               content_width, scale(48), TRUE);
+    MoveWindow(keyboard_mapping_switch_, content_x, body_top,
+               content_width, scale(32), TRUE);
+    const auto mapping_toolbar_y = body_top + scale(42);
+    MoveWindow(keyboard_mapping_add_button_, content_x, mapping_toolbar_y,
+               wide(100), scale(36), TRUE);
+    MoveWindow(keyboard_mapping_edit_button_, content_x + wide(110), mapping_toolbar_y,
+               wide(100), scale(36), TRUE);
+    MoveWindow(keyboard_mapping_delete_button_, content_x + wide(220), mapping_toolbar_y,
+               wide(100), scale(36), TRUE);
+    const auto mapping_list_y = mapping_toolbar_y + scale(46);
+    MoveWindow(keyboard_mapping_list_, content_x, mapping_list_y,
+               content_width, std::max(scale(100), body_bottom - mapping_list_y), TRUE);
+    const auto mapping_enabled_width = wide(72);
+    const auto mapping_source_width = wide(250);
+    const auto mapping_target_width = wide(220);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 0, mapping_enabled_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 1, mapping_source_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 2, mapping_target_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 3,
+        std::max(wide(160), content_width - mapping_enabled_width
+            - mapping_source_width - mapping_target_width - wide(6)));
+
     MoveWindow(windows_hotkey_heading_, content_x, page_title_y,
                content_width, scale(32), TRUE);
     MoveWindow(windows_hotkey_scope_, content_x, page_scope_y,
@@ -905,7 +1062,8 @@ void SettingsWindow::update_page_visibility() {
     const auto menu_editor_command = selected_page_ == 1 ? SW_SHOW : SW_HIDE;
     const auto menu_icons_command = selected_page_ == 2 ? SW_SHOW : SW_HIDE;
     const auto custom_command = selected_page_ == 3 ? SW_SHOW : SW_HIDE;
-    const auto system_command = selected_page_ == 4 ? SW_SHOW : SW_HIDE;
+    const auto mapping_command = selected_page_ == 4 ? SW_SHOW : SW_HIDE;
+    const auto system_command = selected_page_ == 5 ? SW_SHOW : SW_HIDE;
     ShowWindow(title_, general_command);
     ShowWindow(general_scope_, general_command);
     ShowWindow(startup_section_, general_command);
@@ -943,6 +1101,13 @@ void SettingsWindow::update_page_visibility() {
     ShowWindow(custom_hotkey_add_button_, custom_command);
     ShowWindow(custom_hotkey_edit_button_, custom_command);
     ShowWindow(custom_hotkey_delete_button_, custom_command);
+    ShowWindow(keyboard_mapping_heading_, mapping_command);
+    ShowWindow(keyboard_mapping_scope_, mapping_command);
+    ShowWindow(keyboard_mapping_switch_, mapping_command);
+    ShowWindow(keyboard_mapping_list_, mapping_command);
+    ShowWindow(keyboard_mapping_add_button_, mapping_command);
+    ShowWindow(keyboard_mapping_edit_button_, mapping_command);
+    ShowWindow(keyboard_mapping_delete_button_, mapping_command);
     ShowWindow(menu_icon_heading_, menu_icons_command);
     ShowWindow(menu_icon_scope_, menu_icons_command);
     ShowWindow(menu_icon_list_, menu_icons_command);
@@ -1010,6 +1175,184 @@ void SettingsWindow::update_custom_hotkey_buttons() {
     const auto selected = selected_custom_hotkey_index().has_value();
     EnableWindow(custom_hotkey_edit_button_, selected ? TRUE : FALSE);
     EnableWindow(custom_hotkey_delete_button_, selected ? TRUE : FALSE);
+}
+
+std::wstring SettingsWindow::keyboard_mapping_key_label(
+    const PhysicalKey& key) const {
+    switch (key.virtual_key) {
+    case VK_CONTROL: return text("settings.keyboard_mappings.key.ctrl");
+    case VK_LCONTROL: return text("settings.keyboard_mappings.key.left_ctrl");
+    case VK_RCONTROL: return text("settings.keyboard_mappings.key.right_ctrl");
+    case VK_MENU: return text("settings.keyboard_mappings.key.alt");
+    case VK_LMENU: return text("settings.keyboard_mappings.key.left_alt");
+    case VK_RMENU: return text("settings.keyboard_mappings.key.right_alt");
+    case VK_SHIFT: return text("settings.keyboard_mappings.key.shift");
+    case VK_LSHIFT: return text("settings.keyboard_mappings.key.left_shift");
+    case VK_RSHIFT: return text("settings.keyboard_mappings.key.right_shift");
+    case VK_LWIN: return text("settings.keyboard_mappings.key.left_win");
+    case VK_RWIN: return text("settings.keyboard_mappings.key.right_win");
+    case VK_ESCAPE: return text("settings.keyboard_mappings.key.escape");
+    case VK_BACK: return text("settings.keyboard_mappings.key.backspace");
+    case VK_RETURN: return text("settings.keyboard_mappings.key.enter");
+    case VK_SPACE: return text("settings.keyboard_mappings.key.space");
+    case VK_TAB: return text("settings.keyboard_mappings.key.tab");
+    case VK_DELETE: return text("settings.keyboard_mappings.key.delete");
+    default: return format_mapping_key(key);
+    }
+}
+
+std::wstring SettingsWindow::keyboard_mapping_trigger_label(
+    const KeyboardTrigger& trigger) const {
+    if (trigger.single_key) return keyboard_mapping_key_label(trigger.action);
+    std::wstring result;
+    const auto append = [this, &result](const PhysicalKey& key) {
+        if (!result.empty()) result.append(L" + ");
+        result.append(keyboard_mapping_key_label(key));
+    };
+    const auto count = std::min(trigger.modifier_count,
+                                trigger.modifiers.size());
+    for (std::size_t index = 0; index < count; ++index) {
+        append(trigger.modifiers[index]);
+    }
+    append(trigger.action);
+    if (trigger.chord_action) append(*trigger.chord_action);
+    return result;
+}
+
+std::wstring SettingsWindow::keyboard_mapping_output_label(
+    const KeyboardOutput& output) const {
+    if (output.single_key) return keyboard_mapping_key_label(output.action);
+    std::wstring result;
+    const auto append = [this, &result](const PhysicalKey& key) {
+        if (!result.empty()) result.append(L" + ");
+        result.append(keyboard_mapping_key_label(key));
+    };
+    const auto count = std::min(output.modifier_count,
+                                output.modifiers.size());
+    for (std::size_t index = 0; index < count; ++index) {
+        append(output.modifiers[index]);
+    }
+    append(output.action);
+    return result;
+}
+
+void SettingsWindow::refresh_keyboard_mapping_list(
+    const std::optional<std::size_t> selection) {
+    if (!keyboard_mapping_list_) return;
+    refreshing_keyboard_mappings_ = true;
+    ListView_DeleteAllItems(keyboard_mapping_list_);
+    for (std::size_t index = 0; index < settings_.keyboard_mappings.size(); ++index) {
+        const auto& mapping = settings_.keyboard_mappings[index];
+        wchar_t empty[] = L"";
+        LVITEMW item{
+            .mask = LVIF_TEXT | LVIF_PARAM,
+            .iItem = static_cast<int>(index),
+            .pszText = empty,
+            .lParam = static_cast<LPARAM>(index),
+        };
+        const auto row = ListView_InsertItem(keyboard_mapping_list_, &item);
+        ListView_SetCheckState(keyboard_mapping_list_, row,
+                               mapping.enabled ? TRUE : FALSE);
+        const auto source = keyboard_mapping_trigger_label(mapping.trigger);
+        const auto target = keyboard_mapping_output_label(mapping.output);
+        const auto process = mapping.process_name.empty()
+            ? std::wstring(text("settings.keyboard_mappings.global"))
+            : mapping.process_name;
+        ListView_SetItemText(keyboard_mapping_list_, row, 1,
+                             const_cast<wchar_t*>(source.c_str()));
+        ListView_SetItemText(keyboard_mapping_list_, row, 2,
+                             const_cast<wchar_t*>(target.c_str()));
+        ListView_SetItemText(keyboard_mapping_list_, row, 3,
+                             const_cast<wchar_t*>(process.c_str()));
+        if (selection && *selection == index) {
+            ListView_SetItemState(keyboard_mapping_list_, row,
+                                  LVIS_SELECTED | LVIS_FOCUSED,
+                                  LVIS_SELECTED | LVIS_FOCUSED);
+            ListView_EnsureVisible(keyboard_mapping_list_, row, FALSE);
+        }
+    }
+    refreshing_keyboard_mappings_ = false;
+    update_keyboard_mapping_buttons();
+}
+
+std::optional<std::size_t> SettingsWindow::selected_keyboard_mapping_index() const {
+    const auto row = ListView_GetNextItem(keyboard_mapping_list_, -1, LVNI_SELECTED);
+    if (row < 0) return std::nullopt;
+    LVITEMW item{.mask = LVIF_PARAM, .iItem = row};
+    if (!ListView_GetItem(keyboard_mapping_list_, &item)) return std::nullopt;
+    const auto index = static_cast<std::size_t>(item.lParam);
+    return index < settings_.keyboard_mappings.size()
+        ? std::optional<std::size_t>(index) : std::nullopt;
+}
+
+void SettingsWindow::update_keyboard_mapping_buttons() {
+    const auto selected = selected_keyboard_mapping_index().has_value();
+    EnableWindow(keyboard_mapping_edit_button_, selected ? TRUE : FALSE);
+    EnableWindow(keyboard_mapping_delete_button_, selected ? TRUE : FALSE);
+}
+
+void SettingsWindow::add_keyboard_mapping() {
+    if (capturing_) cancel_capture();
+    auto candidate = KeyboardMappingDialog::show_modal(
+        instance_, window_, language_code_, nullptr,
+        mapping_capture_callbacks(keyboard_manager_),
+        [this](const std::wstring_view message) { diagnose(message); });
+    if (candidate && commit_keyboard_mapping(std::move(*candidate), std::nullopt)) {
+        mark_dirty();
+    }
+}
+
+void SettingsWindow::edit_selected_keyboard_mapping() {
+    if (capturing_) cancel_capture();
+    const auto index = selected_keyboard_mapping_index();
+    if (!index) return;
+    auto candidate = KeyboardMappingDialog::show_modal(
+        instance_, window_, language_code_, &settings_.keyboard_mappings[*index],
+        mapping_capture_callbacks(keyboard_manager_),
+        [this](const std::wstring_view message) { diagnose(message); });
+    if (candidate && commit_keyboard_mapping(std::move(*candidate), index)) {
+        mark_dirty();
+    }
+}
+
+void SettingsWindow::delete_selected_keyboard_mapping() {
+    const auto index = selected_keyboard_mapping_index();
+    if (!index) return;
+    if (MessageBoxW(window_, text("settings.keyboard_mappings.delete_confirm"),
+                    text(title_text), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) != IDYES) {
+        return;
+    }
+    settings_.keyboard_mappings.erase(settings_.keyboard_mappings.begin()
+        + static_cast<std::ptrdiff_t>(*index));
+    refresh_keyboard_mapping_list();
+    mark_dirty();
+}
+
+bool SettingsWindow::commit_keyboard_mapping(
+    KeyboardMappingRule candidate, const std::optional<std::size_t> editing_index) {
+    auto next = settings_.keyboard_mappings;
+    if (editing_index) {
+        if (*editing_index >= next.size()) return false;
+        next[*editing_index] = std::move(candidate);
+    } else {
+        if (next.size() >= 128) {
+            MessageBoxW(window_, text("settings.keyboard_mappings.limit_reached"),
+                        text(title_text), MB_OK | MB_ICONWARNING);
+            return false;
+        }
+        next.push_back(std::move(candidate));
+    }
+    const auto errors = validate_keyboard_mappings(next);
+    if (!errors.empty()) {
+        diagnose(std::format(L"keyboard mapping validation failed rule={} reason={}",
+                             errors.front().rule_index, errors.front().message));
+        MessageBoxW(window_, text("settings.keyboard_mappings.invalid"),
+                    text(title_text), MB_OK | MB_ICONWARNING);
+        return false;
+    }
+    settings_.keyboard_mappings = std::move(next);
+    refresh_keyboard_mapping_list(editing_index);
+    return true;
 }
 
 void SettingsWindow::refresh_menu_icon_list(
@@ -1680,7 +2023,18 @@ bool SettingsWindow::apply_current() {
         cursor_locator_switch_, BM_GETCHECK, 0, 0) == BST_CHECKED;
     settings_.menu_theme = static_cast<MenuTheme>(std::max<LRESULT>(0,
         SendMessageW(menu_theme_combo_, CB_GETCURSEL, 0, 0)));
+    settings_.keyboard_mappings_enabled = SendMessageW(
+        keyboard_mapping_switch_, BM_GETCHECK, 0, 0) == BST_CHECKED;
     read_windows_hotkey_controls();
+    if (const auto errors = validate_keyboard_mappings(settings_.keyboard_mappings);
+        !errors.empty()) {
+        diagnose(std::format(L"keyboard mapping validation failed rule={} reason={}",
+                             errors.front().rule_index, errors.front().message));
+        MessageBoxW(window_, text("settings.keyboard_mappings.invalid"),
+                    text("settings.keyboard_mappings.heading"),
+                    MB_OK | MB_ICONWARNING);
+        return false;
+    }
     const auto menu_changed = menu_editor_ && menu_editor_->dirty();
     MenuEditorWindow::SourceSnapshot menu_snapshot;
     if (menu_changed && !menu_editor_->capture_source_snapshot(menu_snapshot)) {
@@ -1780,7 +2134,7 @@ LRESULT SettingsWindow::handle_message(const UINT message,
         if (control == general_scope_ || control == hint_ || control == status_
             || control == menu_editor_scope_ || control == windows_hotkey_scope_
             || control == windows_hotkey_runtime_ || control == custom_hotkey_scope_
-            || control == menu_icon_scope_) {
+            || control == menu_icon_scope_ || control == keyboard_mapping_scope_) {
             return settings_visual_style::handle_secondary_text(wparam, lparam);
         }
     }
@@ -1843,6 +2197,9 @@ LRESULT SettingsWindow::handle_message(const UINT message,
         for (const auto toggle : windows_hotkey_switches_) {
             if (toggle) InvalidateRect(toggle, nullptr, TRUE);
         }
+        if (keyboard_mapping_switch_) {
+            InvalidateRect(keyboard_mapping_switch_, nullptr, TRUE);
+        }
         InvalidateRect(window_, nullptr, TRUE);
         return DefWindowProcW(window_, message, wparam, lparam);
     }
@@ -1876,6 +2233,46 @@ LRESULT SettingsWindow::handle_message(const UINT message,
                 if (activated->iItem >= 0 && activated->iSubItem != 0) {
                     edit_selected_custom_hotkey();
                 }
+                return 0;
+            }
+        }
+        if (notification && notification->hwndFrom == keyboard_mapping_list_) {
+            if (notification->code == LVN_ITEMCHANGED) {
+                update_keyboard_mapping_buttons();
+                if (refreshing_keyboard_mappings_) return 0;
+                const auto* changed = reinterpret_cast<const NMLISTVIEW*>(lparam);
+                if ((changed->uChanged & LVIF_STATE) != 0
+                    && ((changed->uOldState ^ changed->uNewState)
+                        & LVIS_STATEIMAGEMASK) != 0
+                    && changed->iItem >= 0) {
+                    LVITEMW item{.mask = LVIF_PARAM, .iItem = changed->iItem};
+                    if (ListView_GetItem(keyboard_mapping_list_, &item)) {
+                        const auto index = static_cast<std::size_t>(item.lParam);
+                        if (index < settings_.keyboard_mappings.size()) {
+                            auto next = settings_.keyboard_mappings;
+                            next[index].enabled = ListView_GetCheckState(
+                                keyboard_mapping_list_, changed->iItem) != FALSE;
+                            const auto errors = validate_keyboard_mappings(next);
+                            if (!errors.empty()) {
+                                refreshing_keyboard_mappings_ = true;
+                                ListView_SetCheckState(keyboard_mapping_list_,
+                                    changed->iItem,
+                                    settings_.keyboard_mappings[index].enabled ? TRUE : FALSE);
+                                refreshing_keyboard_mappings_ = false;
+                                MessageBoxW(window_, text("settings.keyboard_mappings.invalid"),
+                                    text(title_text), MB_OK | MB_ICONWARNING);
+                            } else {
+                                settings_.keyboard_mappings = std::move(next);
+                                mark_dirty();
+                            }
+                        }
+                    }
+                }
+                return 0;
+            }
+            if (notification->code == NM_DBLCLK) {
+                const auto* activated = reinterpret_cast<const NMITEMACTIVATE*>(lparam);
+                if (activated->iItem >= 0) edit_selected_keyboard_mapping();
                 return 0;
             }
         }
@@ -1983,6 +2380,28 @@ LRESULT SettingsWindow::handle_message(const UINT message,
         }
         if (identifier == custom_hotkey_delete_identifier && HIWORD(wparam) == BN_CLICKED) {
             delete_selected_custom_hotkey();
+            return 0;
+        }
+        if (identifier == keyboard_mapping_switch_identifier
+            && HIWORD(wparam) == BN_CLICKED) {
+            settings_.keyboard_mappings_enabled = SendMessageW(
+                keyboard_mapping_switch_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+            mark_dirty();
+            return 0;
+        }
+        if (identifier == keyboard_mapping_add_identifier
+            && HIWORD(wparam) == BN_CLICKED) {
+            add_keyboard_mapping();
+            return 0;
+        }
+        if (identifier == keyboard_mapping_edit_identifier
+            && HIWORD(wparam) == BN_CLICKED) {
+            edit_selected_keyboard_mapping();
+            return 0;
+        }
+        if (identifier == keyboard_mapping_delete_identifier
+            && HIWORD(wparam) == BN_CLICKED) {
+            delete_selected_keyboard_mapping();
             return 0;
         }
         if (identifier == menu_icon_select_identifier && HIWORD(wparam) == BN_CLICKED) {

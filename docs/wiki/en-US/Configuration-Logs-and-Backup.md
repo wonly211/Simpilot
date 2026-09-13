@@ -22,12 +22,17 @@ Log/
 | --- | --- | --- |
 | `Config/Simpilot.ini` | Main quick-launch menu | Not recommended; removing it loses the main-menu content. |
 | `Config/Simpilot2.ini` | Optional second quick-launch menu | Yes, when the second menu is no longer needed. |
-| `Config/Setting.ini` | Language, theme, automatic startup, hotkeys, and Windows hotkey blocking | Not recommended; related settings return to their defaults. |
+| `Config/Setting.ini` | Language, theme, automatic startup, hotkeys, keyboard mappings, and Windows hotkey blocking | Not recommended; related settings return to their defaults. |
 | `Cache/program-cache.tsv` | Confirmed locations for applications configured without a full path | Yes; Simpilot resolves them again when needed. |
 | `Cache/RunIcon/` | Automatic and custom icons | Yes; automatic icons are recreated, but custom icons are lost. |
 | `Log/Simpilot.log` | Startup, menu, Everything, hotkey, and error diagnostics | Yes; only historical diagnostic data is lost. |
 
 Menu configuration and `Setting.ini` use UTF-8. Use the Settings window for normal changes. If you edit a menu manually, use a UTF-8-capable text editor.
+
+Keyboard mappings are stored in the `[KeyboardMappings]` section of `Setting.ini`. Older files without
+that section create no mappings and retain existing hotkey behavior. One invalid mapping is skipped and
+logged without preventing other settings from loading; the Settings window validates the complete rule
+set before saving.
 
 ## Log retention
 

@@ -1,0 +1,13 @@
+{
+  "version": "0.18.5",
+  "recordedAt": "2026-08-19",
+  "exeBytes": 1019904,
+  "zipBytes": 2474630,
+  "zipSha256": "c87e4ed100a607c5d27d15ccf0d8094c1895b36d0b3eb3358df99eacb7aace94",
+  "maximumGrowthPercent": 5.0,
+  "approvedGrowth": {
+    "reason": "Added Simpilot's independent physical keyboard mapping engine, recording state machine, runtime safeguards, settings UI, localized resources, and automated coverage.",
+    "maxExeBytes": 1170000,
+    "maxZipBytes": 2550000
+  }
+}

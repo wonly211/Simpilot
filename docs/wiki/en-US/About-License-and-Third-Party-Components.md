@@ -26,9 +26,12 @@ Simpilot uses the following third-party components:
 | --- | --- |
 | Everything SDK | Queries the index database of the default Everything instance. |
 | nlohmann/json | Parses language resources. |
-| Microsoft PowerToys Keyboard Manager | Provides reusable foundations and reference behavior for hotkey recording. |
 
-See the [third-party notices](https://github.com/wonly211/Simpilot/blob/main/THIRD-PARTY-NOTICES.txt) for component versions, copyright notices, reuse boundaries, and full license texts. Everything is optional: when it is unavailable, Simpilot still starts, but Everything Search and pathless-program resolution are unavailable.
+See the [third-party notices](https://github.com/wonly211/Simpilot/blob/main/THIRD-PARTY-NOTICES.txt) for component versions, copyright notices, and full license texts. Everything is optional: when it is unavailable, Simpilot still starts, but Everything Search and pathless-program resolution are unavailable.
+
+Keyboard capture, hotkey handling, and physical-key mapping are independently implemented by Simpilot
+from publicly observable remapping behavior. The repository and release package contain no external
+keyboard-manager source.
 
 ## Related pages
 

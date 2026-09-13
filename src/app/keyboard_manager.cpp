@@ -1,11 +1,9 @@
 #include "keyboard_manager.hpp"
 
-#include "KeyboardManagerState.h"
-#include "LowlevelKeyboardEvent.h"
-#include "Shortcut.h"
-
 #include <algorithm>
+#include <filesystem>
 #include <format>
+#include <string>
 
 namespace simpilot {
 namespace {
@@ -25,6 +23,12 @@ constexpr UINT begin_capture_message = WM_APP + 0x553;
 constexpr UINT end_capture_message = WM_APP + 0x554;
 constexpr UINT shutdown_hook_message = WM_APP + 0x555;
 constexpr UINT capture_result_message = WM_APP + 0x556;
+constexpr UINT update_mappings_message = WM_APP + 0x557;
+constexpr UINT begin_mapping_capture_message = WM_APP + 0x558;
+constexpr UINT end_mapping_capture_message = WM_APP + 0x559;
+constexpr UINT mapping_capture_result_message = WM_APP + 0x55A;
+constexpr UINT query_foreground_process_message = WM_APP + 0x55B;
+constexpr UINT mapping_timer_id = KeyboardMappingEngine::pending_timer_id;
 
 UINT current_modifiers(const std::array<bool, 256>& keys) noexcept {
     UINT result = 0;
@@ -33,15 +37,6 @@ UINT current_modifiers(const std::array<bool, 256>& keys) noexcept {
     if (keys[VK_SHIFT] || keys[VK_LSHIFT] || keys[VK_RSHIFT]) result |= MOD_SHIFT;
     if (keys[VK_LWIN] || keys[VK_RWIN]) result |= MOD_WIN;
     return result;
-}
-
-UINT shortcut_modifiers(const Shortcut& shortcut) noexcept {
-    UINT modifiers = 0;
-    if (shortcut.winKey != ModifierKey::Disabled) modifiers |= MOD_WIN;
-    if (shortcut.ctrlKey != ModifierKey::Disabled) modifiers |= MOD_CONTROL;
-    if (shortcut.altKey != ModifierKey::Disabled) modifiers |= MOD_ALT;
-    if (shortcut.shiftKey != ModifierKey::Disabled) modifiers |= MOD_SHIFT;
-    return modifiers;
 }
 
 LPARAM pack_capture_result(
@@ -74,11 +69,6 @@ WindowsHotKeyTransition transition(
 }
 
 } // namespace
-
-class KeyboardManager::RecordingState final {
-public:
-    KeyboardManagerState state;
-};
 
 KeyboardManager* KeyboardManager::owner_ = nullptr;
 
@@ -166,8 +156,7 @@ void WindowsHotKeyState::cancel_suppression(
     if (right_windows) right_windows_suppressed_ = false;
 }
 
-KeyboardManager::KeyboardManager()
-    : recording_state_(std::make_unique<RecordingState>()) {}
+KeyboardManager::KeyboardManager() = default;
 
 KeyboardManager::~KeyboardManager() {
     unregister_all();
@@ -186,10 +175,48 @@ std::uint32_t KeyboardManager::mask_for_state(const State& state) noexcept {
 
 bool KeyboardManager::start(
     const HWND target_window, const State& state) noexcept {
+    return start(target_window, state, mappings_enabled_, mappings_);
+}
+
+bool KeyboardManager::start(
+    const HWND target_window, const State& state,
+    const bool mappings_enabled,
+    const std::vector<KeyboardMappingRule>& mappings) noexcept {
+    try {
+        if (!validate_keyboard_mappings(mappings).empty()) {
+            last_error_ = ERROR_INVALID_DATA;
+            return false;
+        }
+    } catch (...) {
+        last_error_ = ERROR_NOT_ENOUGH_MEMORY;
+        return false;
+    }
+    std::vector<KeyboardMappingRule> next_mappings;
+    try {
+        next_mappings = mappings;
+    } catch (...) {
+        last_error_ = ERROR_NOT_ENOUGH_MEMORY;
+        return false;
+    }
     if (hook_thread_) {
         const auto wait = WaitForSingleObject(hook_thread_, 0);
         if (wait == WAIT_TIMEOUT) {
             update(state);
+            if (mappings_enabled_ != mappings_enabled || mappings_ != next_mappings) {
+                MappingUpdateRequest request{
+                    .enabled = mappings_enabled,
+                    .mappings = &next_mappings,
+                    .accepted = false,
+                };
+                DWORD_PTR result = 0;
+                if (!send_control(update_mappings_message, 0,
+                                  reinterpret_cast<LPARAM>(&request), &result)
+                    || result == 0 || !request.accepted) {
+                    return false;
+                }
+                mappings_.swap(next_mappings);
+                mappings_enabled_ = mappings_enabled;
+            }
             return true;
         }
         if (wait != WAIT_OBJECT_0) {
@@ -216,6 +243,8 @@ bool KeyboardManager::start(
     }
     target_window_ = target_window;
     blocked_mask_ = mask_for_state(state);
+    mappings_.swap(next_mappings);
+    mappings_enabled_ = mappings_enabled;
     if (!create_capture_window() || !start_hook_thread()) {
         stop();
         return false;
@@ -304,6 +333,18 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
         return 3;
     }
     last_error_ = ERROR_SUCCESS;
+    if (!mapping_engine_.replace_rules(mappings_enabled_, mappings_)) {
+        last_error_ = ERROR_INVALID_DATA;
+        UnhookWindowsHookEx(hook_);
+        hook_ = nullptr;
+        owner_ = nullptr;
+        DestroyWindow(hook_window_);
+        hook_window_ = nullptr;
+        SetEvent(hook_ready_event_);
+        return 5;
+    }
+    (void)SetTimer(hook_window_, mapping_timer_id, 50, nullptr);
+    refresh_foreground_process();
     SetEvent(hook_ready_event_);
 
     if (stop_requested_.load(std::memory_order_acquire)) {
@@ -320,6 +361,8 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
 
     (void)send_windows_transition(
         windows_hotkey_state_.restore_suppressed_windows());
+    KillTimer(hook_window_, mapping_timer_id);
+    mapping_engine_.reset(true);
     UnhookWindowsHookEx(hook_);
     hook_ = nullptr;
     hook_window_ = nullptr;
@@ -355,6 +398,44 @@ void KeyboardManager::update(const State& state) noexcept {
     } else {
         blocked_mask_ = mask;
     }
+}
+
+bool KeyboardManager::update_mappings(
+    const bool enabled,
+    const std::vector<KeyboardMappingRule>& mappings) noexcept {
+    try {
+        if (!validate_keyboard_mappings(mappings).empty()) {
+            last_error_ = ERROR_INVALID_DATA;
+            return false;
+        }
+    } catch (...) {
+        last_error_ = ERROR_NOT_ENOUGH_MEMORY;
+        return false;
+    }
+    std::vector<KeyboardMappingRule> next_mappings;
+    try {
+        next_mappings = mappings;
+    } catch (...) {
+        last_error_ = ERROR_NOT_ENOUGH_MEMORY;
+        return false;
+    }
+    if (enabled == mappings_enabled_ && next_mappings == mappings_) return true;
+    MappingUpdateRequest request{
+        .enabled = enabled,
+        .mappings = &next_mappings,
+        .accepted = false,
+    };
+    if (running() && hook_window_) {
+        DWORD_PTR result = 0;
+        if (!send_control(update_mappings_message, 0,
+                          reinterpret_cast<LPARAM>(&request), &result)
+            || result == 0 || !request.accepted) {
+            return false;
+        }
+    }
+    mappings_.swap(next_mappings);
+    mappings_enabled_ = enabled;
+    return true;
 }
 
 bool KeyboardManager::register_binding(
@@ -418,6 +499,7 @@ bool KeyboardManager::begin_capture(CaptureHandler handler) noexcept {
         return false;
     }
     end_capture();
+    end_mapping_capture();
     ++capture_session_;
     if (capture_session_ == 0) ++capture_session_;
     capture_handler_ = std::move(handler);
@@ -440,8 +522,69 @@ void KeyboardManager::end_capture() noexcept {
     capture_handler_ = {};
 }
 
+bool KeyboardManager::begin_mapping_capture(
+    const CaptureMode mode, MappingCaptureHandler handler) noexcept {
+    if (mode == CaptureMode::legacy || !running() || !hook_window_ || !capture_window_) {
+        last_error_ = ERROR_NOT_READY;
+        return false;
+    }
+    end_capture();
+    end_mapping_capture();
+    mapping_capture_mailbox_.session.store(0, std::memory_order_release);
+    ++mapping_capture_session_;
+    if (mapping_capture_session_ == 0) ++mapping_capture_session_;
+    mapping_capture_handler_ = std::move(handler);
+    mapping_capture_active_ = true;
+    MappingCaptureRequest request{
+        .session = mapping_capture_session_,
+        .mode = mode,
+        .accepted = false,
+    };
+    DWORD_PTR result = 0;
+    if (!send_control(begin_mapping_capture_message, 0,
+                      reinterpret_cast<LPARAM>(&request), &result)
+        || result == 0 || !request.accepted) {
+        mapping_capture_active_ = false;
+        mapping_capture_handler_ = {};
+        return false;
+    }
+    return true;
+}
+
+void KeyboardManager::end_mapping_capture() noexcept {
+    if (mapping_capture_active_ && running() && hook_window_) {
+        (void)send_control(end_mapping_capture_message, mapping_capture_session_);
+    }
+    mapping_capture_active_ = false;
+    mapping_capture_handler_ = {};
+}
+
 DWORD KeyboardManager::last_error() const noexcept {
     return last_error_;
+}
+
+bool KeyboardManager::consume_mapping_diagnostic() noexcept {
+    return mapping_diagnostic_pending_.exchange(false, std::memory_order_acq_rel);
+}
+
+std::optional<std::wstring>
+KeyboardManager::last_external_foreground_process() noexcept {
+    if (!running() || !hook_window_) {
+        last_error_ = ERROR_NOT_READY;
+        return std::nullopt;
+    }
+    std::wstring process_name;
+    ForegroundProcessRequest request{
+        .process_name = &process_name,
+        .accepted = false,
+    };
+    DWORD_PTR result = 0;
+    if (!send_control(query_foreground_process_message, 0,
+                      reinterpret_cast<LPARAM>(&request), &result)
+        || result == 0 || !request.accepted || process_name.empty()) {
+        return std::nullopt;
+    }
+    return process_name;
 }
 
 bool KeyboardManager::running() const noexcept {
@@ -468,12 +611,15 @@ void KeyboardManager::release_hook_thread_resources() noexcept {
     windows_override_identifiers_.fill(0);
     windows_override_keys_down_.fill(false);
     hook_capture_session_ = 0;
+    mapping_capture_mailbox_.session.store(0, std::memory_order_release);
     windows_hotkey_state_ = {};
-    recording_state_->state.SetRecording(false);
+    recording_state_.end();
+    mapping_engine_.reset(false);
 }
 
 void KeyboardManager::stop() noexcept {
     end_capture();
+    end_mapping_capture();
     stop_requested_.store(true, std::memory_order_release);
     auto shutdown_sent = false;
     if (running() && hook_window_) shutdown_sent = send_control(shutdown_hook_message);
@@ -514,6 +660,18 @@ LRESULT KeyboardManager::handle_hook_window_message(
         blocked_mask_ = static_cast<std::uint32_t>(wparam);
         return TRUE;
     }
+    if (message == update_mappings_message) {
+        auto* request = reinterpret_cast<MappingUpdateRequest*>(lparam);
+        if (!request || !request->mappings) return FALSE;
+        if (!mapping_engine_.replace_rules(request->enabled, *request->mappings)) {
+            return FALSE;
+        }
+        if (mapping_engine_.consume_diagnostic()) {
+            mapping_diagnostic_pending_.store(true, std::memory_order_release);
+        }
+        request->accepted = true;
+        return TRUE;
+    }
     if (message == add_registration_message) {
         auto* request = reinterpret_cast<RegistrationRequest*>(lparam);
         if (!request) return FALSE;
@@ -543,14 +701,56 @@ LRESULT KeyboardManager::handle_hook_window_message(
     if (message == begin_capture_message) {
         if (wparam == 0) return FALSE;
         hook_capture_session_ = static_cast<UINT>(wparam);
-        recording_state_->state.SetRecording(true);
+        mapping_engine_.reset(true);
+        recording_state_.begin(CaptureMode::legacy);
         return TRUE;
     }
     if (message == end_capture_message) {
         if (wparam == 0 || static_cast<UINT>(wparam) == hook_capture_session_) {
-            recording_state_->state.SetRecording(false);
+            recording_state_.end();
         }
         return TRUE;
+    }
+    if (message == begin_mapping_capture_message) {
+        auto* request = reinterpret_cast<MappingCaptureRequest*>(lparam);
+        if (!request || request->session == 0
+            || (request->mode != CaptureMode::mapping_trigger
+                && request->mode != CaptureMode::mapping_output)) {
+            return FALSE;
+        }
+        hook_capture_session_ = request->session;
+        mapping_engine_.reset(true);
+        recording_state_.begin(request->mode);
+        request->accepted = true;
+        return TRUE;
+    }
+    if (message == end_mapping_capture_message) {
+        if (wparam == 0 || static_cast<UINT>(wparam) == hook_capture_session_) {
+            recording_state_.end();
+        }
+        return TRUE;
+    }
+    if (message == query_foreground_process_message) {
+        auto* request = reinterpret_cast<ForegroundProcessRequest*>(lparam);
+        if (!request || !request->process_name
+            || last_external_foreground_process_.empty()) {
+            return FALSE;
+        }
+        try {
+            *request->process_name = last_external_foreground_process_;
+        } catch (...) {
+            return FALSE;
+        }
+        request->accepted = true;
+        return TRUE;
+    }
+    if (message == WM_TIMER && wparam == mapping_timer_id) {
+        refresh_foreground_process();
+        mapping_engine_.on_timer();
+        if (mapping_engine_.consume_diagnostic()) {
+            mapping_diagnostic_pending_.store(true, std::memory_order_release);
+        }
+        return 0;
     }
     if (message == shutdown_hook_message) {
         DestroyWindow(hook_window_);
@@ -561,6 +761,39 @@ LRESULT KeyboardManager::handle_hook_window_message(
         return 0;
     }
     return DefWindowProcW(hook_window_, message, wparam, lparam);
+}
+
+void KeyboardManager::refresh_foreground_process() noexcept {
+    try {
+        std::wstring process_name;
+        const auto foreground = GetForegroundWindow();
+        if (foreground) {
+            DWORD process_id = 0;
+            (void)GetWindowThreadProcessId(foreground, &process_id);
+            if (process_id != 0) {
+                const auto process = OpenProcess(
+                    PROCESS_QUERY_LIMITED_INFORMATION, FALSE, process_id);
+                if (process) {
+                    wchar_t buffer[MAX_PATH]{};
+                    DWORD length = static_cast<DWORD>(std::size(buffer));
+                    if (QueryFullProcessImageNameW(process, 0, buffer, &length)) {
+                        process_name = std::filesystem::path(
+                            std::wstring(buffer, length)).filename().wstring();
+                        if (process_id != GetCurrentProcessId()) {
+                            last_external_foreground_process_ =
+                                normalize_mapping_process_name(process_name);
+                        }
+                    }
+                    CloseHandle(process);
+                }
+            }
+        }
+        mapping_engine_.set_foreground_process(std::move(process_name));
+    } catch (...) {
+        // Process discovery failure must not leave an application-specific
+        // rule matched against stale state.
+        mapping_engine_.set_foreground_process({});
+    }
 }
 
 LRESULT CALLBACK KeyboardManager::capture_window_procedure(
@@ -595,36 +828,83 @@ LRESULT KeyboardManager::handle_capture_window_message(
         }
         return 0;
     }
+    if (message == mapping_capture_result_message) {
+        const auto mailbox_session = mapping_capture_mailbox_.session.load(
+            std::memory_order_acquire);
+        if (!mapping_capture_active_
+            || static_cast<UINT>(wparam) != mapping_capture_session_
+            || mailbox_session != mapping_capture_session_) {
+            return 0;
+        }
+        const auto result = mapping_capture_mailbox_.result;
+        mapping_capture_mailbox_.session.store(0, std::memory_order_release);
+        mapping_capture_active_ = false;
+        auto handler = std::move(mapping_capture_handler_);
+        mapping_capture_handler_ = {};
+        if (handler) {
+            try {
+                handler(result);
+            } catch (...) {
+            }
+        }
+        return 0;
+    }
     return DefWindowProcW(capture_window_, message, wparam, lparam);
 }
 
 LRESULT KeyboardManager::handle_capture_event(
     const WPARAM message, KBDLLHOOKSTRUCT& event) noexcept {
-    LowlevelKeyboardEvent low_level_event{
-        .lParam = &event,
-        .wParam = message,
+    if ((event.flags & LLKHF_INJECTED) != 0
+        || event.dwExtraInfo == KeyboardMappingEngine::replay_injected_marker) {
+        return 0;
+    }
+    const auto key = PhysicalKey{
+        event.vkCode,
+        event.scanCode,
+        (event.flags & LLKHF_EXTENDED) != 0,
     };
-    const auto decision = recording_state_->state.DetectShortcutUIBackend(
-        &low_level_event);
-    if (decision == Helpers::KeyboardHookDecision::Suppress) {
-        Shortcut shortcut;
-        if (recording_state_->state.TakeCompletedShortcut(shortcut)) {
-            const auto modifiers = shortcut_modifiers(shortcut);
-            const auto kind = shortcut.actionKey == VK_ESCAPE && modifiers == 0
+    const auto result = recording_state_.handle(static_cast<UINT>(message), key);
+    if (!result.suppress) return 0;
+    if (result.completed || result.cancelled) {
+        if (result.mode == CaptureMode::legacy) {
+            const auto kind = result.cancelled
                 ? KeyboardCaptureResultKind::cancelled
                 : KeyboardCaptureResultKind::captured;
             (void)PostMessageW(
                 capture_window_, capture_result_message, hook_capture_session_,
-                pack_capture_result(kind, modifiers, shortcut.actionKey));
+                pack_capture_result(kind, result.legacy_gesture.modifiers,
+                                     result.legacy_gesture.virtual_key));
+        } else {
+            post_mapping_capture_result(result);
         }
-        return 1;
     }
-    return 0;
+    return 1;
+}
+
+void KeyboardManager::post_mapping_capture_result(
+    const CaptureEventResult& result) noexcept {
+    mapping_capture_mailbox_.result = {
+        .kind = result.cancelled
+            ? KeyboardMappingCaptureResultKind::cancelled
+            : KeyboardMappingCaptureResultKind::captured,
+        .mode = result.mode,
+        .trigger = result.trigger,
+        .output = result.output,
+    };
+    mapping_capture_mailbox_.session.store(
+        hook_capture_session_, std::memory_order_release);
+    if (!PostMessageW(capture_window_, mapping_capture_result_message,
+                      hook_capture_session_, 0)) {
+        mapping_capture_mailbox_.session.store(0, std::memory_order_release);
+    }
 }
 
 LRESULT KeyboardManager::handle_registered_hotkey(
     const WPARAM message, const KBDLLHOOKSTRUCT& event) noexcept {
-    if ((event.flags & LLKHF_INJECTED) != 0) return 0;
+    if ((event.flags & LLKHF_INJECTED) != 0
+        && event.dwExtraInfo != KeyboardMappingEngine::replay_injected_marker) {
+        return 0;
+    }
     const auto key_down = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
     const auto key_up = message == WM_KEYUP || message == WM_SYSKEYUP;
     if (!key_down && !key_up) return 0;
@@ -670,7 +950,10 @@ LRESULT KeyboardManager::handle_registered_hotkey(
 
 LRESULT KeyboardManager::handle_key(
     const WPARAM message, const KBDLLHOOKSTRUCT& event) noexcept {
-    if (event.dwExtraInfo == simpilot_injected_event) return 0;
+    if ((event.flags & LLKHF_INJECTED) != 0
+        && event.dwExtraInfo != KeyboardMappingEngine::replay_injected_marker) {
+        return 0;
+    }
     const auto key_down = message == WM_KEYDOWN || message == WM_SYSKEYDOWN;
     const auto key_up = message == WM_KEYUP || message == WM_SYSKEYUP;
     if (!key_down && !key_up) return 0;
@@ -720,7 +1003,20 @@ LRESULT CALLBACK KeyboardManager::keyboard_hook(
     auto* manager = owner_;
     if (code == HC_ACTION && manager) {
         auto& event = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lparam);
+        if (event.dwExtraInfo == KeyboardMappingEngine::target_injected_marker) {
+            return CallNextHookEx(manager->hook_, code, wparam, lparam);
+        }
         if (manager->handle_capture_event(wparam, event) != 0) return 1;
+        const auto mapping_result = manager->mapping_engine_.handle(
+            static_cast<UINT>(wparam), event);
+        if (mapping_result.diagnostic
+            || manager->mapping_engine_.consume_diagnostic()) {
+            manager->mapping_diagnostic_pending_.store(
+                true, std::memory_order_release);
+        }
+        if (mapping_result.decision == MappingEventDecision::suppress) {
+            return 1;
+        }
         if (manager->handle_registered_hotkey(wparam, event) != 0) return 1;
         if (manager->handle_key(wparam, event) != 0) return 1;
     }

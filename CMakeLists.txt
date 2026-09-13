@@ -18,6 +18,7 @@ add_library(simpilot_core STATIC
     src/core/config_watcher.cpp
     src/core/everything.cpp
     src/core/hotkey.cpp
+    src/core/keyboard_mapping.cpp
     src/core/logger.cpp
     src/core/localization.cpp
     src/core/menu_parser.cpp
@@ -67,13 +68,12 @@ configure_file(
 
 add_library(simpilot_keyboard STATIC
     src/app/keyboard_manager.cpp
-    third_party/PowerToys/KeyboardManager/KeyboardManagerState.cpp
-    third_party/PowerToys/KeyboardManager/Shortcut.cpp
+    src/app/keyboard_capture_state.cpp
+    src/app/keyboard_mapping_engine.cpp
 )
 target_include_directories(simpilot_keyboard PUBLIC
     include
     src/app
-    third_party/PowerToys/KeyboardManager
 )
 target_compile_definitions(simpilot_keyboard PRIVATE
     UNICODE _UNICODE NOMINMAX
@@ -100,6 +100,7 @@ add_executable(simpilot WIN32
     src/app/about_window.cpp
     src/app/custom_hotkey_dialog.cpp
     src/app/cursor_locator.cpp
+    src/app/keyboard_mapping_dialog.cpp
     src/app/launch_menu_renderer.cpp
     src/app/main.cpp
     src/app/menu_editor_window.cpp
@@ -216,6 +217,40 @@ if(BUILD_TESTING)
     add_test(NAME simpilot_keyboard_thread_lifecycle_test
              COMMAND simpilot_keyboard_thread_lifecycle_test)
 
+    add_executable(simpilot_keyboard_capture_state_tests
+        tests/keyboard_capture_state_tests.cpp
+    )
+    target_include_directories(simpilot_keyboard_capture_state_tests PRIVATE
+        include
+        src/app
+    )
+    target_compile_definitions(simpilot_keyboard_capture_state_tests PRIVATE
+        UNICODE _UNICODE NOMINMAX
+        WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_keyboard_capture_state_tests PRIVATE
+        /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_keyboard_capture_state_tests PRIVATE
+        simpilot_keyboard)
+    add_test(NAME simpilot_keyboard_capture_state_tests
+             COMMAND simpilot_keyboard_capture_state_tests)
+
+    add_executable(simpilot_keyboard_mapping_tests
+        tests/keyboard_mapping_engine_tests.cpp
+    )
+    target_include_directories(simpilot_keyboard_mapping_tests PRIVATE
+        include
+        src/app
+    )
+    target_compile_definitions(simpilot_keyboard_mapping_tests PRIVATE
+        UNICODE _UNICODE NOMINMAX
+        WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_keyboard_mapping_tests PRIVATE
+        /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_keyboard_mapping_tests PRIVATE
+        simpilot_keyboard)
+    add_test(NAME simpilot_keyboard_mapping_tests
+             COMMAND simpilot_keyboard_mapping_tests)
+
     add_executable(simpilot_menu_presentation_tests
         tests/menu_presentation_tests.cpp
         src/app/launch_menu_renderer.cpp
@@ -272,7 +307,8 @@ if(BUILD_TESTING)
     )
     target_compile_definitions(simpilot_about_window_test PRIVATE
         UNICODE _UNICODE NOMINMAX
-        WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+        WINVER=0x0A00 _WIN32_WINNT=0x0A00
+        SIMPILOT_VERSION=L\"${PROJECT_VERSION}\")
     target_compile_options(simpilot_about_window_test PRIVATE
         /W4 /permissive- /utf-8 /EHsc)
     target_link_libraries(simpilot_about_window_test PRIVATE

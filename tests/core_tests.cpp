@@ -7,6 +7,7 @@
 #include "simpilot/localization.hpp"
 #include "simpilot/logger.hpp"
 #include "simpilot/hotkey.hpp"
+#include "simpilot/keyboard_mapping.hpp"
 #include "simpilot/menu_parser.hpp"
 #include "simpilot/menu_writer.hpp"
 #include "simpilot/mouse_shake_detector.hpp"
@@ -705,6 +706,15 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
             .program_path = L"C:\\Windows\\notepad.exe",
         },
     };
+    simpilot::KeyboardMappingRule single_mapping;
+    single_mapping.trigger.single_key = true;
+    single_mapping.trigger.action = {VK_F13, 0x64, false};
+    single_mapping.output.single_key = true;
+    single_mapping.output.action = {VK_F14, 0x65, false};
+    single_mapping.process_name = L"editor.exe";
+    single_mapping.exact_match = true;
+    settings.keyboard_mappings_enabled = true;
+    settings.keyboard_mappings = {single_mapping};
     auto linkage = settings;
     linkage.main_menu = simpilot::BuiltInHotKey{
         .binding = {simpilot::HotKeyGesture{MOD_WIN, L'A'}, true},
@@ -750,6 +760,12 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
         require(content.find("MainMenu=") == std::string::npos
                 && content.find("CustomGlobalHotKey1=") == std::string::npos,
                 "Do not persist textual hotkey compatibility fields");
+        require(content.find("[KeyboardMappings]") != std::string::npos
+                && content.find("KeyboardMappingCount=1") != std::string::npos
+                && content.find("KeyboardMapping1SourceAction=124:100:0") != std::string::npos
+                && content.find("KeyboardMapping1TargetAction=125:101:0") != std::string::npos
+                && content.find("KeyboardMapping1Process=editor.exe") != std::string::npos,
+                "Persist physical keyboard mapping fields");
     }
     const auto loaded = simpilot::AppSettingsStore::load(path);
     require(loaded.language == simpilot::UiLanguage::traditional_chinese,
@@ -778,6 +794,8 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     expected_custom_hotkeys[0].binding.force_override = true;
     require_equal(loaded.custom_global_hotkeys, expected_custom_hotkeys,
                    "Persist custom actions, normalize Win+letter, and reject Win+L");
+    require(loaded.keyboard_mappings_enabled && loaded.keyboard_mappings == settings.keyboard_mappings,
+            "Round-trip physical keyboard mappings");
 
     const std::array language_cases{
         std::pair{simpilot::UiLanguage::simplified_chinese, std::string("zh-CN")},
@@ -830,6 +848,167 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
             "Provide the disabled built-in Everything Search Win+S hotkey");
 }
 
+void app_settings_rejects_malformed_keyboard_mappings() {
+    const auto root = std::filesystem::temp_directory_path()
+        / (L"simpilot-malformed-mapping-test-" + std::to_wstring(GetCurrentProcessId()));
+    std::filesystem::remove_all(root);
+    std::filesystem::create_directories(root);
+    const auto path = root / L"Setting.ini";
+
+    simpilot::AppSettings malformed;
+    simpilot::KeyboardMappingRule invalid;
+    invalid.trigger.modifier_count = invalid.trigger.modifiers.size() + 1;
+    invalid.trigger.action = {VK_F13, 0x64, false};
+    invalid.output.single_key = true;
+    invalid.output.action = {VK_F14, 0x65, false};
+    malformed.keyboard_mappings = {invalid};
+    require(!simpilot::validate_keyboard_mappings(malformed.keyboard_mappings).empty(),
+            "Malformed mapping must be rejected by validation");
+    require(!simpilot::AppSettingsStore::save(path, malformed),
+            "Settings save must reject malformed mapping data");
+    require(!std::filesystem::exists(path),
+            "Rejected mapping must not create a settings file");
+
+    simpilot::KeyboardMappingRule canonical;
+    canonical.trigger.single_key = true;
+    canonical.trigger.action = {VK_F13, 0x64, false};
+    canonical.output.single_key = true;
+    canonical.output.action = {VK_F14, 0x65, false};
+    canonical.process_name = L"Editor";
+    malformed.keyboard_mappings = {canonical};
+    require(simpilot::AppSettingsStore::save(path, malformed),
+            "Valid mapping with a bare process name must save");
+    {
+        std::ifstream saved(path, std::ios::binary);
+        const std::string content((std::istreambuf_iterator<char>(saved)),
+                                  std::istreambuf_iterator<char>());
+        require(content.find("KeyboardMapping1Process=editor.exe") != std::string::npos,
+                "Saved process scope must use a canonical executable basename");
+    }
+    const auto loaded = simpilot::AppSettingsStore::load(path);
+    require(loaded.keyboard_mappings.size() == 1
+                && loaded.keyboard_mappings.front().process_name == L"editor.exe",
+            "Canonical process scope must round-trip");
+
+    const auto malformed_config = root / L"malformed.ini";
+    {
+        std::ofstream stream(malformed_config, std::ios::binary | std::ios::trunc);
+        stream << "[KeyboardMappings]\r\n"
+               << "KeyboardMappingCount=1\r\n"
+               << "KeyboardMapping1Enabled=1\r\n"
+               << "KeyboardMapping1SourceAction=124:100junk:0\r\n"
+               << "KeyboardMapping1TargetAction=125:101:0\r\n";
+    }
+    const auto skipped = simpilot::AppSettingsStore::load(malformed_config);
+    require(skipped.keyboard_mappings.empty(),
+            "Malformed mapping tokens must be skipped while loading settings");
+
+    const auto isolated_config = root / L"isolated-invalid-mapping.ini";
+    {
+        std::ofstream stream(isolated_config, std::ios::binary | std::ios::trunc);
+        stream << "[General]\r\nStartWithWindows=1\r\n"
+               << "[KeyboardMappings]\r\n"
+               << "KeyboardMappingCount=2\r\n"
+               << "KeyboardMapping1Enabled=1\r\n"
+               << "KeyboardMapping1SourceAction=65:30:0\r\n"
+               << "KeyboardMapping1TargetAction=162:29:0\r\n"
+               << "KeyboardMapping2Enabled=1\r\n"
+               << "KeyboardMapping2SourceAction=65:30:0\r\n"
+               << "KeyboardMapping2TargetAction=66:48:0\r\n";
+    }
+    std::vector<std::wstring> diagnostics;
+    const auto isolated = simpilot::AppSettingsStore::load(
+        isolated_config,
+        [&diagnostics](const std::wstring_view message) {
+            diagnostics.emplace_back(message);
+        });
+    require(isolated.start_with_windows,
+            "An invalid mapping must not affect unrelated settings");
+    require(isolated.keyboard_mappings.size() == 1
+                && isolated.keyboard_mappings.front().output.action
+                    == simpilot::PhysicalKey{L'B', 48, false},
+            "A semantic error in one mapping must not reject a later valid mapping");
+    require(!diagnostics.empty(),
+            "Skipped keyboard mappings must report a diagnostic");
+    std::filesystem::remove_all(root);
+}
+
+void keyboard_mapping_validation_is_order_insensitive() {
+    const simpilot::PhysicalKey left_ctrl{VK_LCONTROL, 29, false};
+    const simpilot::PhysicalKey left_shift{VK_LSHIFT, 42, false};
+    const simpilot::PhysicalKey action{L'A', 30, false};
+    const simpilot::PhysicalKey first_target{L'B', 48, false};
+    const simpilot::PhysicalKey second_target{L'C', 46, false};
+
+    simpilot::KeyboardMappingRule first;
+    first.trigger.modifier_count = 2;
+    first.trigger.modifiers[0] = left_ctrl;
+    first.trigger.modifiers[1] = left_shift;
+    first.trigger.action = action;
+    first.output.single_key = true;
+    first.output.action = first_target;
+    first.process_name = L"Editor.exe";
+
+    auto reordered = first;
+    reordered.trigger.modifiers[0] = left_shift;
+    reordered.trigger.modifiers[1] = left_ctrl;
+    reordered.output.action = second_target;
+    require(!simpilot::validate_keyboard_mappings({first, reordered}).empty(),
+            "Reordered modifiers must still be detected as duplicate sources");
+
+    auto disabled = reordered;
+    disabled.enabled = false;
+    require(!simpilot::validate_keyboard_mappings({first, disabled}).empty(),
+            "Disabled duplicate sources must be rejected consistently");
+
+    auto chord = first;
+    chord.trigger.chord_action = second_target;
+    chord.trigger.modifiers[0] = left_shift;
+    chord.trigger.modifiers[1] = left_ctrl;
+    require(!simpilot::validate_keyboard_mappings({first, chord}).empty(),
+            "Reordered modifiers must not bypass prefix validation");
+
+    simpilot::KeyboardMappingRule cycle_start;
+    cycle_start.trigger.single_key = true;
+    cycle_start.trigger.action = action;
+    cycle_start.output.modifier_count = 2;
+    cycle_start.output.modifiers[0] = left_ctrl;
+    cycle_start.output.modifiers[1] = left_shift;
+    cycle_start.output.action = first_target;
+
+    simpilot::KeyboardMappingRule cycle_end;
+    cycle_end.trigger.modifier_count = 2;
+    cycle_end.trigger.modifiers[0] = left_shift;
+    cycle_end.trigger.modifiers[1] = left_ctrl;
+    cycle_end.trigger.action = first_target;
+    cycle_end.output.single_key = true;
+    cycle_end.output.action = action;
+    require(!simpilot::validate_keyboard_mappings({cycle_start, cycle_end}).empty(),
+            "Reordered modifier sets must still detect mapping cycles");
+
+    auto exact_source = first;
+    exact_source.process_name = L"editor.exe";
+    exact_source.exact_match = true;
+    auto prefix_source = reordered;
+    prefix_source.process_name = L"editor.exe";
+    prefix_source.exact_match = false;
+    require(simpilot::validate_keyboard_mappings(
+                {exact_source, prefix_source}).empty(),
+            "Exact and prefix process scopes must be distinct rule scopes");
+
+    auto disjoint_chord = chord;
+    disjoint_chord.process_name = L"browser.exe";
+    require(simpilot::validate_keyboard_mappings(
+                {first, disjoint_chord}).empty(),
+            "Disjoint exact process scopes must not create a prefix conflict");
+
+    cycle_start.process_name = L"editor.exe";
+    cycle_end.process_name = L"browser.exe";
+    require(simpilot::validate_keyboard_mappings(
+                {cycle_start, cycle_end}).empty(),
+            "Disjoint exact process scopes must not create a mapping cycle");
+}
+
 } // namespace
 
 int wmain() {
@@ -854,6 +1033,8 @@ int wmain() {
         mouse_shake_detector_requires_fast_direction_changes();
         hotkeys_display_canonical_gestures();
         app_settings_persist_captured_hotkeys_and_force_override();
+        app_settings_rejects_malformed_keyboard_mappings();
+        keyboard_mapping_validation_is_order_insensitive();
         std::wcout << L"All Simpilot core tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

@@ -1,6 +1,9 @@
 #pragma once
 
 #include "simpilot/hotkey.hpp"
+#include "simpilot/keyboard_mapping.hpp"
+#include "keyboard_capture_state.hpp"
+#include "keyboard_mapping_engine.hpp"
 
 #include <Windows.h>
 
@@ -8,10 +11,14 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
-#include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 namespace simpilot {
+
+static_assert(std::atomic<UINT>::is_always_lock_free,
+              "Keyboard capture mailbox publication must be lock-free");
 
 enum class WindowsHotKeyDecision {
     pass,
@@ -53,10 +60,24 @@ struct KeyboardCaptureResult {
     HotKeyGesture gesture;
 };
 
+enum class KeyboardMappingCaptureResultKind {
+    captured,
+    cancelled,
+};
+
+struct KeyboardMappingCaptureResult {
+    KeyboardMappingCaptureResultKind kind = KeyboardMappingCaptureResultKind::cancelled;
+    CaptureMode mode = CaptureMode::mapping_trigger;
+    KeyboardTrigger trigger{};
+    KeyboardOutput output{};
+};
+
 class KeyboardManager final {
 public:
     using State = std::array<bool, 26>;
     using CaptureHandler = std::function<void(const KeyboardCaptureResult&)>;
+    using MappingCaptureHandler =
+        std::function<void(const KeyboardMappingCaptureResult&)>;
 
     KeyboardManager();
     ~KeyboardManager();
@@ -65,7 +86,12 @@ public:
     KeyboardManager& operator=(const KeyboardManager&) = delete;
 
     [[nodiscard]] bool start(HWND target_window, const State& state) noexcept;
+    [[nodiscard]] bool start(HWND target_window, const State& state,
+                             bool mappings_enabled,
+                             const std::vector<KeyboardMappingRule>& mappings) noexcept;
     void update(const State& state) noexcept;
+    [[nodiscard]] bool update_mappings(
+        bool enabled, const std::vector<KeyboardMappingRule>& mappings) noexcept;
     [[nodiscard]] bool register_binding(int identifier, const HotKeyBinding& binding);
     [[nodiscard]] bool register_standard(int identifier, const HotKeyGesture& gesture);
     void unregister_all() noexcept;
@@ -73,9 +99,15 @@ public:
 
     [[nodiscard]] bool begin_capture(CaptureHandler handler) noexcept;
     void end_capture() noexcept;
+    [[nodiscard]] bool begin_mapping_capture(
+        CaptureMode mode, MappingCaptureHandler handler) noexcept;
+    void end_mapping_capture() noexcept;
 
     [[nodiscard]] bool running() const noexcept;
     [[nodiscard]] DWORD last_error() const noexcept;
+    [[nodiscard]] bool consume_mapping_diagnostic() noexcept;
+    [[nodiscard]] std::optional<std::wstring>
+    last_external_foreground_process() noexcept;
 
 private:
     struct ForcedRegistration {
@@ -87,6 +119,32 @@ private:
     struct RegistrationRequest {
         int identifier = 0;
         HotKeyGesture gesture;
+        bool accepted = false;
+    };
+
+    struct MappingUpdateRequest {
+        bool enabled = false;
+        const std::vector<KeyboardMappingRule>* mappings = nullptr;
+        bool accepted = false;
+    };
+
+    struct MappingCaptureMailbox {
+        // The hook thread is the sole producer and the capture-window thread
+        // is the sole consumer.  Publishing the session with release/acquire
+        // establishes a happens-before edge for the fixed-size result payload
+        // without taking a lock in the low-level hook callback.
+        std::atomic<UINT> session{0};
+        KeyboardMappingCaptureResult result{};
+    };
+
+    struct MappingCaptureRequest {
+        UINT session = 0;
+        CaptureMode mode = CaptureMode::mapping_trigger;
+        bool accepted = false;
+    };
+
+    struct ForegroundProcessRequest {
+        std::wstring* process_name = nullptr;
         bool accepted = false;
     };
 
@@ -104,6 +162,7 @@ private:
         HWND window, UINT message, WPARAM wparam, LPARAM lparam);
     LRESULT handle_hook_window_message(
         UINT message, WPARAM wparam, LPARAM lparam) noexcept;
+    void refresh_foreground_process() noexcept;
 
     static LRESULT CALLBACK capture_window_procedure(
         HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -121,6 +180,8 @@ private:
         const WindowsHotKeyTransition& transition) noexcept;
 
     [[nodiscard]] static std::uint32_t mask_for_state(const State& state) noexcept;
+    void post_mapping_capture_result(
+        const CaptureEventResult& result) noexcept;
 
     static KeyboardManager* owner_;
 
@@ -131,10 +192,16 @@ private:
     HANDLE hook_ready_event_ = nullptr;
     DWORD hook_thread_id_ = 0;
     std::atomic_bool stop_requested_ = false;
+    std::atomic_bool mapping_diagnostic_pending_ = false;
     DWORD last_error_ = ERROR_SUCCESS;
     UINT capture_session_ = 0;
     bool capture_active_ = false;
     CaptureHandler capture_handler_;
+    UINT mapping_capture_session_ = 0;
+    bool mapping_capture_active_ = false;
+    MappingCaptureHandler mapping_capture_handler_;
+    bool mappings_enabled_ = true;
+    std::vector<KeyboardMappingRule> mappings_;
     std::vector<int> standard_identifiers_;
     std::vector<HotKeyGesture> used_gestures_;
 
@@ -150,9 +217,10 @@ private:
     std::array<int, 26> windows_override_identifiers_{};
     std::array<bool, 26> windows_override_keys_down_{};
     UINT hook_capture_session_ = 0;
-
-    class RecordingState;
-    std::unique_ptr<RecordingState> recording_state_;
+    KeyboardCaptureState recording_state_;
+    KeyboardMappingEngine mapping_engine_;
+    std::wstring last_external_foreground_process_;
+    MappingCaptureMailbox mapping_capture_mailbox_{};
 };
 
 } // namespace simpilot

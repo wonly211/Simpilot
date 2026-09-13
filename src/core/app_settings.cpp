@@ -8,8 +8,11 @@
 #include <cwctype>
 #include <fstream>
 #include <iterator>
+#include <limits>
+#include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace simpilot {
@@ -194,6 +197,188 @@ void write_custom_global_hotkeys(
     }
 }
 
+std::optional<UINT> parse_mapping_number(const std::wstring_view value) {
+    const auto normalized = trim(std::wstring(value));
+    if (normalized.empty()
+        || normalized.find_first_not_of(L"0123456789") != std::wstring::npos) {
+        return std::nullopt;
+    }
+    try {
+        std::size_t consumed = 0;
+        const auto parsed = std::stoul(normalized, &consumed, 10);
+        if (consumed != normalized.size()
+            || parsed > std::numeric_limits<UINT>::max()) {
+            return std::nullopt;
+        }
+        return static_cast<UINT>(parsed);
+    } catch (...) {
+        return std::nullopt;
+    }
+}
+
+std::optional<PhysicalKey> parse_mapping_key(const std::wstring& value) {
+    const auto first = value.find(L':');
+    const auto second = first == std::wstring::npos
+        ? std::wstring::npos : value.find(L':', first + 1);
+    if (first == std::wstring::npos || second == std::wstring::npos
+        || value.find(L':', second + 1) != std::wstring::npos) {
+        return std::nullopt;
+    }
+    const auto virtual_key = parse_mapping_number(value.substr(0, first));
+    const auto scan_code = parse_mapping_number(
+        value.substr(first + 1, second - first - 1));
+    const auto extended = parse_mapping_number(value.substr(second + 1));
+    if (!virtual_key || !scan_code || !extended || *extended > 1) {
+        return std::nullopt;
+    }
+    const PhysicalKey key{*virtual_key, *scan_code, *extended != 0};
+    return is_mapping_key_valid(key) ? std::optional<PhysicalKey>(key)
+                                     : std::nullopt;
+}
+
+std::optional<std::vector<PhysicalKey>> parse_mapping_modifiers(
+    const std::wstring& value) {
+    std::vector<PhysicalKey> result;
+    if (trim(value).empty()) return result;
+    std::size_t start = 0;
+    while (start <= value.size()) {
+        const auto end = value.find(L'|', start);
+        const auto token = trim(value.substr(start, end - start));
+        const auto key = parse_mapping_key(token);
+        if (!key || !is_mapping_modifier(key->virtual_key) || result.size() >= 4) {
+            return std::nullopt;
+        }
+        result.push_back(*key);
+        if (end == std::wstring::npos) break;
+        start = end + 1;
+    }
+    return result;
+}
+
+std::wstring mapping_key_text(const PhysicalKey& key) {
+    return std::to_wstring(key.virtual_key) + L":"
+        + std::to_wstring(key.scan_code) + L":"
+        + (key.extended ? L"1" : L"0");
+}
+
+std::wstring mapping_modifier_text(
+    const std::array<PhysicalKey, 4>& modifiers, const std::size_t count) {
+    std::wstring result;
+    for (std::size_t index = 0; index < count; ++index) {
+        if (!result.empty()) result.push_back(L'|');
+        result.append(mapping_key_text(modifiers[index]));
+    }
+    return result;
+}
+
+void load_keyboard_mappings(
+    const std::unordered_map<std::wstring, std::wstring>& values,
+    bool& enabled, std::vector<KeyboardMappingRule>& mappings,
+    const AppSettingsStore::DiagnosticSink& diagnostic_sink) {
+    constexpr unsigned int maximum_mappings = 128;
+    const auto diagnose = [&diagnostic_sink](const unsigned int number,
+                                             const std::wstring_view reason) noexcept {
+        if (!diagnostic_sink) return;
+        try {
+            diagnostic_sink(L"keyboard mapping " + std::to_wstring(number)
+                + L" skipped: " + std::wstring(reason));
+        } catch (...) {
+        }
+    };
+    enabled = boolean_value(values, L"KeyboardMappingsEnabled", true);
+    const auto count = unsigned_value(
+        values, L"KeyboardMappingCount", 0, maximum_mappings);
+    mappings.reserve(count);
+    for (unsigned int number = 1; number <= count; ++number) {
+        const auto prefix = L"KeyboardMapping" + std::to_wstring(number);
+        const auto enabled_key = lowercase(prefix + L"Enabled");
+        if (!values.contains(enabled_key)) {
+            diagnose(number, L"missing Enabled field");
+            continue;
+        }
+        const auto modifiers = parse_mapping_modifiers(
+            string_value(values, prefix + L"SourceModifiers"));
+        const auto target_modifiers = parse_mapping_modifiers(
+            string_value(values, prefix + L"TargetModifiers"));
+        const auto source_action = parse_mapping_key(
+            string_value(values, prefix + L"SourceAction"));
+        const auto source_chord_value = string_value(
+            values, prefix + L"SourceChord");
+        const auto source_chord = source_chord_value.empty()
+            || trim(source_chord_value) == L"0"
+            ? std::optional<PhysicalKey>{}
+            : parse_mapping_key(source_chord_value);
+        const auto target_action = parse_mapping_key(
+            string_value(values, prefix + L"TargetAction"));
+        if (!modifiers || !target_modifiers || !source_action ||
+            (!trim(source_chord_value).empty() && trim(source_chord_value) != L"0"
+             && !source_chord) || !target_action) {
+            diagnose(number, L"invalid persisted key fields");
+            continue;
+        }
+        const auto process_value = string_value(values, prefix + L"Process");
+        const auto process_name = normalize_mapping_process_name(process_value);
+        if (!trim(process_value).empty() && process_name.empty()) {
+            diagnose(number, L"invalid process scope");
+            continue;
+        }
+        KeyboardMappingRule rule;
+        rule.enabled = boolean_value(values, enabled_key, false);
+        rule.process_name = process_name;
+        rule.exact_match = boolean_value(
+            values, prefix + L"ExactMatch", true);
+        rule.trigger.single_key = modifiers->empty() && !source_chord;
+        rule.trigger.modifier_count = modifiers->size();
+        std::ranges::copy(*modifiers, rule.trigger.modifiers.begin());
+        rule.trigger.action = *source_action;
+        rule.trigger.chord_action = source_chord;
+        rule.output.single_key = target_modifiers->empty();
+        rule.output.modifier_count = target_modifiers->size();
+        std::ranges::copy(*target_modifiers, rule.output.modifiers.begin());
+        rule.output.action = *target_action;
+        auto accepted = mappings;
+        accepted.push_back(rule);
+        const auto errors = validate_keyboard_mappings(accepted);
+        if (!errors.empty()) {
+            diagnose(number, errors.front().message);
+            continue;
+        }
+        mappings.push_back(std::move(rule));
+    }
+}
+
+void write_keyboard_mappings(
+    std::ofstream& stream, const bool enabled,
+    const std::vector<KeyboardMappingRule>& mappings) {
+    stream << "\r\n[KeyboardMappings]\r\nKeyboardMappingsEnabled="
+           << (enabled ? 1 : 0) << "\r\nKeyboardMappingCount="
+           << std::min<std::size_t>(mappings.size(), 128) << "\r\n";
+    const auto count = std::min<std::size_t>(mappings.size(), 128);
+    for (std::size_t index = 0; index < count; ++index) {
+        const auto prefix = "KeyboardMapping" + std::to_string(index + 1);
+        const auto& mapping = mappings[index];
+        stream << prefix << "Enabled=" << (mapping.enabled ? 1 : 0) << "\r\n"
+               << prefix << "Process=" << encode_utf8(mapping.process_name) << "\r\n"
+               << prefix << "ExactMatch=" << (mapping.exact_match ? 1 : 0) << "\r\n"
+               << prefix << "SourceModifiers="
+               << encode_utf8(mapping_modifier_text(
+                   mapping.trigger.modifiers, mapping.trigger.modifier_count)) << "\r\n"
+               << prefix << "SourceAction=" << encode_utf8(
+                   mapping_key_text(mapping.trigger.action)) << "\r\n"
+               << prefix << "SourceChord=";
+        if (mapping.trigger.chord_action) {
+            stream << encode_utf8(mapping_key_text(*mapping.trigger.chord_action));
+        } else {
+            stream << "0";
+        }
+        stream << "\r\n" << prefix << "TargetModifiers="
+               << encode_utf8(mapping_modifier_text(
+                   mapping.output.modifiers, mapping.output.modifier_count)) << "\r\n"
+               << prefix << "TargetAction=" << encode_utf8(
+                   mapping_key_text(mapping.output.action)) << "\r\n";
+    }
+}
+
 } // namespace
 
 bool global_hotkey_requires_windows_blocking(
@@ -221,7 +406,9 @@ bool global_hotkey_requires_windows_blocking(
         });
 }
 
-AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
+AppSettings AppSettingsStore::load(
+    const std::filesystem::path& path,
+    DiagnosticSink diagnostic_sink) noexcept {
     AppSettings result;
     try {
         std::ifstream stream(path, std::ios::binary);
@@ -274,6 +461,8 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
         }
         load_disabled_windows_hotkeys(values, result.disabled_windows_hotkeys);
         load_custom_global_hotkeys(values, result.custom_global_hotkeys);
+        load_keyboard_mappings(values, result.keyboard_mappings_enabled,
+                               result.keyboard_mappings, diagnostic_sink);
     } catch (...) {
         return AppSettings{};
     }
@@ -281,8 +470,18 @@ AppSettings AppSettingsStore::load(const std::filesystem::path& path) noexcept {
 }
 
 bool AppSettingsStore::save(const std::filesystem::path& path,
-                            const AppSettings& settings) noexcept {
+                             const AppSettings& settings) noexcept {
     try {
+        auto mappings = settings.keyboard_mappings;
+        for (auto& mapping : mappings) {
+            if (!mapping.process_name.empty()) {
+                const auto normalized = normalize_mapping_process_name(
+                    mapping.process_name);
+                if (normalized.empty()) return false;
+                mapping.process_name = normalized;
+            }
+        }
+        if (!validate_keyboard_mappings(mappings).empty()) return false;
         AtomicFileReplacement replacement(path);
         {
             std::ofstream stream(
@@ -308,6 +507,8 @@ bool AppSettingsStore::save(const std::filesystem::path& path,
                    << (settings.everything_search.enabled ? 1 : 0) << "\r\n";
             write_disabled_windows_hotkeys(stream, settings.disabled_windows_hotkeys);
             write_custom_global_hotkeys(stream, settings.custom_global_hotkeys);
+            write_keyboard_mappings(stream, settings.keyboard_mappings_enabled,
+                                    mappings);
             if (!stream) return false;
         }
         return replacement.commit();

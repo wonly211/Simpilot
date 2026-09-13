@@ -1,11 +1,14 @@
 #pragma once
 
 #include "simpilot/hotkey.hpp"
+#include "simpilot/keyboard_mapping.hpp"
 #include "simpilot/localization.hpp"
 
 #include <array>
 #include <filesystem>
+#include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace simpilot {
@@ -71,6 +74,8 @@ struct AppSettings {
         {{HotKeyGesture{MOD_WIN, static_cast<UINT>(L'S')}}, true}, false};
     std::array<bool, 26> disabled_windows_hotkeys{};
     std::vector<CustomGlobalHotKey> custom_global_hotkeys;
+    bool keyboard_mappings_enabled = true;
+    std::vector<KeyboardMappingRule> keyboard_mappings;
 
     bool operator==(const AppSettings&) const = default;
 };
@@ -80,7 +85,11 @@ struct AppSettings {
 
 class AppSettingsStore final {
 public:
-    [[nodiscard]] static AppSettings load(const std::filesystem::path& path) noexcept;
+    using DiagnosticSink = std::function<void(std::wstring_view)>;
+
+    [[nodiscard]] static AppSettings load(
+        const std::filesystem::path& path,
+        DiagnosticSink diagnostic_sink = {}) noexcept;
     [[nodiscard]] static bool save(const std::filesystem::path& path,
                                    const AppSettings& settings) noexcept;
 };

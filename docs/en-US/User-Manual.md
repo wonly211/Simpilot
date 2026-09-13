@@ -4,7 +4,7 @@
 
 Applies to version: 0.18.5
 
-Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, and can block selected Windows shortcuts while Simpilot is running.
+Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
 ## 1. Installation and first launch
 
@@ -78,13 +78,14 @@ If Windows Explorer restarts, Simpilot automatically restores its tray icon.
 
 ## 3. Settings window
 
-The Settings window contains five pages:
+The Settings window contains six pages:
 
 1. General
 2. Quick Launch Menu
 3. Menu Icons
 4. Global Hotkeys
-5. Windows Hotkey Blocking
+5. Keyboard Mappings
+6. Windows Hotkey Blocking
 
 The buttons at the bottom behave as follows:
 
@@ -94,7 +95,7 @@ The buttons at the bottom behave as follows:
 
 Changing the display language is saved immediately and refreshes the interface without waiting for **Save** or **Apply**. Most other settings take effect only after they are applied.
 
-Previously applied built-in and custom hotkeys remain active while Settings is open. Keyboard input is temporarily redirected only while a hotkey recorder is actively recording; normal input resumes as soon as recording completes or is cancelled.
+Previously applied built-in hotkeys, custom hotkeys, and keyboard mappings remain active while Settings is open. Keyboard input is temporarily redirected only while a recorder is active; normal input resumes as soon as recording completes or is cancelled.
 
 ## 4. General settings
 
@@ -257,6 +258,18 @@ Simpilot explains the conflict and requests confirmation before replacing or att
 
 Exact `Win+A` through `Win+Z` combinations integrate with Windows Hotkey Blocking. `Win+L` is a Windows security shortcut and cannot be configured as a Simpilot global hotkey. Secure combinations such as `Ctrl+Alt+Del` cannot be overridden by a normal desktop application.
 
+### 6.5 Keyboard mappings
+
+Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. Use **Add**, **Edit**, and **Delete** to manage rules.
+
+- A **source trigger** can be one key, one to four modifiers plus an action key, or up to three modifiers plus two action keys held at the same time. Either chord action may be pressed first.
+- A **target output** can be one key or up to four modifiers plus one action key. Target chords are not supported.
+- **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
+- Leave Application empty for a global rule. Enter an executable base name without a path to limit a rule to the foreground application. With **Exact application match** disabled, matching uses a case-insensitive process-name prefix. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
+- **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
+
+Mappings are active only while Simpilot runs, and active target keys are released on shutdown. Windows UIPI, elevation boundaries, or the secure desktop may block injection; a normally running Simpilot process cannot guarantee input delivery to a higher-privilege window.
+
 ## 7. Windows hotkey blocking
 
 Open **Settings > Windows Hotkey Blocking** to select supported combinations from `Win+A` through `Win+Z`. `Win+L` is intentionally not provided.
@@ -359,7 +372,7 @@ Log/
 |---|---|
 | `Config/Simpilot.ini` | Main quick-launch menu |
 | `Config/Simpilot2.ini` | Optional second menu |
-| `Config/Setting.ini` | Interface language, general settings, hotkeys, and Windows hotkey blocking |
+| `Config/Setting.ini` | Interface language, general settings, hotkeys, keyboard mappings, and Windows hotkey blocking |
 | `Cache/program-cache.tsv` | Confirmed resolutions for programs configured without a path |
 | `Cache/RunIcon/` | Automatic and manually selected menu icons |
 | `Log/Simpilot.log` | Startup, menu, Everything, hotkey, and error diagnostics |

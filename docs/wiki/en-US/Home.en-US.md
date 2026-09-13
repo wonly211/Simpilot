@@ -19,6 +19,7 @@ Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the f
 | Download, start, or understand the folder layout | [Quick Start](Quick-Start) |
 | Build a hierarchy of applications, files, and folders | [Quick Launch Menu](Quick-Launch-Menu) |
 | Record built-in hotkeys or add your own action | [Global Hotkeys](Global-Hotkeys) |
+| Remap keys, shortcuts, or two-action chords | [Keyboard Mappings](Keyboard-Mappings) |
 | Block a supported Windows shortcut while Simpilot runs | [Windows Hotkey Blocking](Windows-Hotkey-Blocking) |
 | Use, maintain, or troubleshoot Everything | [Everything Integration](Everything-Integration) |
 | Select menu icons or choose a menu theme | [Menu Icons and Themes](Menu-Icons-and-Themes) |
@@ -32,6 +33,7 @@ Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the f
 
 - **Quick-launch menus** support categories, separators, and application, folder, file, and website entries.
 - **Global hotkeys** open menus, Settings, Everything Search, or custom local actions.
+- **Keyboard mappings** distinguish physical left and right modifiers and can be global or foreground-process scoped.
 - **Windows hotkey blocking** intercepts selected `Win+letter` combinations only while Simpilot is running. It does not change Windows policy and is removed automatically on exit.
 - **Everything integration** opens or restores Everything and helps locate programs configured without a full path.
 - **Localization** is built in for Simplified Chinese, Traditional Chinese, and English. An optional `Language.lng` can add other interface languages.

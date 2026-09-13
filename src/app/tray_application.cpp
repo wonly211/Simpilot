@@ -255,7 +255,9 @@ TrayApplication::TrayApplication(HINSTANCE instance, std::filesystem::path execu
       config_directory_(executable_path_.parent_path() / L"Config"),
       logger_(config_directory_.parent_path() / L"Log" / L"Simpilot.log"),
       program_cache_(executable_path_.parent_path() / L"Cache" / L"program-cache.tsv"),
-      settings_(AppSettingsStore::load(config_directory_ / L"Setting.ini")),
+      settings_(AppSettingsStore::load(
+          config_directory_ / L"Setting.ini",
+          [this](const std::wstring_view message) { logger_.write(message); })),
       localization_(settings_.language == UiLanguage::external
           && !settings_.language_code.empty()
           ? settings_.language_code
@@ -302,7 +304,9 @@ int TrayApplication::run() {
                 L"mouse shake cursor locator could not start error={}", GetLastError()));
         }
     }
-    if (!keyboard_manager_.start(window_, effective_windows_hotkey_blocking_state(settings_))) {
+    if (!keyboard_manager_.start(window_, effective_windows_hotkey_blocking_state(settings_),
+                                 settings_.keyboard_mappings_enabled,
+                                 settings_.keyboard_mappings)) {
         logger_.write(std::format(L"Keyboard hook could not start error={}",
                                   keyboard_manager_.last_error()));
     } else {
@@ -418,11 +422,17 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         return 0;
     }
     if (message == WM_TIMER && wparam == keyboard_health_timer) {
+        if (keyboard_manager_.consume_mapping_diagnostic()) {
+            logger_.write(
+                L"keyboard mapping input injection or source replay failed");
+        }
         if (!keyboard_manager_.running()) {
             logger_.write(L"Keyboard hook thread stopped unexpectedly; restarting");
             unregister_global_hotkeys();
             if (keyboard_manager_.start(
-                    window_, effective_windows_hotkey_blocking_state(settings_))) {
+                    window_, effective_windows_hotkey_blocking_state(settings_),
+                    settings_.keyboard_mappings_enabled,
+                    settings_.keyboard_mappings)) {
                 register_global_hotkeys();
                 logger_.write(L"Keyboard hook thread restarted successfully");
             } else {
@@ -766,6 +776,16 @@ void TrayApplication::show_settings() {
 
 bool TrayApplication::apply_settings(const AppSettings& updated) {
     const auto settings_path = config_directory_ / L"Setting.ini";
+    const auto mapping_errors = validate_keyboard_mappings(updated.keyboard_mappings);
+    if (!mapping_errors.empty()) {
+        logger_.write(std::format(L"keyboard mapping validation failed count={}",
+                                  mapping_errors.size()));
+        MessageBoxW(window_,
+            localization_.text("settings.keyboard_mappings.invalid").data(),
+            localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return false;
+    }
+    const auto previous_settings = settings_;
     const auto previous_cursor_locator_state = cursor_locator_.enabled();
     const auto cursor_locator_changed = previous_cursor_locator_state
         != updated.mouse_shake_locator_enabled;
@@ -778,7 +798,23 @@ bool TrayApplication::apply_settings(const AppSettings& updated) {
             localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
         return false;
     }
+    if (!keyboard_manager_.update_mappings(updated.keyboard_mappings_enabled,
+                                           updated.keyboard_mappings)) {
+        logger_.write(std::format(L"keyboard mapping runtime update failed error={}",
+                                  keyboard_manager_.last_error()));
+        if (cursor_locator_changed
+            && !cursor_locator_.set_enabled(previous_cursor_locator_state)) {
+            logger_.write(L"mouse shake cursor locator rollback failed");
+        }
+        MessageBoxW(window_,
+            localization_.text("settings.keyboard_mappings.update_failed").data(),
+            localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return false;
+    }
     if (!AppSettingsStore::save(settings_path, updated)) {
+        (void)keyboard_manager_.update_mappings(
+            previous_settings.keyboard_mappings_enabled,
+            previous_settings.keyboard_mappings);
         if (cursor_locator_changed
             && !cursor_locator_.set_enabled(previous_cursor_locator_state)) {
             logger_.write(L"mouse shake cursor locator rollback failed");
