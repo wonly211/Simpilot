@@ -12,7 +12,7 @@
 | Debug build | PASS with environment caveat | `C:\Temp\Simpilot-takeover-debug-final` 全新构建通过；SynologyDrive 目录稳定复现 PDB `C1090 / error 3` |
 | Debug tests | PASS | 9/9，0 失败，0 跳过，1.10 秒 |
 | Release build | PASS | 固定 CI 全新重建 `build/ci-vs2022-x64` |
-| Release tests | PASS | 9/9，0 失败，0 跳过，1.01 秒 |
+| Release tests | PASS | 9/9，0 失败，0 跳过，1.11 秒 |
 | Release configuration | PASS | `/O2 /Ob2 /DNDEBUG`、`/INCREMENTAL:NO`、`MaxSpeed`、`LinkIncremental=false` |
 | Package | PASS | 版本资源、ZIP 白名单和自身 `.sha256` 已验证 |
 | Local fixed CI | PASS | `pwsh -NoProfile -File .\tools\ci.ps1` |
@@ -24,7 +24,7 @@
 ## Verified Baseline
 
 ```text
-Version: 0.18.5
+Version: 0.18.6
 Platform: Windows x64
 Generator: Visual Studio 17 2022
 MSVC: 19.44.35228.0
@@ -42,14 +42,14 @@ Current CI Simpilot.exe:                 1,156,608 bytes
 EXE delta:                                 136,704 bytes (13.4036%)
 
 Official v0.18.5 ZIP baseline:           2,474,630 bytes
-Current CI ZIP:                          2,534,502 bytes
-ZIP delta:                                  59,872 bytes (2.4194%)
+Current CI ZIP:                          2,534,499 bytes
+ZIP delta:                                  59,869 bytes (2.4193%)
 ```
 
 当前固定 CI 生成的 ZIP SHA-256：
 
 ```text
-CBF785CDE86DC370DEC50719FFD821C84C039A7465235E79C8147CF185836F1B
+587F3F14DF1FD70CEC10F52CD62E1AEC82D450F2FAAB877C9EBCE98339EFED42
 ```
 
 GitHub Actions run `34730732670` 上传的 artifact 名称为
