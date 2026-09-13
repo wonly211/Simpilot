@@ -37,4 +37,3 @@ keyboard-manager source.
 
 - [Wiki Home](Home.en-US)
 - [FAQ and Troubleshooting](FAQ-and-Troubleshooting)
-- [Translating and Contributing](Translating-and-Contributing)

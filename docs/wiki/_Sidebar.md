@@ -18,7 +18,6 @@
 - [语言与 Language.lng](语言与-Language.lng)
 - [配置、日志与备份](配置-日志与备份)
 - [常见问题与故障排查](常见问题与故障排查)
-- [翻译与贡献](翻译与贡献)
 - [关于、许可与第三方组件](关于、许可与第三方组件)
 
 ### English Directory
@@ -34,5 +33,4 @@
 - [Language and Language.lng](Language-and-Language.lng)
 - [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)
 - [FAQ and Troubleshooting](FAQ-and-Troubleshooting)
-- [Translating and Contributing](Translating-and-Contributing)
 - [About, License, and Third-Party Components](About-License-and-Third-Party-Components)

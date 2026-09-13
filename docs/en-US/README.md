@@ -2,12 +2,12 @@
 
 [简体中文](../zh-CN/文档中心.md) | **English**
 
-This directory contains English user and technical documentation. Task-oriented guides are also published in the [English Wiki](../wiki/en-US/Home.en-US.md).
+This directory contains Simpilot's English user documentation. Task-oriented guides are also available in the [English Wiki](../wiki/en-US/Home.en-US.md).
 
-## Current English documents
+## User Documentation
 
 - [Simpilot User Manual](User-Manual.md)
-- [Custom Menu Icons](development/menu-custom-icons.md)
 - [English Wiki source pages](../wiki/en-US/Home.en-US.md)
+- [Online Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)
 
-Return to the [documentation index](../README.md) for all available languages.
+Return to the [user documentation index](../README.md) for all available languages.

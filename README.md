@@ -78,6 +78,8 @@
 
 **[《简驭 | Simpilot 用户手册》](docs/zh-CN/用户手册.md)**
 
+仓库内的其他用户资料可从 **[用户文档索引](docs/README.md)** 查阅。
+
 也可访问 **[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)**，按任务查阅快速开始、菜单、热键、Everything、语言包和故障排查。
 
 遇到问题时，可先查看手册的故障排查与常见问题章节，再到 [GitHub Issues](https://github.com/wonly211/Simpilot/issues) 反馈。提交问题前请检查日志，避免公开个人目录名或文件名。
@@ -89,26 +91,6 @@
 - 一个当前用户可写的程序目录
 
 简驭采用便携方式发布，不提供安装程序。运行时配置、缓存和日志均保存在程序目录下，便于备份和迁移。
-
-<details>
-<summary><strong>从源代码构建</strong></summary>
-
-需要 Visual Studio 2022“使用 C++ 的桌面开发”工作负载和 CMake 3.24 或更高版本。
-
-```powershell
-cmake --preset vs2022-x64
-cmake --build --preset release
-ctest --preset release
-cmake --build --preset package-release
-```
-
-发布包生成于：
-
-```text
-build/vs2022-x64/Simpilot-<version>-win-x64.zip
-```
-
-</details>
 
 <details>
 <summary><strong>运行时目录</strong></summary>
@@ -126,30 +108,6 @@ Log/
 ```
 
 `Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源；`Setting.ini` 保存界面语言和应用设置。配置统一使用 UTF-8 原子保存，普通用户无需手工修改。
-
-</details>
-
-<details>
-<summary><strong>开发与设计文档</strong></summary>
-
-- **[工程文档总索引](docs/README.md)**
-- [项目接管审计](docs/project-takeover-audit.md)
-- [项目地图](docs/project-map.md)
-- [架构](docs/architecture.md)
-- [模块导航](docs/modules.md)
-- [构建与运行](docs/build-and-run.md)
-- [测试](docs/testing.md)
-- [项目状态](docs/project-state.md)
-
-专项功能与历史设计记录：
-
-- [多语言资源设计](docs/zh-CN/多语言资源与发布.md)
-- [快捷启动菜单编辑器](docs/zh-CN/development/快捷启动菜单编辑器.md)
-- [自定义全局热键](docs/zh-CN/development/自定义全局热键.md)
-- [人工指定菜单图标](docs/zh-CN/development/人工指定菜单图标.md)
-- [菜单图标与主题](docs/zh-CN/development/菜单图标与主题.md)
-- [Windows 快捷键复核与屏蔽方案](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
-- [键盘录制架构说明](docs/zh-CN/development/键盘录制架构.md)
 
 </details>
 

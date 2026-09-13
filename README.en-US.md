@@ -78,7 +78,9 @@ For installation, menu editing, hotkey recording, Windows shortcut blocking, Eve
 
 **[Simpilot User Manual](docs/en-US/User-Manual.md)**
 
-**[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)** provides task-oriented guides for setup, menus, hotkeys, Everything, language packs, and troubleshooting. The repository documentation remains the technical source of truth.
+Additional user-facing material is available from the **[user documentation index](docs/README.md)**.
+
+**[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)** provides task-oriented guides for setup, menus, hotkeys, Everything, language packs, and troubleshooting.
 
 For problems, check the troubleshooting and FAQ sections first, then report the issue through [GitHub Issues](https://github.com/wonly211/Simpilot/issues). Review the log before posting and avoid exposing personal directory or file names.
 
@@ -89,26 +91,6 @@ For problems, check the troubleshooting and FAQ sections first, then report the 
 - A program directory writable by the current user
 
 Simpilot is distributed as a portable application without an installer. Runtime settings, caches, and logs remain in the program directory for straightforward backup and migration.
-
-<details>
-<summary><strong>Build from Source</strong></summary>
-
-Install Visual Studio 2022 with the **Desktop development with C++** workload and CMake 3.24 or newer.
-
-```powershell
-cmake --preset vs2022-x64
-cmake --build --preset release
-ctest --preset release
-cmake --build --preset package-release
-```
-
-The release package is generated at:
-
-```text
-build/vs2022-x64/Simpilot-<version>-win-x64.zip
-```
-
-</details>
 
 <details>
 <summary><strong>Runtime Directory</strong></summary>
@@ -126,30 +108,6 @@ Log/
 ```
 
 `Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources; `Setting.ini` stores the display language and application settings. Configuration is saved atomically in UTF-8, so most users do not need to edit it manually.
-
-</details>
-
-<details>
-<summary><strong>Development and Design Documentation (Simplified Chinese)</strong></summary>
-
-- **[Engineering documentation index](docs/README.md)**
-- [Project takeover audit](docs/project-takeover-audit.md)
-- [Project map](docs/project-map.md)
-- [Architecture](docs/architecture.md)
-- [Module guide](docs/modules.md)
-- [Build and run](docs/build-and-run.md)
-- [Testing](docs/testing.md)
-- [Project state](docs/project-state.md)
-
-Feature-specific and historical design records:
-
-- [Localization resources](docs/zh-CN/多语言资源与发布.md)
-- [Quick-launch menu editor](docs/zh-CN/development/快捷启动菜单编辑器.md)
-- [Custom global hotkeys](docs/zh-CN/development/自定义全局热键.md)
-- [Custom menu icons](docs/en-US/development/menu-custom-icons.md)
-- [Menu icons and themes](docs/zh-CN/development/菜单图标与主题.md)
-- [Windows shortcut audit and blocking](docs/zh-CN/development/Windows快捷键屏蔽复核.md)
-- [Keyboard capture architecture](docs/zh-CN/development/键盘录制架构.md)
 
 </details>
 
