@@ -711,6 +711,7 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
     single_mapping.trigger.action = {VK_F13, 0x64, false};
     single_mapping.output.single_key = true;
     single_mapping.output.action = {VK_F14, 0x65, false};
+    single_mapping.purpose = L"Simulate Copilot";
     single_mapping.process_name = L"editor.exe";
     single_mapping.exact_match = true;
     settings.keyboard_mappings_enabled = true;
@@ -762,6 +763,7 @@ void app_settings_persist_captured_hotkeys_and_force_override() {
                 "Do not persist textual hotkey compatibility fields");
         require(content.find("[KeyboardMappings]") != std::string::npos
                 && content.find("KeyboardMappingCount=1") != std::string::npos
+                && content.find("KeyboardMapping1Purpose=Simulate Copilot") != std::string::npos
                 && content.find("KeyboardMapping1SourceAction=124:100:0") != std::string::npos
                 && content.find("KeyboardMapping1TargetAction=125:101:0") != std::string::npos
                 && content.find("KeyboardMapping1Process=editor.exe") != std::string::npos,

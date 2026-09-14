@@ -120,6 +120,118 @@ void single_key_lifecycle() {
             "target-marked input must bypass mapping");
 }
 
+void key_up_with_driver_variant_still_releases_target() {
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    require(engine.replace_rules(true,
+        {single_rule(key(VK_LWIN, 0x5B), key(L'A', 30))}),
+        "Win mapping must compile");
+
+    require(engine.handle(
+                          WM_KEYDOWN,
+                          event_for(PhysicalKey{VK_LWIN, 0x5B, true})).decision
+                == MappingEventDecision::suppress,
+            "mapped Win down must be suppressed");
+    require(engine.handle(
+                          WM_KEYUP,
+                          event_for(PhysicalKey{VK_LWIN, 0x5B, false})).decision
+                == MappingEventDecision::suppress,
+            "a driver-variant Win up must still be suppressed");
+    require(injected.size() == 2
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "a driver-variant Win up must release the mapped target");
+}
+
+void partial_input_delivery_is_retried() {
+    std::vector<UINT> batches;
+    KeyboardMappingEngine engine(
+        [&batches](const INPUT*, const UINT count) {
+            batches.push_back(count);
+            return count > 1 ? UINT{1} : count;
+        });
+    KeyboardMappingRule retry_rule;
+    retry_rule.trigger.single_key = true;
+    retry_rule.trigger.action = key(L'A', 30);
+    retry_rule.output.modifier_count = 1;
+    retry_rule.output.modifiers[0] = key(VK_LSHIFT, 42);
+    retry_rule.output.action = key(L'B', 48);
+    require(engine.replace_rules(true, {retry_rule}),
+        "retry rule must compile");
+    require(engine.handle(WM_KEYDOWN, event_for(key(L'A', 30))).decision
+                == MappingEventDecision::suppress,
+            "partial output delivery must still activate the mapping");
+    require(batches.size() >= 2,
+            "partial output delivery must retry the remaining input");
+}
+
+void failed_target_release_is_retried() {
+    std::vector<INPUT> injected;
+    bool fail_first_release = true;
+    KeyboardMappingEngine engine(
+        [&injected, &fail_first_release](const INPUT* inputs, const UINT count) {
+            if (count != 0
+                && (inputs[0].ki.dwFlags & KEYEVENTF_KEYUP) != 0
+                && fail_first_release) {
+                fail_first_release = false;
+                return UINT{0};
+            }
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    require(engine.replace_rules(true,
+        {single_rule(key(L'A', 30), key(L'B', 48))}),
+        "release retry rule must compile");
+    require(engine.handle(WM_KEYDOWN, event_for(key(L'A', 30))).decision
+                == MappingEventDecision::suppress,
+            "release retry source down must be suppressed");
+    require(engine.handle(WM_KEYUP, event_for(key(L'A', 30))).decision
+                == MappingEventDecision::suppress,
+            "release retry source up must be suppressed");
+    require(injected.size() == 2
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "a transient target release failure must not leave the target held");
+}
+
+void variant_modifier_release_commits_without_replaying_a_stuck_key() {
+    const auto right_control = simpilot::keyboard_mapping_modifier_catalog()[1];
+    KeyboardMappingRule rule;
+    rule.trigger.single_key = true;
+    rule.trigger.action = right_control;
+    rule.output.single_key = true;
+    rule.output.action = key(L'A', 30);
+
+    std::uint64_t now = 0;
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        },
+        [&now] { return now; });
+    require(engine.replace_rules(true, {rule}),
+            "variant modifier rule must compile");
+
+    require(engine.handle(WM_KEYDOWN, event_for(right_control)).decision
+                == MappingEventDecision::suppress,
+            "variant modifier down must be buffered");
+    const auto variant_up = PhysicalKey{
+        right_control.virtual_key, right_control.scan_code + 1,
+        !right_control.extended};
+    require(engine.handle(WM_KEYUP, event_for(variant_up)).decision
+                == MappingEventDecision::suppress
+                && injected.size() == 2
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "variant modifier up must commit the mapping without a stuck replay");
+    now = KeyboardMappingEngine::pending_timeout_ms;
+    engine.on_timer();
+    require(injected.size() == 2,
+            "a committed variant modifier must not replay again at timeout");
+}
+
 void physical_modifier_single_key_disambiguation() {
     const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
     const auto right_control = modifiers[1];
@@ -1003,6 +1115,9 @@ void editor_model_preserves_unlisted_recorded_keys() {
 int wmain() {
     try {
         single_key_lifecycle();
+        partial_input_delivery_is_retried();
+        failed_target_release_is_retried();
+        variant_modifier_release_commits_without_replaying_a_stuck_key();
         physical_modifier_single_key_disambiguation();
         auto_repeat_repeats_the_target_action();
         secure_combinations_bypass_single_key_mapping();

@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/键盘映射) | **English**
 
-Open **Settings > Keyboard Mappings** to translate physical key combinations into new key input.
+Open **Settings > Keyboard Mappings** to translate physical key combinations into new key input. The mapping list's second column shows each rule's optional purpose label.
 Mappings are active only while Simpilot runs and do not modify Windows system policy.
 
 ## Supported rules

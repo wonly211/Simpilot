@@ -232,6 +232,11 @@ void KeyboardMappingDialog::create_controls() {
     populate_action_combo(target_action_combo_, false, action_options_);
 
     divider_ = create_static(L"", SS_ETCHEDHORZ);
+    purpose_label_ = create_static(text("settings.keyboard_mappings.purpose"),
+                                   SS_CENTERIMAGE);
+    purpose_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     process_label_ = create_static(text("settings.keyboard_mappings.process"),
                                    SS_CENTERIMAGE);
     process_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
@@ -261,6 +266,7 @@ void KeyboardMappingDialog::create_controls() {
             static_cast<INT_PTR>(cancel_identifier)), instance_, nullptr);
 
     if (initial_) {
+        SetWindowTextW(purpose_edit_, initial_->purpose.c_str());
         SetWindowTextW(process_edit_, initial_->process_name.c_str());
         SendMessageW(exact_match_, BM_SETCHECK,
                      initial_->exact_match ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -524,7 +530,8 @@ void KeyboardMappingDialog::update_fonts() {
         source_action_label_, source_action_combo_, source_chord_label_,
         source_chord_combo_, target_hint_, target_summary_, target_record_,
         target_modifiers_label_, target_action_label_, target_action_combo_,
-        process_label_, process_edit_, process_foreground_, exact_match_,
+        purpose_label_, purpose_edit_, process_label_, process_edit_,
+        process_foreground_, exact_match_,
         enabled_, save_button_, cancel_button_};
     for (const auto control : controls) set_font(control, font_);
     for (const auto control : source_modifier_combos_) set_font(control, font_);
@@ -581,9 +588,13 @@ void KeyboardMappingDialog::layout_controls(const int width, const int height) {
     MoveWindow(target_action_combo_, right_x, scale(326), column_width, scale(360), TRUE);
 
     MoveWindow(divider_, margin, scale(378), content_width, scale(2), TRUE);
-    const auto process_y = scale(400);
+    const auto purpose_y = scale(400);
+    const auto process_y = scale(444);
     const auto label_width = scale(104);
     const auto foreground_width = scale(170);
+    MoveWindow(purpose_label_, margin, purpose_y, label_width, row_height, TRUE);
+    MoveWindow(purpose_edit_, margin + label_width + scale(8), purpose_y,
+               content_width - label_width - scale(8), row_height, TRUE);
     MoveWindow(process_label_, margin, process_y, label_width, row_height, TRUE);
     MoveWindow(process_edit_, margin + label_width + scale(8), process_y,
                content_width - label_width - foreground_width - scale(20),
@@ -688,6 +699,7 @@ void KeyboardMappingDialog::save() {
     KeyboardMappingRule candidate;
     candidate.trigger = draft.trigger;
     candidate.output = draft.output;
+    candidate.purpose = trim(control_text(purpose_edit_));
     const auto process = control_text(process_edit_);
     candidate.process_name = normalize_mapping_process_name(process);
     if (!trim(process).empty() && candidate.process_name.empty()) {

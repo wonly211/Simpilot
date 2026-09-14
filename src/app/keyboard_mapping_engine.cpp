@@ -263,8 +263,6 @@ bool KeyboardMappingEngine::pressed_contains(
     for (std::size_t index = 0; index < pressed_count_; ++index) {
         if (same_key(pressed_[index].key, key)) return true;
     }
-    // A synthetic key-up can omit scan information.  Keep physical identity
-    // strict unless the incoming event actually lacks that information.
     if (key.scan_code == 0) {
         for (std::size_t index = 0; index < pressed_count_; ++index) {
             if (pressed_[index].key.virtual_key == key.virtual_key) return true;
@@ -460,13 +458,22 @@ bool KeyboardMappingEngine::pending_contains_key(
     const PhysicalKey& key) const noexcept {
     for (std::size_t index = 0; index < pending_count_; ++index) {
         const auto pending_key = physical_key(pending_events_[index].event);
-        if (same_key(pending_key, key)
-            || (key.scan_code == 0
-                && pending_key.virtual_key == key.virtual_key)) {
+        if (same_key(pending_key, key)) {
             return true;
         }
     }
-    return false;
+    // Some keyboard drivers report a different scan/extended tuple for the
+    // matching key-up.  Accept a virtual-key fallback only when that virtual
+    // key is unique in the buffered sequence, so sided physical keys remain
+    // distinct when both are present.
+    std::size_t candidate = no_index;
+    for (std::size_t index = 0; index < pending_count_; ++index) {
+        const auto pending_key = physical_key(pending_events_[index].event);
+        if (pending_key.virtual_key != key.virtual_key) continue;
+        if (candidate != no_index) return false;
+        candidate = index;
+    }
+    return candidate != no_index;
 }
 
 bool KeyboardMappingEngine::pending_has_key_up() const noexcept {
@@ -539,7 +546,13 @@ bool KeyboardMappingEngine::send_output_up(
             append_up(output.modifiers[index - 1]);
         }
     }
-    return send_events(inputs.data(), count);
+    // A low-level input sink can report a partial delivery.  Re-issuing the
+    // complete key-up sequence is safe and ensures a target Win/Shift/Ctrl
+    // modifier is not left logically down when the first batch stops early.
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        if (send_events(inputs.data(), count)) return true;
+    }
+    return false;
 }
 
 bool KeyboardMappingEngine::send_output_tap(
@@ -571,7 +584,17 @@ bool KeyboardMappingEngine::send_events(
     INPUT* inputs, const UINT count) noexcept {
     if (count == 0) return true;
     try {
-        if (!input_sink_ || input_sink_(inputs, count) != count) {
+        if (!input_sink_) {
+            mark_diagnostic();
+            return false;
+        }
+        UINT sent = 0;
+        for (int attempt = 0; sent < count && attempt < 3; ++attempt) {
+            const auto result = input_sink_(inputs + sent, count - sent);
+            if (result == 0) break;
+            sent += std::min(result, count - sent);
+        }
+        if (sent != count) {
             mark_diagnostic();
             return false;
         }
@@ -619,12 +642,12 @@ bool KeyboardMappingEngine::activate(const CompiledRule& rule) noexcept {
 }
 
 bool KeyboardMappingEngine::belongs_to_active(
-    const PhysicalKey& key) const noexcept {
+    const PhysicalKey& key, const bool allow_virtual_fallback) const noexcept {
     for (const auto& mapping : active_mappings_) {
         if (!mapping.active) continue;
         for (std::size_t index = 0; index < mapping.source_count; ++index) {
             if (same_key(mapping.source_keys[index], key)) return true;
-            if (key.scan_code == 0
+            if ((allow_virtual_fallback || key.scan_code == 0)
                 && mapping.source_keys[index].virtual_key == key.virtual_key) {
                 return true;
             }
@@ -657,13 +680,17 @@ void KeyboardMappingEngine::mark_pressed(
             break;
         }
     }
-    if (found == no_index && key.scan_code == 0) {
+    if (found == no_index && !down) {
+        std::size_t candidate = no_index;
         for (std::size_t index = 0; index < pressed_count_; ++index) {
-            if (pressed_[index].key.virtual_key == key.virtual_key) {
-                found = index;
+            if (pressed_[index].key.virtual_key != key.virtual_key) continue;
+            if (candidate != no_index) {
+                candidate = no_index;
                 break;
             }
+            candidate = index;
         }
+        found = candidate;
     }
 
     if (down) {
@@ -708,7 +735,7 @@ MappingEventResult KeyboardMappingEngine::handle(
     const auto down = is_key_down(message);
     const auto was_pressed = pressed_contains(key);
     const auto was_pending = pending_contains_key(key);
-    const auto was_active = belongs_to_active(key);
+    const auto was_active = belongs_to_active(key, !down);
     mark_pressed(key, down);
 
     const auto pending_modifier_matches = [this, &key]() noexcept {
@@ -719,8 +746,7 @@ MappingEventResult KeyboardMappingEngine::handle(
         const auto& action = rules_[*pending_modifier_rule_index_]
             .rule.trigger.action;
         return same_key(action, key)
-            || (key.scan_code == 0
-                && action.virtual_key == key.virtual_key);
+            || action.virtual_key == key.virtual_key;
     };
 
     // A physical modifier can be used as a single source key, but its initial

@@ -496,20 +496,25 @@ void SettingsWindow::create_controls() {
                                  text("settings.keyboard_mappings.column.enabled"))};
     ListView_InsertColumn(keyboard_mapping_list_, 0, &mapping_column);
     mapping_column.iSubItem = 1;
+    mapping_column.cx = 190;
+    mapping_column.pszText = const_cast<wchar_t*>(
+        text("settings.keyboard_mappings.column.purpose"));
+    ListView_InsertColumn(keyboard_mapping_list_, 1, &mapping_column);
+    mapping_column.iSubItem = 2;
     mapping_column.cx = 250;
     mapping_column.pszText = const_cast<wchar_t*>(
         text("settings.keyboard_mappings.column.source"));
-    ListView_InsertColumn(keyboard_mapping_list_, 1, &mapping_column);
-    mapping_column.iSubItem = 2;
+    ListView_InsertColumn(keyboard_mapping_list_, 2, &mapping_column);
+    mapping_column.iSubItem = 3;
     mapping_column.cx = 220;
     mapping_column.pszText = const_cast<wchar_t*>(
         text("settings.keyboard_mappings.column.target"));
-    ListView_InsertColumn(keyboard_mapping_list_, 2, &mapping_column);
-    mapping_column.iSubItem = 3;
+    ListView_InsertColumn(keyboard_mapping_list_, 3, &mapping_column);
+    mapping_column.iSubItem = 4;
     mapping_column.cx = 180;
     mapping_column.pszText = const_cast<wchar_t*>(
         text("settings.keyboard_mappings.column.process"));
-    ListView_InsertColumn(keyboard_mapping_list_, 3, &mapping_column);
+    ListView_InsertColumn(keyboard_mapping_list_, 4, &mapping_column);
     keyboard_mapping_add_button_ = CreateWindowW(
         L"BUTTON", text(add_text), WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
@@ -680,6 +685,7 @@ void SettingsWindow::refresh_localized_text() {
                    text("settings.keyboard_mappings.enabled"));
     const std::array mapping_columns{
         text("settings.keyboard_mappings.column.enabled"),
+        text("settings.keyboard_mappings.column.purpose"),
         text("settings.keyboard_mappings.column.source"),
         text("settings.keyboard_mappings.column.target"),
         text("settings.keyboard_mappings.column.process"),
@@ -990,14 +996,16 @@ void SettingsWindow::layout_controls(const int width, const int height) {
     MoveWindow(keyboard_mapping_list_, content_x, mapping_list_y,
                content_width, std::max(scale(100), body_bottom - mapping_list_y), TRUE);
     const auto mapping_enabled_width = wide(72);
+    const auto mapping_purpose_width = wide(190);
     const auto mapping_source_width = wide(250);
     const auto mapping_target_width = wide(220);
     ListView_SetColumnWidth(keyboard_mapping_list_, 0, mapping_enabled_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 1, mapping_source_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 2, mapping_target_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 3,
+    ListView_SetColumnWidth(keyboard_mapping_list_, 1, mapping_purpose_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 2, mapping_source_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 3, mapping_target_width);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 4,
         std::max(wide(160), content_width - mapping_enabled_width
-            - mapping_source_width - mapping_target_width - wide(6)));
+            - mapping_purpose_width - mapping_source_width - mapping_target_width - wide(6)));
 
     MoveWindow(windows_hotkey_heading_, content_x, page_title_y,
                content_width, scale(32), TRUE);
@@ -1236,14 +1244,17 @@ void SettingsWindow::refresh_keyboard_mapping_list(
                                mapping.enabled ? TRUE : FALSE);
         const auto source = keyboard_mapping_trigger_label(mapping.trigger);
         const auto target = keyboard_mapping_output_label(mapping.output);
+        const auto purpose = mapping.purpose;
         const auto process = mapping.process_name.empty()
             ? std::wstring(text("settings.keyboard_mappings.global"))
             : mapping.process_name;
         ListView_SetItemText(keyboard_mapping_list_, row, 1,
-                             const_cast<wchar_t*>(source.c_str()));
+                             const_cast<wchar_t*>(purpose.c_str()));
         ListView_SetItemText(keyboard_mapping_list_, row, 2,
-                             const_cast<wchar_t*>(target.c_str()));
+                             const_cast<wchar_t*>(source.c_str()));
         ListView_SetItemText(keyboard_mapping_list_, row, 3,
+                             const_cast<wchar_t*>(target.c_str()));
+        ListView_SetItemText(keyboard_mapping_list_, row, 4,
                              const_cast<wchar_t*>(process.c_str()));
         if (selection && *selection == index) {
             ListView_SetItemState(keyboard_mapping_list_, row,

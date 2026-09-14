@@ -130,6 +130,8 @@ private:
     HWND target_action_label_ = nullptr;
     HWND target_action_combo_ = nullptr;
     HWND divider_ = nullptr;
+    HWND purpose_label_ = nullptr;
+    HWND purpose_edit_ = nullptr;
     HWND process_label_ = nullptr;
     HWND process_edit_ = nullptr;
     HWND process_foreground_ = nullptr;
