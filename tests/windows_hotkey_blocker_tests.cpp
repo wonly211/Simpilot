@@ -129,6 +129,34 @@ void passes_selected_key_with_an_additional_modifier() {
         "Win key up must pass after an additional-modifier shortcut");
 }
 
+void reset_clears_suppression_state() {
+    simpilot::WindowsHotKeyState state;
+    const auto mask = mask_for(L'G');
+    (void)state.handle(VK_LWIN, true, false, mask);
+    (void)state.handle(L'G', true, false, mask);
+    state.reset();
+    require_transition(state.handle(VK_LWIN, false, true, mask),
+        WindowsHotKeyDecision::pass, false, false,
+        "reset must clear stale Win suppression state");
+}
+
+void reset_preserves_a_physically_held_windows_modifier() {
+    simpilot::WindowsHotKeyState state;
+    const auto mask = mask_for(L'H');
+    (void)state.handle(VK_LWIN, true, false, mask);
+    (void)state.handle(L'G', true, false, mask);
+    state.reset();
+    require_transition(state.handle(L'H', true, false, mask),
+        WindowsHotKeyDecision::block_and_release_windows, true, false,
+        "reset must preserve a physically held Win modifier");
+    require_transition(state.handle(L'H', false, true, mask),
+        WindowsHotKeyDecision::block, false, false,
+        "reset-preserved blocked key must still consume its release");
+    require_transition(state.handle(VK_LWIN, false, true, mask),
+        WindowsHotKeyDecision::block, false, false,
+        "reset-preserved Win must consume its physical release");
+}
+
 } // namespace
 
 int wmain() {
@@ -139,6 +167,8 @@ int wmain() {
         keeps_multiple_selected_keys_blocked_while_win_is_held();
         does_not_begin_blocking_mid_key_press();
         passes_selected_key_with_an_additional_modifier();
+        reset_clears_suppression_state();
+        reset_preserves_a_physically_held_windows_modifier();
         std::wcout << L"All Windows hotkey blocker tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

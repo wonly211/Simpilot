@@ -156,6 +156,17 @@ void WindowsHotKeyState::cancel_suppression(
     if (right_windows) right_windows_suppressed_ = false;
 }
 
+void WindowsHotKeyState::reset() noexcept {
+    // Clearing registrations must not forget keys that are physically held;
+    // otherwise applying settings while Win is down loses the modifier until
+    // the user releases and presses it again.  Only registration-owned state
+    // is reset here.  The complete object is discarded when the hook thread
+    // stops.
+    left_windows_suppressed_ = false;
+    right_windows_suppressed_ = false;
+    blocked_keys_.fill(false);
+}
+
 KeyboardManager::KeyboardManager() = default;
 
 KeyboardManager::~KeyboardManager() {
@@ -691,6 +702,9 @@ LRESULT KeyboardManager::handle_hook_window_message(
         return TRUE;
     }
     if (message == clear_registrations_message) {
+        (void)send_windows_transition(
+            windows_hotkey_state_.restore_suppressed_windows());
+        windows_hotkey_state_.reset();
         forced_registrations_.clear();
         pressed_keys_.fill(false);
         windows_override_mask_ = 0;
@@ -982,8 +996,18 @@ bool KeyboardManager::send_windows_transition(
     UINT count = 0;
     const auto add_key = [&inputs, &count](const WORD virtual_key, const DWORD flags) {
         inputs[count].type = INPUT_KEYBOARD;
-        inputs[count].ki.wVk = virtual_key;
-        inputs[count].ki.dwFlags = flags;
+        if (virtual_key == VK_LWIN || virtual_key == VK_RWIN) {
+            // Windows keys are extended scan-code keys.  Sending the release
+            // with the same physical identity as the hook event avoids a
+            // logical Win key surviving a blocked shortcut on some drivers.
+            inputs[count].ki.wVk = 0;
+            inputs[count].ki.wScan = virtual_key == VK_LWIN ? 0x5B : 0x5C;
+            inputs[count].ki.dwFlags = KEYEVENTF_SCANCODE
+                | KEYEVENTF_EXTENDEDKEY | flags;
+        } else {
+            inputs[count].ki.wVk = virtual_key;
+            inputs[count].ki.dwFlags = flags;
+        }
         inputs[count].ki.dwExtraInfo = simpilot_injected_event;
         ++count;
     };
@@ -995,7 +1019,15 @@ bool KeyboardManager::send_windows_transition(
         ? KEYEVENTF_KEYUP : DWORD{0};
     if (action.left_windows) add_key(VK_LWIN, flags);
     if (action.right_windows) add_key(VK_RWIN, flags);
-    return count == 0 || SendInput(count, inputs, sizeof(INPUT)) == count;
+    if (count == 0) return true;
+    UINT sent = 0;
+    for (int attempt = 0; sent < count && attempt < 3; ++attempt) {
+        const auto result = SendInput(
+            count - sent, inputs + sent, sizeof(INPUT));
+        if (result == 0) break;
+        sent += std::min(result, count - sent);
+    }
+    return sent == count;
 }
 
 LRESULT CALLBACK KeyboardManager::keyboard_hook(

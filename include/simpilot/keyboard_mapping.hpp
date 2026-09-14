@@ -41,6 +41,8 @@ struct KeyboardOutput {
 struct KeyboardMappingRule {
     KeyboardTrigger trigger{};
     KeyboardOutput output{};
+    // Optional user-facing label shown in the settings mapping list.
+    std::wstring purpose;
     std::wstring process_name;
     bool exact_match = true;
     bool enabled = true;

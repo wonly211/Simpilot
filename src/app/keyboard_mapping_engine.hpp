@@ -105,7 +105,8 @@ private:
     [[nodiscard]] bool send_events(
         INPUT* inputs, UINT count) noexcept;
     [[nodiscard]] bool activate(const CompiledRule& rule) noexcept;
-    [[nodiscard]] bool belongs_to_active(const PhysicalKey& key) const noexcept;
+    [[nodiscard]] bool belongs_to_active(
+        const PhysicalKey& key, bool allow_virtual_fallback = false) const noexcept;
     [[nodiscard]] bool active_released() const noexcept;
     void clear_pressed() noexcept;
     void mark_pressed(const PhysicalKey& key, bool down) noexcept;

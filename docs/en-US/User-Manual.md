@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 0.18.8
+Applies to version: 0.18.9
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -260,7 +260,7 @@ Exact `Win+A` through `Win+Z` combinations integrate with Windows Hotkey Blockin
 
 ### 6.5 Keyboard mappings
 
-Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. Use **Add**, **Edit**, and **Delete** to manage rules.
+Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. The list's second column shows the optional purpose label for each mapping. Use **Add**, **Edit**, and **Delete** to manage rules.
 
 - A **source trigger** can be one key, one to four modifiers plus an action key, or up to three modifiers plus two action keys held at the same time. Either chord action may be pressed first.
 - A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. A standalone modifier waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.

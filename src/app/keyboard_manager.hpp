@@ -40,6 +40,7 @@ public:
         std::uint32_t blocked_mask, bool exact_windows_modifier = true) noexcept;
     [[nodiscard]] WindowsHotKeyTransition restore_suppressed_windows() noexcept;
     void cancel_suppression(bool left_windows, bool right_windows) noexcept;
+    void reset() noexcept;
 
 private:
     bool left_windows_down_ = false;

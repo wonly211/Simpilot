@@ -323,6 +323,7 @@ void load_keyboard_mappings(
             continue;
         }
         KeyboardMappingRule rule;
+        rule.purpose = string_value(values, prefix + L"Purpose");
         rule.enabled = boolean_value(values, enabled_key, false);
         rule.process_name = process_name;
         rule.exact_match = boolean_value(
@@ -358,6 +359,7 @@ void write_keyboard_mappings(
         const auto prefix = "KeyboardMapping" + std::to_string(index + 1);
         const auto& mapping = mappings[index];
         stream << prefix << "Enabled=" << (mapping.enabled ? 1 : 0) << "\r\n"
+               << prefix << "Purpose=" << encode_utf8(mapping.purpose) << "\r\n"
                << prefix << "Process=" << encode_utf8(mapping.process_name) << "\r\n"
                << prefix << "ExactMatch=" << (mapping.exact_match ? 1 : 0) << "\r\n"
                << prefix << "SourceModifiers="
