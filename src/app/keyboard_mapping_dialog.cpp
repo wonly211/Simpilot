@@ -573,19 +573,19 @@ void KeyboardMappingDialog::layout_controls(const int width, const int height) {
         const auto target_x = (index % 2 == 0) ? right_x
                                                 : right_x + half_combo + combo_gap;
         const auto y = scale(index < 2 ? 214 : 254);
-        MoveWindow(source_modifier_combos_[index], x, y, half_combo, scale(300), TRUE);
+        MoveWindow(source_modifier_combos_[index], x, y, half_combo, row_height, TRUE);
         MoveWindow(target_modifier_combos_[index], target_x, y,
-                   half_combo, scale(300), TRUE);
+                   half_combo, row_height, TRUE);
     }
 
     MoveWindow(source_action_label_, margin, scale(300), half_combo, scale(24), TRUE);
     MoveWindow(source_chord_label_, margin + half_combo + combo_gap, scale(300),
                half_combo, scale(24), TRUE);
     MoveWindow(target_action_label_, right_x, scale(300), column_width, scale(24), TRUE);
-    MoveWindow(source_action_combo_, margin, scale(326), half_combo, scale(360), TRUE);
+    MoveWindow(source_action_combo_, margin, scale(326), half_combo, row_height, TRUE);
     MoveWindow(source_chord_combo_, margin + half_combo + combo_gap, scale(326),
-               half_combo, scale(360), TRUE);
-    MoveWindow(target_action_combo_, right_x, scale(326), column_width, scale(360), TRUE);
+               half_combo, row_height, TRUE);
+    MoveWindow(target_action_combo_, right_x, scale(326), column_width, row_height, TRUE);
 
     MoveWindow(divider_, margin, scale(378), content_width, scale(2), TRUE);
     const auto purpose_y = scale(400);
@@ -817,6 +817,17 @@ LRESULT CALLBACK KeyboardMappingDialog::window_procedure(
 
 LRESULT KeyboardMappingDialog::handle_message(
     const UINT message, const WPARAM wparam, const LPARAM lparam) {
+    if (message == WM_ERASEBKGND) {
+        return settings_visual_style::erase_background(window_, wparam);
+    }
+    if (message == WM_CTLCOLORSTATIC
+        && (reinterpret_cast<HWND>(lparam) == source_hint_
+            || reinterpret_cast<HWND>(lparam) == target_hint_)) {
+        return settings_visual_style::handle_secondary_text(wparam, lparam);
+    }
+    if (settings_visual_style::is_color_message(message)) {
+        return settings_visual_style::handle_color_message(message, wparam, lparam);
+    }
     if (message == WM_CREATE) {
         create_controls();
         RECT rectangle{};
