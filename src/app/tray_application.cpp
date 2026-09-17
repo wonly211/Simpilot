@@ -40,6 +40,8 @@ constexpr UINT repair_everything_command = 7;
 constexpr UINT settings_command = 8;
 constexpr UINT traditional_chinese_language_command = 9;
 constexpr UINT about_command = 10;
+constexpr UINT edit_main_menu_command = 11;
+constexpr UINT edit_second_menu_command = 12;
 constexpr UINT configuration_changed_message = WM_APP + 2;
 constexpr UINT open_settings_message = WM_APP + 4;
 constexpr UINT_PTR everything_ready_timer = 1;
@@ -110,6 +112,71 @@ UINT effective_dpi_for_point(const POINT point) noexcept {
         return dpi_x;
     }
     return GetDpiForSystem();
+}
+
+int scale_for_dpi(const int value, const UINT dpi) noexcept {
+    const auto effective_dpi = dpi == 0 ? 96u : dpi;
+    return MulDiv(value, static_cast<int>(effective_dpi), 96);
+}
+
+SIZE native_menu_size(const HMENU menu, const UINT dpi) noexcept {
+    SIZE result{};
+    if (!menu) return result;
+
+    const auto dc = GetDC(nullptr);
+    if (!dc) return result;
+
+    NONCLIENTMETRICSW metrics{.cbSize = sizeof(metrics)};
+    HFONT font = nullptr;
+    bool owns_font = false;
+    if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, 0)) {
+        font = CreateFontIndirectW(&metrics.lfMenuFont);
+        owns_font = font != nullptr;
+    }
+    if (!font) font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    const auto previous_font = font ? SelectObject(dc, font) : nullptr;
+    const auto effective_dpi = dpi == 0 ? 96u : dpi;
+    const auto system_item_height = GetSystemMetricsForDpi(SM_CYMENU, effective_dpi);
+    const auto item_height = std::max(1, system_item_height > 0
+        ? system_item_height : scale_for_dpi(GetSystemMetrics(SM_CYMENU), effective_dpi));
+    const auto horizontal_padding = scale_for_dpi(32, dpi);
+    const auto submenu_padding = scale_for_dpi(20, dpi);
+    const auto separator_height = std::max(1, scale_for_dpi(9, dpi));
+
+    const auto count = GetMenuItemCount(menu);
+    for (int index = 0; index < count; ++index) {
+        MENUITEMINFOW information{
+            .cbSize = sizeof(information),
+            .fMask = MIIM_FTYPE | MIIM_SUBMENU,
+        };
+        if (!GetMenuItemInfoW(menu, static_cast<UINT>(index), TRUE, &information)) continue;
+
+        if ((information.fType & MFT_SEPARATOR) != 0) {
+            result.cy += separator_height;
+            continue;
+        }
+
+        wchar_t text[512]{};
+        const auto length = GetMenuStringW(menu, static_cast<UINT>(index), text,
+                                           static_cast<int>(std::size(text)), MF_BYPOSITION);
+        SIZE text_size{};
+        if (length > 0 && font) {
+            GetTextExtentPoint32W(dc, text, length, &text_size);
+        }
+        result.cx = std::max(result.cx,
+                             static_cast<LONG>(text_size.cx + horizontal_padding
+                                + (information.hSubMenu ? submenu_padding : 0)));
+        result.cy += item_height;
+    }
+
+    if (previous_font) SelectObject(dc, previous_font);
+    if (owns_font) DeleteObject(font);
+    ReleaseDC(nullptr, dc);
+
+    const auto border = std::max(1, GetSystemMetricsForDpi(SM_CXEDGE, dpi == 0 ? 96 : dpi));
+    result.cx += border * 2;
+    result.cy += border * 2;
+    return result;
 }
 
 template <typename... Args>
@@ -389,7 +456,7 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
             return 0;
         }
         logger_.write(L"configuration change detected; reloading menu");
-        (void)reload_menu();
+        (void)reload_menu(true);
         return 0;
     }
     if (message == open_settings_message) {
@@ -482,6 +549,10 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
             if (repaired) (void)reload_menu();
         } else if (identifier == settings_command) {
             show_settings();
+        } else if (identifier == edit_main_menu_command) {
+            open_menu_configuration(false);
+        } else if (identifier == edit_second_menu_command) {
+            open_menu_configuration(true);
         } else if (identifier == about_command) {
             AboutWindow::show_modal(instance_, window, localization_, executable_path_,
                                     std::wstring(SIMPILOT_VERSION));
@@ -628,6 +699,14 @@ void TrayApplication::show_context_menu() {
     const auto menu = CreatePopupMenu();
     AppendMenuW(menu, MF_STRING, settings_command, localization_.text(UiText::settings).data());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    const auto edit_menu = CreatePopupMenu();
+    AppendMenuW(edit_menu, MF_STRING, edit_main_menu_command,
+                localization_.text(UiText::main_menu).data());
+    AppendMenuW(edit_menu, MF_STRING, edit_second_menu_command,
+                localization_.text(UiText::second_menu).data());
+    AppendMenuW(menu, MF_POPUP, reinterpret_cast<UINT_PTR>(edit_menu),
+                localization_.text(UiText::edit_menus).data());
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     const auto language_menu = CreatePopupMenu();
     AppendMenuW(language_menu, MF_STRING, simplified_chinese_language_command,
                 localization_.text(UiText::simplified_chinese).data());
@@ -665,8 +744,83 @@ void TrayApplication::show_context_menu() {
                 localization_.text(UiText::maintenance).data());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, about_command, localization_.text(UiText::about).data());
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, exit_command, localization_.text(UiText::exit).data());
-    track_menu(menu);
+    track_menu(menu, true);
+}
+
+void TrayApplication::open_menu_configuration(const bool secondary) {
+    const auto path = config_directory_
+        / (secondary ? L"Simpilot2.ini" : L"Simpilot.ini");
+    std::error_code error;
+    auto exists = std::filesystem::exists(path, error);
+    if (error) {
+        logger_.write(std::format(L"menu configuration existence check failed path={} error={}"
+                                  , path.wstring(), error.value()));
+        MessageBoxW(window_, localization_.text(UiText::open_menu_failed).data(),
+                    localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return;
+    }
+
+    if (!exists) {
+        if (secondary) {
+            const auto answer = MessageBoxW(
+                window_, localization_.text(UiText::create_menu_confirm).data(),
+                localization_.text(UiText::app_title).data(),
+                MB_YESNO | MB_DEFBUTTON2 | MB_ICONQUESTION);
+            if (answer != IDYES) {
+                logger_.write(L"second menu configuration creation cancelled");
+                return;
+            }
+        }
+
+        try {
+            if (secondary) {
+                std::wstring template_text = L"; ";
+                template_text.append(localization_.text(UiText::configuration_header));
+                template_text.append(L"\r\n");
+                write_configuration_text(path, template_text);
+            } else {
+                ensure_default_configuration(path, localization_);
+            }
+            exists = true;
+            logger_.write(std::format(L"created {} menu configuration path={}",
+                secondary ? L"second" : L"main", path.wstring()));
+        } catch (const std::exception& exception) {
+            logger_.write(std::format(L"menu configuration creation failed path={} error={}",
+                path.wstring(), wide_error(exception.what())));
+            MessageBoxW(window_, localization_.text(UiText::create_menu_failed).data(),
+                        localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+            return;
+        } catch (...) {
+            logger_.write(std::format(L"menu configuration creation failed path={} error=unknown",
+                path.wstring()));
+            MessageBoxW(window_, localization_.text(UiText::create_menu_failed).data(),
+                        localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+            return;
+        }
+    }
+
+    error.clear();
+    if (!std::filesystem::is_regular_file(path, error) || error) {
+        logger_.write(std::format(L"menu configuration is not a regular file path={} error={}",
+                                  path.wstring(), error.value()));
+        MessageBoxW(window_, localization_.text(UiText::open_menu_failed).data(),
+                    localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return;
+    }
+
+    const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(
+        window_, L"open", path.c_str(), nullptr, config_directory_.c_str(), SW_SHOWNORMAL));
+    if (result <= 32) {
+        logger_.write(std::format(L"menu configuration open failed path={} shellError={}",
+                                  path.wstring(), result));
+        MessageBoxW(window_, localization_.text(UiText::open_menu_failed).data(),
+                    localization_.text(UiText::app_title).data(), MB_OK | MB_ICONWARNING);
+        return;
+    }
+    logger_.write(std::format(L"opened {} menu configuration path={} shellResult={}",
+        secondary ? L"second" : L"main", path.wstring(), result));
 }
 
 void TrayApplication::track_menu(const HMENU menu, const bool adaptive_launch_position) {
@@ -678,8 +832,12 @@ void TrayApplication::track_menu(const HMENU menu, const bool adaptive_launch_po
     if (adaptive_launch_position) {
         MONITORINFO monitor{.cbSize = sizeof(monitor)};
         if (GetMonitorInfoW(MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST), &monitor)) {
+            auto menu_size = launch_menu_renderer_.measure_menu(menu);
+            if (menu_size.cx <= 0 || menu_size.cy <= 0) {
+                menu_size = native_menu_size(menu, effective_dpi_for_point(cursor));
+            }
             alignment = launch_menu_alignment(
-                cursor, monitor.rcWork, launch_menu_renderer_.measure_menu(menu));
+                cursor, monitor.rcWork, menu_size);
         } else {
             alignment = TPM_TOPALIGN | TPM_LEFTALIGN;
         }

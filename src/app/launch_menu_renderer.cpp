@@ -135,6 +135,7 @@ SIZE LaunchMenuRenderer::measure_menu(const HMENU menu) const noexcept {
     SIZE result{};
     if (!menu || !font_) return result;
     const auto count = GetMenuItemCount(menu);
+    auto measured_items = 0;
     for (int index = 0; index < count; ++index) {
         MENUITEMINFOW information{
             .cbSize = sizeof(information),
@@ -150,9 +151,11 @@ SIZE LaunchMenuRenderer::measure_menu(const HMENU menu) const noexcept {
             .itemData = information.dwItemData,
         };
         if (!measure(measurement)) continue;
+        ++measured_items;
         result.cx = std::max(result.cx, static_cast<LONG>(measurement.itemWidth));
         result.cy += static_cast<LONG>(measurement.itemHeight);
     }
+    if (measured_items == 0) return {};
     const auto border = std::max(1, GetSystemMetricsForDpi(SM_CXEDGE, dpi_));
     result.cx += border * 2;
     result.cy += border * 2;

@@ -3,6 +3,12 @@
   "strings": {
     "ui.app_title": "简驭 | Simpilot",
     "ui.menu_two": "菜单 2",
+    "ui.edit_menus": "编辑菜单...",
+    "ui.main_menu": "编辑主菜单",
+    "ui.second_menu": "编辑第二菜单",
+    "ui.create_menu_confirm": "所选菜单配置不存在。是否立即创建？",
+    "ui.create_menu_failed": "无法创建菜单配置。请查看 Log\\Simpilot.log 了解详情。",
+    "ui.open_menu_failed": "无法打开菜单配置。请查看 Log\\Simpilot.log 了解详情。",
     "ui.reload_menu": "刷新菜单",
     "ui.settings": "设置...",
     "ui.open_everything": "打开 Everything",

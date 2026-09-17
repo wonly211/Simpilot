@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 0.19.0
+Applies to version: 0.20.0
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -65,6 +65,8 @@ The menu uses the pointer position as its anchor and automatically opens left, r
 Right-click the tray icon to show settings and maintenance commands:
 
 - **Settings...** opens the complete Settings window.
+- **Edit Menu > Edit Main Menu** opens `Config/Simpilot.ini` in the Windows default document editor.
+- **Edit Menu > Edit Second Menu** opens `Config/Simpilot2.ini` in the Windows default document editor. If the file does not exist, Simpilot asks whether to create it first; choosing **No** leaves the file absent and does not open an editor.
 - **Language** switches among Simplified Chinese, Traditional Chinese, and English.
 - **Maintenance > Reload Menu** rereads the main and second menu configurations.
 - **Maintenance > Open Everything** opens or restores the Everything Search window.
@@ -73,6 +75,7 @@ Right-click the tray icon to show settings and maintenance commands:
 - **Exit** closes Simpilot and removes its registered hotkeys and shortcut blocking.
 
 Changes to `Simpilot.ini` and `Simpilot2.ini` are normally detected automatically. Use **Reload Menu** to retry a failed load or confirm an external edit immediately.
+Files opened from **Edit Menu** should be saved as UTF-8. A valid save is picked up automatically. If the new configuration is invalid, Simpilot keeps the last valid menu active and writes the parse error to the log.
 
 If Windows Explorer restarts, Simpilot automatically restores its tray icon.
 
@@ -137,7 +140,7 @@ This setting affects Simpilot menus only; it does not modify the Windows system 
 
 ## 5. Edit the quick-launch menu
 
-Open **Settings > Quick Launch Menu** to manage the main menu and optional second menu.
+Open **Settings > Quick Launch Menu** to manage the main menu and optional second menu. The tray command **Edit Menu > Edit Main Menu/Edit Second Menu** opens the corresponding configuration file directly for text inspection or batch edits; the Settings page remains the recommended tool for normal structural changes.
 
 ### 5.1 Main and second menus
 
@@ -145,6 +148,7 @@ Open **Settings > Quick Launch Menu** to manage the main menu and optional secon
 - The **second menu** reads `Config/Simpilot2.ini` and can have its own built-in hotkey.
 
 The second menu is optional. Simpilot creates `Simpilot2.ini` only after content is added and saved.
+If **Edit Second Menu** is selected while the file is missing, Simpilot asks for confirmation before creating an empty second-menu configuration and launching the Windows default document editor.
 
 ### 5.2 Add content
 
@@ -196,6 +200,7 @@ Selecting **Apply** or **Save** validates and writes both menu configurations. I
 If another program modifies a menu file while the editor is open, Simpilot asks whether to overwrite the external change.
 
 Menu files are monitored in real time. Saving a valid UTF-8 edit in a text editor normally refreshes the menu automatically. If loading fails, Simpilot keeps the last valid menu active.
+After correcting an invalid file, wait for the next automatic reload or select **Maintenance > Reload Menu** to retry immediately.
 
 ## 6. Global hotkeys
 

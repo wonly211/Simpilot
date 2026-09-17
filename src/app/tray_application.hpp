@@ -45,6 +45,7 @@ private:
     bool reload_menu(bool notify_on_failure = false) noexcept;
     void show_launch_menu(int menu_number = 1);
     void show_context_menu();
+    void open_menu_configuration(bool secondary);
     void track_menu(HMENU menu, bool adaptive_launch_position = false);
     void show_settings();
     [[nodiscard]] bool apply_settings(const AppSettings& settings);

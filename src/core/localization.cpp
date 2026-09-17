@@ -31,8 +31,10 @@ constexpr std::size_t maximum_language_pack_size = 64U * 1024U * 1024U;
 using Catalog = std::unordered_map<std::string, std::wstring>;
 using Json = nlohmann::json;
 
-constexpr std::array<std::string_view, 21> ui_keys{
-    "ui.app_title", "ui.menu_two", "ui.reload_menu", "ui.settings",
+constexpr std::array<std::string_view, 27> ui_keys{
+    "ui.app_title", "ui.menu_two", "ui.edit_menus", "ui.main_menu",
+    "ui.second_menu", "ui.create_menu_confirm", "ui.create_menu_failed",
+    "ui.open_menu_failed", "ui.reload_menu", "ui.settings",
     "ui.open_everything", "ui.everything_unavailable", "ui.repair_everything",
     "ui.repair_everything_success", "ui.repair_everything_failed", "ui.reload_failed",
     "ui.about", "ui.maintenance", "ui.language", "ui.language.english",

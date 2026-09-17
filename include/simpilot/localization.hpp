@@ -24,6 +24,12 @@ struct LanguageInfo {
 enum class UiText {
     app_title,
     menu_two,
+    edit_menus,
+    main_menu,
+    second_menu,
+    create_menu_confirm,
+    create_menu_failed,
+    open_menu_failed,
     reload_menu,
     settings,
     open_everything,
