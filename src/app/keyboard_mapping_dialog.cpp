@@ -29,6 +29,8 @@ constexpr int target_action_identifier = 140;
 constexpr int save_identifier = 1;
 constexpr int cancel_identifier = 2;
 constexpr auto no_option = std::numeric_limits<std::size_t>::max();
+constexpr int dialog_client_width = 960;
+constexpr int dialog_client_height = 620;
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT,
@@ -95,12 +97,22 @@ std::optional<KeyboardMappingRule> KeyboardMappingDialog::run() {
         return std::nullopt;
     }
     const auto system_dpi = GetDpiForSystem();
+    constexpr auto dialog_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+    constexpr auto dialog_extended_style = WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME;
+    RECT initial_bounds{
+        .left = 0,
+        .top = 0,
+        .right = MulDiv(dialog_client_width, system_dpi, 96),
+        .bottom = MulDiv(dialog_client_height, system_dpi, 96),
+    };
+    AdjustWindowRectExForDpi(&initial_bounds, dialog_style, FALSE,
+                             dialog_extended_style, system_dpi);
     window_ = CreateWindowExW(
-        WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME, dialog_class_name,
+        dialog_extended_style, dialog_class_name,
         text("settings.keyboard_mappings.dialog.title"),
-        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, MulDiv(960, system_dpi, 96),
-        MulDiv(600, system_dpi, 96), owner_, nullptr, instance_, this);
+        dialog_style, CW_USEDEFAULT, CW_USEDEFAULT,
+        initial_bounds.right - initial_bounds.left,
+        initial_bounds.bottom - initial_bounds.top, owner_, nullptr, instance_, this);
     if (!window_) return std::nullopt;
     settings_visual_style::apply_application_icons(window_, instance_, IDI_SIMPILOT);
     RECT rectangle{};
@@ -601,15 +613,18 @@ void KeyboardMappingDialog::layout_controls(const int width, const int height) {
                row_height, TRUE);
     MoveWindow(process_foreground_, width - margin - foreground_width, process_y,
                foreground_width, row_height, TRUE);
-    MoveWindow(exact_match_, margin, process_y + scale(48), content_width / 2,
+    const auto checkbox_y = process_y + scale(48);
+    MoveWindow(exact_match_, margin, checkbox_y, content_width / 2,
                row_height, TRUE);
-    MoveWindow(enabled_, margin + content_width / 2, process_y + scale(48),
+    MoveWindow(enabled_, margin + content_width / 2, checkbox_y,
                content_width / 2, row_height, TRUE);
-    const auto button_y = height - scale(56);
+    const auto button_height = scale(34);
+    const auto button_y = std::max(checkbox_y + row_height + scale(20),
+                                   height - margin - button_height);
     MoveWindow(cancel_button_, width - margin - scale(100), button_y,
-               scale(100), scale(34), TRUE);
+               scale(100), button_height, TRUE);
     MoveWindow(save_button_, width - margin - scale(210), button_y,
-               scale(100), scale(34), TRUE);
+               scale(100), button_height, TRUE);
 }
 
 void KeyboardMappingDialog::begin_trigger_capture() {
