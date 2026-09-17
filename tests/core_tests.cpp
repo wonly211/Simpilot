@@ -516,9 +516,13 @@ void localization_resources_cover_supported_languages() {
     simpilot::Localization localization(simpilot::UiLanguage::simplified_chinese);
     require_equal(std::wstring(localization.text(simpilot::UiText::exit)),
                   std::wstring(L"\u9000\u51fa"), "Chinese UI text");
+    require_equal(std::wstring(localization.text(simpilot::UiText::main_menu)),
+                  std::wstring(L"\u7f16\u8f91\u4e3b\u83dc\u5355"), "Simplified Chinese menu label");
     simpilot::Localization english(simpilot::UiLanguage::english);
     require_equal(std::wstring(english.text(simpilot::UiText::reload_menu)),
                   std::wstring(L"Reload menu"), "English UI text");
+    require_equal(std::wstring(english.text(simpilot::UiText::edit_menus)),
+                  std::wstring(L"Edit menus..."), "English menu editor label");
 
     constexpr std::array supported_languages{
         simpilot::UiLanguage::english,
@@ -560,6 +564,8 @@ void localization_resources_cover_supported_languages() {
     simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
     require_equal(std::wstring(traditional.text(simpilot::UiText::exit)),
                   std::wstring(L"\u7d50\u675f"), "Traditional Chinese UI text");
+    require_equal(std::wstring(traditional.text(simpilot::UiText::second_menu)),
+                  std::wstring(L"\u7de8\u8f2f\u7b2c\u4e8c\u9078\u55ae"), "Traditional Chinese menu label");
     require_equal(std::string(simpilot::Localization::language_code(
                       simpilot::UiLanguage::traditional_chinese)),
                   std::string("zh-TW"), "Traditional Chinese language code");
@@ -567,7 +573,7 @@ void localization_resources_cover_supported_languages() {
     const auto fallback_resources = root / L"fallback" / L"Languages";
     simpilot::write_configuration_text(
         fallback_resources / L"en-US.json",
-        LR"({"locale":"en-US","strings":{"test.fallback":"English fallback"}})");
+        LR"({"locale":"en-US","strings":{"test.fallback":"English fallback","ui.create_menu_confirm":"Create it now?"}})");
     simpilot::write_configuration_text(
         fallback_resources / L"zh-TW.json", L"{ invalid JSON");
     const simpilot::Localization fallback(
@@ -575,6 +581,9 @@ void localization_resources_cover_supported_languages() {
     require_equal(std::wstring(fallback.text("test.fallback")),
                   std::wstring(L"English fallback"),
                   "Malformed selected catalog falls back to English");
+    require_equal(std::wstring(fallback.text(simpilot::UiText::create_menu_confirm)),
+                  std::wstring(L"Create it now?"),
+                  "Missing selected-language UI text falls back to English");
     require_equal(std::wstring(fallback.text("test.missing")),
                   std::wstring(L"[missing translation]"),
                   "Missing English key uses non-empty safety text");

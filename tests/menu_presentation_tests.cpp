@@ -115,6 +115,14 @@ int wmain() {
 
             simpilot::LaunchMenuRenderer renderer;
             renderer.begin(simpilot::MenuTheme::dark, 96);
+            const auto native_menu = CreatePopupMenu();
+            require(native_menu != nullptr, "Create a native context menu");
+            require(AppendMenuW(native_menu, MF_STRING, 1002, L"Native item") != FALSE,
+                    "Append a native context-menu item");
+            const auto native_menu_size = renderer.measure_menu(native_menu);
+            require(native_menu_size.cx == 0 && native_menu_size.cy == 0,
+                    "Leave native menu measurement to the system fallback");
+            DestroyMenu(native_menu);
             const auto menu = CreatePopupMenu();
             require(renderer.append(menu, 1000, L"Large menu item", application_icon),
                     "Append an owner-drawn launch-menu item");

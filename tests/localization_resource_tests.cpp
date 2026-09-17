@@ -1,4 +1,5 @@
 #include "simpilot/language_pack.hpp"
+#include "simpilot/config_file.hpp"
 #include "simpilot/localization.hpp"
 
 #include <Windows.h>
@@ -80,6 +81,24 @@ int wmain() {
                 "Read Traditional Chinese from the embedded pack");
         require(english.text(simpilot::UiText::settings) != L"[missing translation]",
                 "Read English from the embedded pack");
+        for (int value = 0;
+             value <= static_cast<int>(simpilot::UiText::calculator); ++value) {
+            require(simplified.text(static_cast<simpilot::UiText>(value))
+                        != L"[missing translation]",
+                    "Every general UI resource key is present in Simplified Chinese");
+            require(traditional.text(static_cast<simpilot::UiText>(value))
+                        != L"[missing translation]",
+                    "Every general UI resource key is present in Traditional Chinese");
+            require(english.text(static_cast<simpilot::UiText>(value))
+                        != L"[missing translation]",
+                    "Every general UI resource key is present in English");
+        }
+        require(simplified.text(simpilot::UiText::main_menu) == L"编辑主菜单",
+                "Simplified Chinese main menu label");
+        require(traditional.text(simpilot::UiText::second_menu) == L"編輯第二選單",
+                "Traditional Chinese second menu label");
+        require(english.text(simpilot::UiText::edit_menus) == L"Edit menus...",
+                "English edit menus label");
         require(english.available_languages().size() == 3,
                 "Expose the three built-in languages");
 
@@ -88,9 +107,14 @@ int wmain() {
         const auto language_directory = root / L"Languages";
         std::filesystem::create_directories(language_directory);
         write_external_pack(language_directory / L"Language.lng");
+        simpilot::write_configuration_text(
+            language_directory / L"en-US.json",
+            LR"({"locale":"en-US","strings":{"ui.create_menu_confirm":"Create it now?"}})");
         const simpilot::Localization french("fr-FR", language_directory);
         require(french.text("ui.settings") == L"Parametres",
                 "Read an external language from Language.lng");
+        require(french.text(simpilot::UiText::create_menu_confirm) == L"Create it now?",
+                "Missing external translation falls back to English");
         const auto languages = french.available_languages();
         require(languages.size() == 4 && languages.back().code == "fr-FR",
                 "List an external language package");

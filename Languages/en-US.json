@@ -3,6 +3,12 @@
   "strings": {
     "ui.app_title": "简驭 | Simpilot",
     "ui.menu_two": "Menu 2",
+    "ui.edit_menus": "Edit menus...",
+    "ui.main_menu": "Edit main menu",
+    "ui.second_menu": "Edit second menu",
+    "ui.create_menu_confirm": "The selected menu configuration does not exist. Create it now?",
+    "ui.create_menu_failed": "The menu configuration could not be created. See Log\\Simpilot.log for details.",
+    "ui.open_menu_failed": "The menu configuration could not be opened. See Log\\Simpilot.log for details.",
     "ui.reload_menu": "Reload menu",
     "ui.settings": "Settings...",
     "ui.open_everything": "Open Everything",

@@ -6,10 +6,15 @@ The quick-launch menu centralizes frequently used entry points. Left-click the S
 
 ## Open the editor
 
-Right-click the tray icon, select **Settings**, then select **Quick Launch Menu**. This page manages both the main menu and the optional second menu.
+There are two editing paths:
+
+- For structured changes to categories, launch items, and separators, right-click the tray icon, select **Settings**, then select **Quick Launch Menu**.
+- For direct text inspection or batch edits, select **Edit Menu > Edit Main Menu** or **Edit Menu > Edit Second Menu**. Simpilot opens the corresponding configuration file in the Windows default document editor.
 
 - The **main menu** is saved in `Config/Simpilot.ini` and opens from the tray icon or its built-in hotkey.
 - The **second menu** is saved in `Config/Simpilot2.ini`, is created only when needed, and can have its own hotkey.
+
+If **Edit Second Menu** is selected while `Config/Simpilot2.ini` is missing, Simpilot asks for confirmation before creating an empty file. Choosing **No** leaves the file absent.
 
 For initial setup, see [Quick Start](Quick-Start). To open either menu from the keyboard, see [Global Hotkeys](Global-Hotkeys).
 
@@ -50,7 +55,7 @@ Choose **Follow Windows**, **Light**, or **Dark** under **Settings > General** t
 
 **Apply** saves changes while keeping Settings open. **Save** saves and closes Settings. **Cancel** discards changes that have not been applied. Simpilot monitors `Simpilot.ini` and `Simpilot2.ini` and usually refreshes menus automatically. If a new configuration cannot be read, the last valid menu stays active.
 
-When editing a menu file by hand, use UTF-8 and select **Maintenance > Refresh Menu** from the tray context menu to retry manually. The visual editor is recommended for normal use.
+Files opened from **Edit Menu** should be saved as UTF-8. A valid save normally refreshes the quick-launch menu automatically. If the content cannot be parsed, Simpilot keeps the last valid menu active and records the error. After correcting the file, wait for automatic reload or select **Maintenance > Refresh Menu** to retry immediately. The visual editor is recommended for normal structural changes.
 
 ## Related pages
 
