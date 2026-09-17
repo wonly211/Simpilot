@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 0.18.10 LANGUAGES CXX)
+project(Simpilot VERSION 0.19.0 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
