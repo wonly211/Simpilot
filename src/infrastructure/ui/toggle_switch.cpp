@@ -199,7 +199,7 @@ HWND create(const HINSTANCE instance, const HWND parent, const int identifier,
             const bool draw_label) {
     const std::wstring name(accessible_name);
     const auto control = CreateWindowW(L"BUTTON", name.c_str(),
-        WS_CHILD | WS_TABSTOP | BS_AUTOCHECKBOX,
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
         0, 0, 0, 0, parent,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(identifier)), instance, nullptr);
     if (!control) return nullptr;

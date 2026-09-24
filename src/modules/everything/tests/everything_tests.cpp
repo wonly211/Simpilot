@@ -4,6 +4,7 @@
 #include "simpilot/program_search_registry.hpp"
 #include "simpilot/tray_menu_registry.hpp"
 #include "simpilot/ui_dispatcher.hpp"
+#include "settings_page_test_support.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -42,6 +43,7 @@ int main() {
         require(!search.available(), "Missing SDK degrades to unavailable search");
         require(tray.size() == 2, "Module contributes both maintenance commands");
         require(pages.size() == 1, "Module contributes its own settings page");
+        settings_page_test::check_page(pages, L"Simpilot.EverythingSettingsPage");
         {
             simpilot::SettingsSession session(participants, {});
             hotkeys.visit([](const auto&, const auto& contribution) {

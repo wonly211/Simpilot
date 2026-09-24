@@ -1,6 +1,7 @@
 #include "mouse_locator_module.hpp"
 
 #include "cursor_locator.hpp"
+#include "settings_visual_style.hpp"
 
 #include <algorithm>
 #include <cwctype>
@@ -72,6 +73,14 @@ private:
         }
         auto* page = reinterpret_cast<MouseLocatorSettingsPage*>(
             GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window, wparam);
+        if (page && message == WM_CTLCOLORSTATIC
+            && reinterpret_cast<HWND>(lparam) == page->description_) {
+            return settings_visual_style::handle_secondary_text(wparam, lparam);
+        }
+        if (settings_visual_style::is_color_message(message)) {
+            return settings_visual_style::handle_color_message(message, wparam, lparam);
+        }
         if (page && message == WM_COMMAND && LOWORD(wparam) == 1
             && HIWORD(wparam) == BN_CLICKED) {
             page->draft_.enabled = SendMessageW(page->toggle_, BM_GETCHECK, 0, 0) == BST_CHECKED;

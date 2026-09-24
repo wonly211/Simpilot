@@ -5,7 +5,9 @@
 #include "simpilot/app_module.hpp"
 #include "simpilot/hotkey_registry.hpp"
 #include "simpilot/tray_menu_registry.hpp"
+#include "settings_page_test_support.hpp"
 
+#include <array>
 #include <iostream>
 #include <stdexcept>
 
@@ -92,6 +94,81 @@ private:
     bool previous_ = false;
 };
 
+void hotkey_page_layout_tests() {
+    settings_page_test::Host host;
+    simpilot::HotkeyRegistry hotkeys;
+    simpilot::KeyboardManager keyboard;
+    std::array<simpilot::BuiltInHotKey, 4> bindings;
+    std::vector<simpilot::Registration> registrations;
+    for (std::size_t i = 0; i < bindings.size(); ++i) {
+        bindings[i] = {{simpilot::HotKeyGesture{MOD_CONTROL, VK_F20 + static_cast<UINT>(i)}, false}, true};
+        registrations.push_back(hotkeys.add("layout." + std::to_string(i), static_cast<int>(i),
+            simpilot::HotkeyContribution{"settings.open_settings", [&, i] { return bindings[i]; },
+                [](HWND) {}, [&, i] { return &bindings[i]; }}));
+    }
+    bool section_draft = false;
+    FixturePage* section = nullptr;
+    auto section_registration = hotkeys.sections.add("layout.section", 0, {
+        "settings.title", [&] {
+            auto page = std::make_unique<FixturePage>(section_draft);
+            section = page.get();
+            return page;
+        }});
+    simpilot::Localization localization(simpilot::UiLanguage::english);
+    const auto font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    auto page = simpilot::make_hotkey_settings_page(hotkeys, keyboard, {}, {});
+    int changes = 0;
+    page->create({GetModuleHandleW(nullptr), host.window, 96, font, localization, [&] { ++changes; }});
+    const auto window = FindWindowExW(host.window, nullptr, L"Simpilot.HotkeySettingsPage", nullptr);
+    require(window != nullptr && section != nullptr, "Create shared hotkey page and contributed section");
+    page->show(true);
+    for (auto language : {simpilot::UiLanguage::english, simpilot::UiLanguage::simplified_chinese,
+                          simpilot::UiLanguage::traditional_chinese}) {
+        localization.set_language(language);
+        page->refresh_language(localization);
+        for (UINT dpi : {96U, 144U, 192U}) {
+            for (int height : {600, 400, 600}) {
+                page->layout({0, 0, MulDiv(650, dpi, 96), MulDiv(height, dpi, 96)}, dpi, font);
+                LONG previous_bottom = 0;
+                for (int row = 0; row < 4; ++row) {
+                    const auto enabled = settings_page_test::visible_bounds(window, GetDlgItem(window, 102 + row * 3));
+                    const auto capture = settings_page_test::visible_bounds(window, GetDlgItem(window, 100 + row * 3));
+                    const auto clear = settings_page_test::visible_bounds(window, GetDlgItem(window, 101 + row * 3));
+                    require(enabled.right < capture.left && capture.right < clear.left,
+                            "Enable, capture and action columns have separate space");
+                    require(enabled.top == capture.top && capture.top == clear.top
+                        && enabled.top > previous_bottom, "Hotkey rows align without overlap");
+                    previous_bottom = enabled.bottom;
+                }
+                if (height == 600) {
+                    const auto section_bounds = settings_page_test::visible_bounds(window, section->window());
+                    require(section_bounds.top > previous_bottom
+                        && section_bounds.bottom == MulDiv(height, dpi, 96),
+                        "Contributed section fills remaining page height without overlapping built-in rows");
+                } else {
+                    SendMessageW(window, WM_VSCROLL, SB_PAGEDOWN, 0);
+                    const auto section_bounds = settings_page_test::visible_bounds(window, section->window());
+                    require(section_bounds.bottom == MulDiv(height, dpi, 96),
+                            "Scrolling reveals the complete contributed section");
+                    SendMessageW(window, WM_VSCROLL, SB_PAGEUP, 0);
+                }
+            }
+        }
+    }
+    const auto toggle = GetDlgItem(window, 102);
+    SendMessageW(toggle, BM_CLICK, 0, 0);
+    require(!bindings[0].enabled && changes == 1, "Enable switch click updates its owning hotkey draft");
+    SendMessageW(toggle, BM_CLICK, 0, 0);
+    require(bindings[0].enabled && changes == 2, "Enable switch can be turned back on");
+    SendMessageW(GetDlgItem(window, 101), BM_CLICK, 0, 0);
+    require(!bindings[0].binding.gesture && !IsWindowEnabled(toggle),
+            "Clearing a binding disables its enable switch");
+    page->show(false);
+    require(!IsWindowVisible(toggle), "Page navigation hides its switches");
+    page->show(true);
+    require(IsWindowVisible(toggle) != FALSE, "Returning to hotkeys restores its switches");
+}
+
 FixtureModule* active_module = nullptr;
 bool failed = false;
 bool reject_commit = true;
@@ -173,6 +250,7 @@ void CALLBACK exercise_window(HWND, UINT, UINT_PTR timer, DWORD) {
 int main() {
     try {
         SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+        hotkey_page_layout_tests();
         simpilot::SettingsRegistry pages;
         simpilot::SettingsParticipantRegistry participants;
         simpilot::HotkeyRegistry hotkeys;

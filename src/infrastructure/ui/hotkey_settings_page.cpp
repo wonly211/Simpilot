@@ -74,11 +74,11 @@ public:
         if (!window_) throw std::runtime_error("Cannot create hotkey settings page");
         heading_ = control(L"STATIC", 0, 0);
         status_ = control(L"STATIC", 0, 0);
-        constexpr std::string_view keys[]{"settings.global_hotkeys.column.function",
-            "settings.global_hotkeys.column.hotkey", "settings.global_hotkeys.column.command",
-            "settings.global_hotkeys.column.enabled"};
+        constexpr std::string_view keys[]{"settings.global_hotkeys.column.enabled",
+            "settings.global_hotkeys.column.function", "settings.global_hotkeys.column.hotkey",
+            "settings.global_hotkeys.column.command"};
         for (std::size_t i = 0; i < headers_.size(); ++i) {
-            headers_[i] = control(L"STATIC", 0, 0);
+            headers_[i] = control(L"STATIC", 0, i == 0 ? SS_CENTER : SS_LEFT);
             header_keys_[i] = keys[i];
         }
         for (const auto& draft : hotkeys_.editable_drafts()) {
@@ -97,7 +97,6 @@ public:
         refresh_language(context.localization);
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
-        bounds_ = bounds;
         dpi_ = dpi;
         font_ = font;
         MoveWindow(window_, bounds.left, bounds.top, std::max(1L, bounds.right - bounds.left),
@@ -161,7 +160,6 @@ private:
         if (!window_) return;
         RECT client{};
         GetClientRect(window_, &client);
-        const int width = std::max(1L, client.right);
         const int height = std::max(1L, client.bottom);
         const int section_height = scale(250);
         const int content_height = scale(110 + static_cast<int>(rows_.size()) * 48)
@@ -170,32 +168,39 @@ private:
         SCROLLINFO info{sizeof(info), SIF_RANGE | SIF_PAGE | SIF_POS,
             0, content_height - 1, static_cast<UINT>(height), scroll_, 0};
         SetScrollInfo(window_, SB_VERT, &info, TRUE);
-        const int toggle_width = std::min(scale(64), width / 6);
-        const int clear_width = std::min(scale(90), width / 5);
-        const int label_width = width * 30 / 100;
-        const int gap = scale(8);
-        const int toggle_x = width - toggle_width;
-        const int clear_x = toggle_x - clear_width - gap;
-        const int capture_width = std::max(1, clear_x - label_width - gap * 2);
+        // Updating the scroll range can change the client width.
+        GetClientRect(window_, &client);
+        const int width = std::max(1L, client.right);
+        const int gap = std::min(scale(12), width / 20);
+        const int toggle_width = std::min(scale(72), width / 6);
+        const int clear_width = std::min(scale(80), width / 6);
+        const int flexible_width = std::max(2, width - toggle_width - clear_width - gap * 3);
+        const int label_width = flexible_width * 45 / 100;
+        const int capture_width = flexible_width - label_width;
         auto place = [&](HWND control, int x, int y, int w, int h) {
             SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font_), TRUE);
             MoveWindow(control, x, y - scroll_, w, h, TRUE);
         };
         place(heading_, 0, 0, width, scale(30));
-        const int xs[]{0, label_width, clear_x, toggle_x};
-        const int widths[]{label_width - gap, capture_width, clear_width, toggle_width};
+        const int label_x = toggle_width + gap;
+        const int capture_x = label_x + label_width + gap;
+        const int clear_x = capture_x + capture_width + gap;
+        const int xs[]{0, label_x, capture_x, clear_x};
+        const int widths[]{toggle_width, label_width, capture_width, clear_width};
         for (int i = 0; i < 4; ++i) place(headers_[i], xs[i], scale(38), widths[i], scale(28));
         for (std::size_t i = 0; i < rows_.size(); ++i) {
             const int y = scale(72 + static_cast<int>(i) * 48);
-            const HWND controls[]{rows_[i].label, rows_[i].capture, rows_[i].clear, rows_[i].enabled};
+            const HWND controls[]{rows_[i].enabled, rows_[i].label, rows_[i].capture, rows_[i].clear};
             for (int j = 0; j < 4; ++j) place(controls[j], xs[j], y, widths[j], scale(34));
         }
         int y = scale(76 + static_cast<int>(rows_.size()) * 48);
         place(status_, 0, y, width, scale(28));
         y += scale(34);
-        for (auto& section : sections_) {
-            section->layout({0, y - scroll_, width, y - scroll_ + section_height}, dpi_, font_);
-            y += section_height;
+        for (std::size_t i = 0; i < sections_.size(); ++i) {
+            const int allocated_height = i + 1 == sections_.size()
+                ? std::max(section_height, height - y) : section_height;
+            sections_[i]->layout({0, y - scroll_, width, y - scroll_ + allocated_height}, dpi_, font_);
+            y += allocated_height;
         }
     }
     void cancel_capture() {
@@ -296,7 +301,6 @@ private:
     std::vector<std::unique_ptr<ISettingsPage>> sections_;
     Registration observer_;
     std::optional<std::size_t> capturing_;
-    RECT bounds_{};
     UINT dpi_ = 96;
     HFONT font_ = nullptr;
     int scroll_ = 0;

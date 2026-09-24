@@ -3,7 +3,8 @@ target_include_directories(simpilot_module_everything PUBLIC "${CMAKE_CURRENT_SO
 target_compile_definitions(simpilot_module_everything PRIVATE
     UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(simpilot_module_everything PRIVATE /W4 /permissive- /utf-8 /EHsc)
-target_link_libraries(simpilot_module_everything PUBLIC simpilot_module_support)
+target_link_libraries(simpilot_module_everything PUBLIC simpilot_module_support
+    PRIVATE simpilot_win32_ui)
 foreach(locale en-US zh-CN zh-TW)
     set_property(GLOBAL APPEND PROPERTY SIMPILOT_MODULE_LANGUAGE_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/Languages/${locale}.json")
@@ -34,6 +35,7 @@ endfunction()
 
 if(BUILD_TESTING)
     add_executable(simpilot_everything_tests tests/everything_tests.cpp)
+    target_include_directories(simpilot_everything_tests PRIVATE "${PROJECT_SOURCE_DIR}/tests")
     target_sources(simpilot_everything_tests PRIVATE "${PROJECT_BINARY_DIR}/BuiltinLanguagePack.rc")
     add_dependencies(simpilot_everything_tests simpilot_builtin_language_pack)
     target_compile_definitions(simpilot_everything_tests PRIVATE

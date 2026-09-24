@@ -12,6 +12,7 @@ endforeach()
 
 if(BUILD_TESTING)
     add_executable(simpilot_windows_hotkey_policy_tests tests/windows_hotkey_policy_tests.cpp)
+    target_include_directories(simpilot_windows_hotkey_policy_tests PRIVATE "${PROJECT_SOURCE_DIR}/tests")
     target_sources(simpilot_windows_hotkey_policy_tests PRIVATE "${PROJECT_BINARY_DIR}/BuiltinLanguagePack.rc")
     add_dependencies(simpilot_windows_hotkey_policy_tests simpilot_builtin_language_pack)
     target_compile_definitions(simpilot_windows_hotkey_policy_tests PRIVATE UNICODE _UNICODE NOMINMAX)

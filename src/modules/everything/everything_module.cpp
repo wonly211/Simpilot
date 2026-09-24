@@ -1,6 +1,7 @@
 #include "everything_module.hpp"
 
 #include "everything.hpp"
+#include "settings_visual_style.hpp"
 #include "simpilot/localization.hpp"
 #include "simpilot/program_search_registry.hpp"
 #include "simpilot/tray_menu_registry.hpp"
@@ -74,6 +75,10 @@ private:
             SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(creation->lpCreateParams));
         }
         auto* page = reinterpret_cast<EverythingSettingsPage*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window, wparam);
+        if (settings_visual_style::is_color_message(message)) {
+            return settings_visual_style::handle_color_message(message, wparam, lparam);
+        }
         if (page && message == WM_COMMAND && HIWORD(wparam) == BN_CLICKED) {
             try {
                 if (LOWORD(wparam) == 1) page->open_(window);

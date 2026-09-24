@@ -1,6 +1,7 @@
 #include "mouse_locator_module.hpp"
 #include "mouse_shake_detector.hpp"
 #include "simpilot/app_settings.hpp"
+#include "settings_page_test_support.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -83,6 +84,7 @@ void module_tests() {
     module->start();
     module->start();
     require(pages.size() == 1 && participants.size() == 1, "Page and settings contributions");
+    settings_page_test::check_page(pages, L"Simpilot.MouseLocatorSettingsPage");
     simpilot::SettingsSession session(participants, {});
     require(!session.dirty(), "Fresh module session is clean");
     require(session.apply([](const auto& document) {

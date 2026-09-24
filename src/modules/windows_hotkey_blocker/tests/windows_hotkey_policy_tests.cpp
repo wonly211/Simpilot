@@ -1,4 +1,5 @@
 #include "windows_hotkey_blocker_module.hpp"
+#include "settings_page_test_support.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -48,9 +49,8 @@ int main() {
         draft.binding.gesture = simpilot::HotKeyGesture{MOD_WIN, L'L'};
         require(!hotkeys.draft_requires_windows_blocking(11), "Win+L never links");
 
-        HWND parent = CreateWindowW(L"STATIC", L"", WS_OVERLAPPEDWINDOW,
-            0, 0, 900, 700, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
-        require(parent != nullptr, "Create test parent");
+        settings_page_test::Host host;
+        const auto parent = host.window;
         simpilot::Localization localization(simpilot::UiLanguage::english);
         std::unique_ptr<simpilot::ISettingsPage> page;
         pages.visit([&](const auto&, const auto& contribution) { page = contribution.create(); });
@@ -61,9 +61,20 @@ int main() {
         page->show(true);
         const auto child = FindWindowExW(parent, nullptr, L"Simpilot.WindowsHotkeyBlockingPage", nullptr);
         require(child != nullptr && !GetDlgItem(child, 111), "No Win+L control is created");
+        for (UINT dpi : {96U, 144U, 192U}) {
+            for (int width : {650, 900}) {
+                page->layout({0, 0, MulDiv(width, dpi, 96), MulDiv(520, dpi, 96)}, dpi,
+                    static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
+                for (int index = 0; index < 26; ++index) {
+                    if (index == 11) continue;
+                    (void)settings_page_test::visible_bounds(child, GetDlgItem(child, 100 + index));
+                }
+                settings_page_test::uniform_background(child);
+            }
+        }
         const auto toggle = GetDlgItem(child, 100);
-        SendMessageW(toggle, BM_SETCHECK, BST_UNCHECKED, 0);
-        SendMessageW(child, WM_COMMAND, MAKEWPARAM(100, BN_CLICKED), reinterpret_cast<LPARAM>(toggle));
+        SendMessageW(toggle, BM_CLICK, 0, 0);
+        require(SendMessageW(toggle, BM_GETCHECK, 0, 0) == BST_UNCHECKED, "Sliding switch toggles on click");
         require(changes == 1 && session.dirty() && runtime[0], "UI only changes draft");
         require(!session.apply([](const auto&) { return false; }) && runtime[0],
             "Failed INI commit restores runtime");
@@ -83,7 +94,6 @@ int main() {
         localization.set_language(simpilot::UiLanguage::traditional_chinese);
         page->refresh_language(localization);
         page.reset();
-        DestroyWindow(parent);
         session.cancel();
         module->stop();
         module->stop();
