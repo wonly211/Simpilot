@@ -31,58 +31,11 @@ constexpr std::size_t maximum_language_pack_size = 64U * 1024U * 1024U;
 using Catalog = std::unordered_map<std::string, std::wstring>;
 using Json = nlohmann::json;
 
-constexpr std::array<std::string_view, 27> ui_keys{
-    "ui.app_title", "ui.menu_two", "ui.edit_menus", "ui.main_menu",
-    "ui.second_menu", "ui.create_menu_confirm", "ui.create_menu_failed",
-    "ui.open_menu_failed", "ui.reload_menu", "ui.settings",
-    "ui.open_everything", "ui.everything_unavailable", "ui.repair_everything",
-    "ui.repair_everything_success", "ui.repair_everything_failed", "ui.reload_failed",
-    "ui.about", "ui.maintenance", "ui.language", "ui.language.english",
-    "ui.language.simplified_chinese", "ui.language.traditional_chinese", "ui.exit",
-    "ui.configuration_header", "ui.common", "ui.notepad", "ui.calculator",
-};
 
-constexpr std::array<std::string_view, 60> settings_keys{
-    "settings.title", "settings.heading", "settings.main_menu", "settings.second_menu",
-    "settings.open_settings", "settings.open_everything_search", "settings.clear",
-    "settings.startup", "settings.menu_theme", "settings.system_theme", "settings.light_theme",
-    "settings.dark_theme", "settings.hotkey_hint", "settings.capture",
-    "settings.capture_failed", "settings.escape_cancelled", "settings.save", "settings.apply",
-    "settings.cancel", "settings.tab.general", "settings.tab.global_hotkeys",
-    "settings.tab.windows_shortcuts", "settings.global_hotkeys.heading",
-    "settings.global_hotkeys.scope", "settings.global_hotkeys.column.enabled",
-    "settings.global_hotkeys.column.hotkey", "settings.global_hotkeys.column.action",
-    "settings.global_hotkeys.column.target", "settings.add", "settings.edit", "settings.delete",
-    "settings.action.open_application", "settings.action.open_folder", "settings.action.open_file",
-    "settings.windows_shortcuts.heading", "settings.windows_shortcuts.scope",
-    "settings.windows_shortcuts.runtime", "settings.win_l_unsupported", "settings.tab.menu_icons",
-    "settings.menu_icons.heading", "settings.menu_icons.scope", "settings.menu_icons.column.menu",
-    "settings.menu_icons.column.name", "settings.menu_icons.column.target",
-    "settings.menu_icons.column.source", "settings.menu_icons.select",
-    "settings.menu_icons.restore_auto", "settings.menu_icons.automatic",
-    "settings.menu_icons.custom", "settings.menu_icons.selection_failed",
-    "settings.tab.quick_launch", "settings.quick_launch.heading", "settings.quick_launch.scope",
-    "settings.general.scope", "settings.section.startup", "settings.section.appearance",
-    "settings.section.built_in_hotkeys", "settings.section.custom_hotkeys",
-    "settings.unsaved_changes", "settings.applied",
-};
 
-constexpr std::array<std::string_view, 35> custom_hotkey_keys{
-    "custom_hotkey.window_title", "custom_hotkey.edit_window_title", "custom_hotkey.title",
-    "custom_hotkey.edit_title", "custom_hotkey.trigger_heading", "custom_hotkey.trigger_type",
-    "custom_hotkey.allow_modifiers", "custom_hotkey.action_heading",
-    "custom_hotkey.open_application", "custom_hotkey.open_folder", "custom_hotkey.open_file",
-    "custom_hotkey.program_path", "custom_hotkey.folder_path", "custom_hotkey.file_path",
-    "custom_hotkey.arguments", "custom_hotkey.working_directory", "custom_hotkey.browse",
-    "custom_hotkey.identity", "custom_hotkey.identity.normal",
-    "custom_hotkey.identity.administrator", "custom_hotkey.existing_process",
-    "custom_hotkey.existing_process.show_window", "custom_hotkey.existing_process.start_new",
-    "custom_hotkey.existing_process.do_nothing", "custom_hotkey.visibility",
-    "custom_hotkey.visibility.normal", "custom_hotkey.visibility.minimized",
-    "custom_hotkey.visibility.maximized", "custom_hotkey.visibility.hidden", "custom_hotkey.save",
-    "custom_hotkey.cancel", "custom_hotkey.modifiers_required", "custom_hotkey.win_l_unsupported",
-    "custom_hotkey.capture_failed", "custom_hotkey.invalid_target",
-};
+
+
+
 
 constexpr std::array<std::string_view, 20> about_keys{
     "about.positioning", "about.version", "about.tagline", "about.link.home",
@@ -93,10 +46,6 @@ constexpr std::array<std::string_view, 20> about_keys{
     "about.link.license", "about.link.third_party", "about.close", "about.open_failed",
 };
 
-static_assert(ui_keys.size() == static_cast<std::size_t>(UiText::calculator) + 1);
-static_assert(settings_keys.size() == static_cast<std::size_t>(SettingsText::applied_text) + 1);
-static_assert(custom_hotkey_keys.size() ==
-              static_cast<std::size_t>(CustomHotKeyText::invalid_target_text) + 1);
 static_assert(about_keys.size() == static_cast<std::size_t>(AboutText::open_failed_text) + 1);
 
 std::string canonical_code(const std::string_view value) {
@@ -331,15 +280,6 @@ void Localization::set_language(std::string language_code) noexcept {
     language_code_ = std::move(language_code);
 }
 
-std::wstring_view Localization::text(const UiText value) const noexcept {
-    return text(enum_key(value, ui_keys));
-}
-std::wstring_view Localization::text(const SettingsText value) const noexcept {
-    return text(enum_key(value, settings_keys));
-}
-std::wstring_view Localization::text(const CustomHotKeyText value) const noexcept {
-    return text(enum_key(value, custom_hotkey_keys));
-}
 std::wstring_view Localization::text(const AboutText value) const noexcept {
     return text(enum_key(value, about_keys));
 }
@@ -384,9 +324,9 @@ std::vector<LanguageInfo> Localization::available_languages() const {
 std::wstring_view Localization::language_display_name(
     const std::string_view code) const noexcept {
     const auto normalized = canonical_code(code);
-    if (normalized == "en-us") return text(UiText::english);
-    if (normalized == "zh-cn") return text(UiText::simplified_chinese);
-    if (normalized == "zh-tw") return text(UiText::traditional_chinese);
+    if (normalized == "en-us") return text("ui.language.english");
+    if (normalized == "zh-cn") return text("ui.language.simplified_chinese");
+    if (normalized == "zh-tw") return text("ui.language.traditional_chinese");
     const auto found = resources_->external_names.find(normalized);
     if (found != resources_->external_names.end() && !found->second.empty()) return found->second;
     static const std::wstring empty;

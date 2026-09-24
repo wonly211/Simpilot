@@ -1,0 +1,9 @@
+{
+  "locale": "en-US",
+  "strings": {
+    "settings.section.cursor_locator": "Pointer location",
+    "settings.cursor_locator": "Highlight the pointer when the mouse is shaken",
+    "settings.cursor_locator.description": "Quickly move the mouse back and forth to show a fading ring around the pointer.",
+    "ui.cursor_locator_update_failed": "Pointer highlighting could not be started. The setting was not changed."
+  }
+}

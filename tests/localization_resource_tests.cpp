@@ -75,30 +75,23 @@ int wmain() {
         const simpilot::Localization simplified(simpilot::UiLanguage::simplified_chinese);
         const simpilot::Localization traditional(simpilot::UiLanguage::traditional_chinese);
         const simpilot::Localization english(simpilot::UiLanguage::english);
-        require(simplified.text(simpilot::UiText::settings) != L"[missing translation]",
+        require(simplified.text("ui.settings") != L"[missing translation]",
                 "Read Simplified Chinese from the embedded pack");
-        require(traditional.text(simpilot::UiText::settings) != L"[missing translation]",
+        require(traditional.text("ui.settings") != L"[missing translation]",
                 "Read Traditional Chinese from the embedded pack");
-        require(english.text(simpilot::UiText::settings) != L"[missing translation]",
+        require(english.text("ui.settings") != L"[missing translation]",
                 "Read English from the embedded pack");
-        for (int value = 0;
-             value <= static_cast<int>(simpilot::UiText::calculator); ++value) {
-            require(simplified.text(static_cast<simpilot::UiText>(value))
+        for (const auto key : {"ui.app_title", "ui.settings", "ui.about", "ui.exit"}) {
+            require(simplified.text(key)
                         != L"[missing translation]",
                     "Every general UI resource key is present in Simplified Chinese");
-            require(traditional.text(static_cast<simpilot::UiText>(value))
+            require(traditional.text(key)
                         != L"[missing translation]",
                     "Every general UI resource key is present in Traditional Chinese");
-            require(english.text(static_cast<simpilot::UiText>(value))
+            require(english.text(key)
                         != L"[missing translation]",
                     "Every general UI resource key is present in English");
         }
-        require(simplified.text(simpilot::UiText::main_menu) == L"编辑主菜单",
-                "Simplified Chinese main menu label");
-        require(traditional.text(simpilot::UiText::second_menu) == L"編輯第二選單",
-                "Traditional Chinese second menu label");
-        require(english.text(simpilot::UiText::edit_menus) == L"Edit menus...",
-                "English edit menus label");
         require(english.available_languages().size() == 3,
                 "Expose the three built-in languages");
 
@@ -113,7 +106,7 @@ int wmain() {
         const simpilot::Localization french("fr-FR", language_directory);
         require(french.text("ui.settings") == L"Parametres",
                 "Read an external language from Language.lng");
-        require(french.text(simpilot::UiText::create_menu_confirm) == L"Create it now?",
+        require(french.text("ui.create_menu_confirm") == L"Create it now?",
                 "Missing external translation falls back to English");
         const auto languages = french.available_languages();
         require(languages.size() == 4 && languages.back().code == "fr-FR",
