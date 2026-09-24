@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <cstdint>
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -96,7 +97,20 @@ int wmain(const int argc, wchar_t* argv[]) {
         }
         Json languages = Json::array();
         for (int index = 2; index < argc; ++index) {
-            languages.push_back(read_language(argv[index]));
+            auto fragment = read_language(argv[index]);
+            auto existing = std::find_if(languages.begin(), languages.end(), [&](const Json& language) {
+                return language.at("locale") == fragment.at("locale");
+            });
+            if (existing == languages.end()) {
+                languages.push_back(std::move(fragment));
+                continue;
+            }
+            for (const auto& [key, value] : fragment.at("strings").items()) {
+                if (existing->at("strings").contains(key)) {
+                    throw std::runtime_error("duplicate module language key: " + key);
+                }
+                (*existing)["strings"][key] = value;
+            }
         }
         write_pack(argv[1], languages);
         return 0;

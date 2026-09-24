@@ -147,7 +147,7 @@ void AboutWindow::run() {
 
     window_ = CreateWindowExW(
         WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME, about_window_class_name,
-        localization_.text(UiText::about).data(),
+        localization_.text("ui.about").data(),
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN | WS_VSCROLL,
         x, y, width, height, owner_, nullptr, instance_, this);
     if (!window_) return;
@@ -213,7 +213,7 @@ void AboutWindow::create_controls() {
                                  icon_size, icon_size, LR_SHARED);
     SendMessageW(icon_, STM_SETICON, reinterpret_cast<WPARAM>(icon), 0);
 
-    product_name_ = CreateWindowW(L"STATIC", localization_.text(UiText::app_title).data(),
+    product_name_ = CreateWindowW(L"STATIC", localization_.text("ui.app_title").data(),
         WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     positioning_ = CreateWindowW(L"STATIC", text(AboutText::positioning_text),
         WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
@@ -337,7 +337,7 @@ void AboutWindow::layout_controls(const int width, const int height) {
     const auto header_width = std::max(scale(100), width - margin - header_x);
     auto header_y = y - scale(3);
     const auto product_height = paragraph_height(
-        localization_.text(UiText::app_title).data(), title_font_, header_width);
+        localization_.text("ui.app_title").data(), title_font_, header_width);
     place(product_name_, header_x, header_y, header_width, product_height);
     header_y += product_height;
     const auto positioning_height = paragraph_height(
@@ -511,7 +511,7 @@ void AboutWindow::open_target(const int identifier) {
         SW_SHOWNORMAL));
     if (result <= 32) {
         MessageBoxW(window_, text(AboutText::open_failed_text),
-                    localization_.text(UiText::about).data(), MB_OK | MB_ICONWARNING);
+                    localization_.text("ui.about").data(), MB_OK | MB_ICONWARNING);
     }
 }
 

@@ -35,7 +35,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         for (int attempt = 0; attempt < 20; ++attempt) {
             if (const auto existing = FindWindowExW(
                     HWND_MESSAGE, nullptr, simpilot::tray_window_class_name, nullptr)) {
-                PostMessageW(existing, simpilot::show_main_menu_message, 0, 0);
+                PostMessageW(existing, simpilot::activate_primary_message, 0, 0);
                 break;
             }
             Sleep(50);

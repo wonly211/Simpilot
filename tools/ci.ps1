@@ -169,6 +169,28 @@ function Assert-VendorSourcePolicy {
     }
 }
 
+function Assert-ReleaseLinkMode {
+    param([Parameter(Mandatory)] [xml]$Project)
+
+    $namespace = New-Object System.Xml.XmlNamespaceManager($Project.NameTable)
+    $namespace.AddNamespace("msb", $Project.Project.NamespaceURI)
+    $incremental = $Project.SelectSingleNode(
+        '//msb:PropertyGroup/msb:LinkIncremental[contains(@Condition, "Release|x64")]',
+        $namespace)
+    if (-not $incremental) {
+        throw "Release LinkIncremental is missing from simpilot.vcxproj."
+    }
+    # CMake leaves this property empty for IPO builds. Whole-program
+    # optimization selects LTCG, which disables ordinary incremental linking.
+    if ([string]::IsNullOrEmpty($incremental.InnerText)) {
+        $wholeProgram = $Project.SelectSingleNode(
+            '//msb:PropertyGroup[contains(@Condition, "Release|x64")]/msb:WholeProgramOptimization',
+            $namespace)
+        if ($wholeProgram -and $wholeProgram.InnerText -eq "true") { return }
+    }
+    Assert-Equal $incremental.InnerText "false" "Release incremental linking"
+}
+
 function Assert-ReleaseConfiguration {
     $cachePath = Join-Path $buildDirectory "CMakeCache.txt"
     $projectPath = Join-Path $buildDirectory "simpilot.vcxproj"
@@ -196,17 +218,11 @@ function Assert-ReleaseConfiguration {
     $optimization = $project.SelectSingleNode(
         '//msb:ItemDefinitionGroup[contains(@Condition, "Release|x64")]/msb:ClCompile/msb:Optimization',
         $namespace)
-    $linkIncremental = $project.SelectSingleNode(
-        '//msb:PropertyGroup/msb:LinkIncremental[contains(@Condition, "Release|x64")]',
-        $namespace)
     if (-not $optimization) {
         throw "Release Optimization is missing from simpilot.vcxproj."
     }
-    if (-not $linkIncremental) {
-        throw "Release LinkIncremental is missing from simpilot.vcxproj."
-    }
     Assert-Equal $optimization.InnerText "MaxSpeed" "Release optimization"
-    Assert-Equal $linkIncremental.InnerText "false" "Release incremental linking"
+    Assert-ReleaseLinkMode $project
 }
 
 function Assert-DocumentationVersion {
@@ -445,6 +461,7 @@ try {
     Assert-ReleaseConfiguration
     Invoke-NativeCommand "cmake" @("--build", "--preset", "ci-release", "--parallel", "2")
     Invoke-NativeCommand "ctest" @("--preset", "ci-release")
+    & (Join-Path $PSScriptRoot "test-module-builds.ps1") -BaselineBuildDirectory $buildDirectory
     Invoke-NativeCommand "cmake" @(
         "--build", "--preset", "ci-package-release", "--parallel", "2")
     $artifacts = Assert-ReleaseArtifacts $version

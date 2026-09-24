@@ -1,0 +1,9 @@
+{
+  "locale": "zh-TW",
+  "strings": {
+    "settings.section.cursor_locator": "游標定位",
+    "settings.cursor_locator": "晃動滑鼠時醒目顯示游標位置",
+    "settings.cursor_locator.description": "快速來回晃動滑鼠時，在游標周圍顯示醒目的漸隱圓環。",
+    "ui.cursor_locator_update_failed": "無法啟動游標醒目顯示功能，本次設定未變更。"
+  }
+}

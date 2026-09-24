@@ -29,4 +29,10 @@ struct HotKeyBinding {
 [[nodiscard]] bool is_supported_windows_letter_hotkey(
     const HotKeyGesture& gesture) noexcept;
 
+struct BuiltInHotKey {
+    HotKeyBinding binding{};
+    bool enabled = false;
+    bool operator==(const BuiltInHotKey&) const = default;
+};
+
 } // namespace simpilot

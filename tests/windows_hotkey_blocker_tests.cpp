@@ -31,7 +31,10 @@ constexpr std::uint32_t mask_for(const wchar_t letter) {
 
 void blocks_and_logically_releases_windows() {
     simpilot::WindowsHotKeyState state;
-    const auto mask = mask_for(L'G');
+    const auto mask = simpilot::effective_windows_hotkey_mask(0, mask_for(L'G'));
+    require(mask == mask_for(L'G'), "Overrides work without a policy module");
+    require(simpilot::effective_windows_hotkey_mask(mask_for(L'L'), mask_for(L'L')) == 0,
+            "Neither user policy nor overrides can block Win+L");
     require_transition(state.handle(VK_LWIN, true, false, mask),
         WindowsHotKeyDecision::pass, false, false,
         "Win key down must initially pass through");
