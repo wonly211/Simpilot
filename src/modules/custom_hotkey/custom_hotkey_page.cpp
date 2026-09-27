@@ -39,13 +39,18 @@ public:
         add_ = control(L"BUTTON", 1, WS_TABSTOP | BS_PUSHBUTTON);
         edit_ = control(L"BUTTON", 2, WS_TABSTOP | BS_PUSHBUTTON);
         remove_ = control(L"BUTTON", 3, WS_TABSTOP | BS_PUSHBUTTON);
+        settings_visual_style::style_button(add_, settings_visual_style::ButtonStyle::add);
+        settings_visual_style::style_button(edit_, settings_visual_style::ButtonStyle::edit);
+        settings_visual_style::style_button(remove_, settings_visual_style::ButtonStyle::remove);
         list_ = control(WC_LISTVIEWW, 4, WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL
             | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS);
         ListView_SetExtendedListViewStyle(list_,
             LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP);
         settings_visual_style::style_list_view(list_);
         for (int i = 0; i < 4; ++i) {
-            LVCOLUMNW column{.mask = LVCF_WIDTH | LVCF_SUBITEM, .cx = 100, .iSubItem = i};
+            wchar_t empty[] = L"";
+            LVCOLUMNW column{.mask = LVCF_WIDTH | LVCF_SUBITEM | LVCF_TEXT,
+                .cx = 100, .pszText = empty, .iSubItem = i};
             ListView_InsertColumn(list_, i, &column);
         }
         observer_ = hotkeys_.observe_drafts("custom_hotkey.section", [this] { refresh(); });
@@ -53,22 +58,35 @@ public:
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
         const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
+        typography_.update(font, dpi);
         MoveWindow(window_, bounds.left, bounds.top, std::max(1L, bounds.right - bounds.left),
                    std::max(1L, bounds.bottom - bounds.top), TRUE);
         const int width = std::max(1L, bounds.right - bounds.left);
         const int height = std::max(1L, bounds.bottom - bounds.top);
-        MoveWindow(heading_, 0, 0, width, scale(28), TRUE);
-        const int button_width = std::min(scale(100), std::max(1, width / 3 - scale(8)));
-        MoveWindow(add_, 0, scale(34), button_width, scale(34), TRUE);
-        MoveWindow(edit_, button_width + scale(8), scale(34), button_width, scale(34), TRUE);
-        MoveWindow(remove_, 2 * (button_width + scale(8)), scale(34), button_width, scale(34), TRUE);
-        MoveWindow(list_, 0, scale(76), width, std::max(1, height - scale(76)), TRUE);
-        const int widths[]{scale(72), scale(164), scale(130)};
+        const int gap = scale(8);
+        const int button_width = scale(32);
+        const int toolbar_width = button_width * 3 + gap * 2;
+        const bool stacked = width < toolbar_width + scale(220);
+        const int toolbar_y = stacked ? scale(32) : 0;
+        const int toolbar_x = stacked ? 0 : width - toolbar_width;
+        MoveWindow(heading_, 0, scale(6),
+            stacked ? width : std::max(1, toolbar_x - scale(16)), scale(22), TRUE);
+        MoveWindow(add_, toolbar_x, toolbar_y, button_width, scale(32), TRUE);
+        MoveWindow(edit_, toolbar_x + button_width + gap, toolbar_y, button_width, scale(32), TRUE);
+        MoveWindow(remove_, toolbar_x + 2 * (button_width + gap), toolbar_y, button_width, scale(32), TRUE);
+        const int list_y = toolbar_y + scale(44);
+        MoveWindow(list_, 0, list_y, width, std::max(1, height - list_y), TRUE);
+        RECT list_client{};
+        GetClientRect(list_, &list_client);
+        const int available = std::max(1L, list_client.right - scale(4));
+        const int widths[]{scale(64), scale(164), scale(112)};
         for (int i = 0; i < 3; ++i) ListView_SetColumnWidth(list_, i, widths[i]);
-        ListView_SetColumnWidth(list_, 3, std::max(scale(160), width - widths[0] - widths[1] - widths[2]));
-        for (auto control : {heading_, add_, edit_, remove_, list_}) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+        ListView_SetColumnWidth(list_, 3, std::max(scale(248),
+            available - widths[0] - widths[1] - widths[2]));
+        for (auto control : {add_, edit_, remove_, list_}) {
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         }
+        SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.section()), TRUE);
         if (dpi_ != dpi || !images_) {
             const auto next = toggle_switch::create_state_image_list(dpi);
             if (next) {
@@ -226,6 +244,7 @@ private:
     HWND window_ = nullptr, heading_ = nullptr, add_ = nullptr, edit_ = nullptr,
          remove_ = nullptr, list_ = nullptr;
     HIMAGELIST images_ = nullptr;
+    settings_visual_style::PageTypography typography_;
     UINT dpi_ = 0;
     bool refreshing_ = false;
 };

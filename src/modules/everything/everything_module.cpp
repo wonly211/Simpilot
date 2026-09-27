@@ -35,27 +35,53 @@ public:
         if (!window_) throw std::runtime_error("Cannot create Everything settings page");
         heading_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
             0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
-        open_button_ = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        open_label_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(11), context.instance, nullptr);
+        repair_label_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(12), context.instance, nullptr);
+        open_button_ = CreateWindowW(L"BUTTON", L"\x2192", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             0, 0, 0, 0, window_, reinterpret_cast<HMENU>(1), context.instance, nullptr);
-        repair_button_ = CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        repair_button_ = CreateWindowW(L"BUTTON", L"\x2192", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
             0, 0, 0, 0, window_, reinterpret_cast<HMENU>(2), context.instance, nullptr);
-        if (!heading_ || !open_button_ || !repair_button_) {
+        if (!heading_ || !open_label_ || !repair_label_ || !open_button_ || !repair_button_) {
             throw std::runtime_error("Cannot create Everything settings controls");
+        }
+        for (auto control : {open_button_, repair_button_}) {
+            settings_visual_style::style_button(control);
         }
         refresh_language(context.localization);
         layout({}, context.dpi, context.font);
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
+        bounds_ = bounds;
+        dpi_ = dpi;
+        font_ = font;
+        typography_.update(font, dpi);
         const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
         MoveWindow(window_, bounds.left, bounds.top, bounds.right - bounds.left,
                    bounds.bottom - bounds.top, TRUE);
         const auto width = std::max<LONG>(1, bounds.right - bounds.left);
-        MoveWindow(heading_, 0, 0, width, scale(40), TRUE);
-        MoveWindow(open_button_, 0, scale(76), std::min<LONG>(width, scale(380)), scale(40), TRUE);
-        MoveWindow(repair_button_, 0, scale(132), std::min<LONG>(width, scale(380)), scale(40), TRUE);
-        for (auto control : {heading_, open_button_, repair_button_}) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+        MoveWindow(heading_, 0, 0, width, scale(36), TRUE);
+        SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.title()), TRUE);
+        for (auto control : {open_label_, repair_label_, open_button_, repair_button_}) {
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         }
+        const auto dc = GetDC(window_);
+        const auto previous = SelectObject(dc, typography_.body());
+        int top = scale(56);
+        const auto arrange_row = [&](HWND label, HWND button, const std::wstring& text) {
+            SIZE size{};
+            GetTextExtentPoint32W(dc, text.data(), static_cast<int>(text.size()), &size);
+            ShowWindow(label, SW_HIDE);
+            MoveWindow(button, 0, top, std::min<int>(width, size.cx + scale(32)), scale(32), TRUE);
+            top += scale(48);
+            return top;
+        };
+        separators_[0] = arrange_row(open_label_, open_button_, open_text_);
+        separators_[1] = arrange_row(repair_label_, repair_button_, repair_text_);
+        SelectObject(dc, previous);
+        ReleaseDC(window_, dc);
+        InvalidateRect(window_, nullptr, TRUE);
     }
     void show(bool visible) override {
         EnableWindow(open_button_, manager_.components_available());
@@ -64,8 +90,15 @@ public:
     }
     void refresh_language(const Localization& localization) override {
         SetWindowTextW(heading_, localization.text("settings.open_everything_search").data());
-        SetWindowTextW(open_button_, localization.text("ui.open_everything").data());
-        SetWindowTextW(repair_button_, localization.text("ui.repair_everything").data());
+        open_text_ = localization.text("ui.open_everything");
+        repair_text_ = localization.text("ui.repair_everything");
+        SetWindowTextW(open_label_, open_text_.c_str());
+        SetWindowTextW(repair_label_, repair_text_.c_str());
+        SetWindowTextW(open_button_, open_text_.c_str());
+        SetWindowTextW(repair_button_, repair_text_.c_str());
+        settings_visual_style::set_button_tooltip(open_button_, open_text_);
+        settings_visual_style::set_button_tooltip(repair_button_, repair_text_);
+        if (font_) layout(bounds_, dpi_, font_);
     }
 
 private:
@@ -75,6 +108,12 @@ private:
             SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(creation->lpCreateParams));
         }
         auto* page = reinterpret_cast<EverythingSettingsPage*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (page && message == WM_PAINT) {
+            PAINTSTRUCT painting{};
+            BeginPaint(window, &painting);
+            EndPaint(window, &painting);
+            return 0;
+        }
         if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window, wparam);
         if (settings_visual_style::is_color_message(message)) {
             return settings_visual_style::handle_color_message(message, wparam, lparam);
@@ -97,6 +136,15 @@ private:
     HWND heading_ = nullptr;
     HWND open_button_ = nullptr;
     HWND repair_button_ = nullptr;
+    HWND open_label_ = nullptr;
+    HWND repair_label_ = nullptr;
+    settings_visual_style::PageTypography typography_;
+    RECT bounds_{};
+    UINT dpi_ = 96;
+    HFONT font_ = nullptr;
+    int separators_[2]{};
+    std::wstring open_text_;
+    std::wstring repair_text_;
 };
 
 BuiltInHotKey read_hotkey(const SettingsDocument& document) {

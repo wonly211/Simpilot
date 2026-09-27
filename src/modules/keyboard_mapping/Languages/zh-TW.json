@@ -1,6 +1,7 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "settings.keyboard_mappings.empty": "尚無對應規則",
     "settings.tab.keyboard_mappings": "鍵盤對映",
     "settings.keyboard_mappings.heading": "鍵盤對映",
     "settings.keyboard_mappings.scope": "將實體按鍵、快速鍵和一級組合鍵對映到其他按鍵，可設定為全域或僅對前景應用程式生效。",
@@ -10,7 +11,8 @@
     "settings.keyboard_mappings.column.purpose": "用途",
     "settings.keyboard_mappings.column.source": "來源按鍵",
     "settings.keyboard_mappings.column.target": "目標按鍵",
-    "settings.keyboard_mappings.column.process": "應用程式",
+    "settings.keyboard_mappings.column.process": "適用應用程式",
+    "settings.keyboard_mappings.rule_enabled": "啟用此規則",
     "settings.keyboard_mappings.dialog.title": "简驭 | Simpilot - 鍵盤對映",
     "settings.keyboard_mappings.dialog.heading": "新增或編輯鍵盤對映",
     "settings.keyboard_mappings.source": "來源觸發",
@@ -20,7 +22,7 @@
     "settings.keyboard_mappings.target_hint": "錄製按鍵，或選擇最多四個左右修飾鍵和一個主鍵。目標不支援 chord。",
     "settings.keyboard_mappings.purpose": "用途",
     "settings.keyboard_mappings.record_target": "錄製目標按鍵",
-    "settings.keyboard_mappings.process": "應用程式",
+    "settings.keyboard_mappings.process": "適用應用程式",
     "settings.keyboard_mappings.use_foreground": "使用前景應用程式",
     "settings.keyboard_mappings.exact_match": "精確比對應用程式",
     "settings.keyboard_mappings.recording": "正在錄製...",

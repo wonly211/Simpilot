@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simpilot 设计提案 · 离线复核</title>
+  <style>
+    * { box-sizing: border-box; letter-spacing: 0; }
+    body { margin: 32px auto; max-width: 1100px; padding: 0 24px; color: #202124; background: #F7F8FA; font: 14px/20px "Segoe UI", "Microsoft YaHei UI", sans-serif; }
+    h1 { font-size: 24px; line-height: 32px; font-weight: 600; }
+    h2 { font-size: 18px; line-height: 26px; font-weight: 600; margin: 0; }
+    p { color: #60656D; }
+    a { color: #0067B8; }
+    section { padding: 24px 0; border-top: 1px solid #E3E6EA; }
+    .links { display: flex; gap: 20px; margin: 12px 0; flex-wrap: wrap; }
+    img { display: block; max-width: 100%; height: auto; border: 1px solid #E3E6EA; }
+  </style>
+</head>
+<body>
+  <h1>Simpilot 设计提案 · 第二轮修订</h1>
+  <p>离线 HTML/CSS 效果图，不是正式产品实现、原生截图或功能验收。画布内不放提案说明或教程。数据来自审计 fixture，不执行路径或命令。</p>
+  <p>复核角色：视觉设计 / 交互设计。浏览器 deviceScaleFactor 1、1.5、2 仅验证栅格输出与 CSS 布局，不是原生 DPI 验证。</p>
+  <div class="links"><a href="README.md">设计取舍与复核说明</a><a href="QA-REPORT.md">渲染复核报告</a><a href="qa.json">渲染 QA JSON</a></div>
+  <p>首稿保留用于追溯；本轮仅修 IF-01/02/03 与遗漏的“菜单 2”入口，等待两设计角色再次复核。</p>
+  <div class="links"><a href="round1/general.png">首稿 General</a><a href="round1/hotkeys.png">首稿 Hotkeys</a><a href="round1/mapping.png">首稿 Mapping</a><a href="round1/menu.png">首稿 Menu</a></div>
+  <section>
+    <h2>01 · 常规 / General</h2>
+    <div class="links"><a href="index.html?view=general">中文 HTML</a><a href="index.html?view=general&amp;lang=en">English HTML</a><a href="renders/general.png">1028 × 714 PNG</a></div>
+    <img src="renders/general.png" width="1028" height="714" alt="设计提案：常规设置，登录 Windows 后自动启动 Simpilot 关闭，简体中文">
+  </section>
+  <section>
+    <h2>02 · 全局热键 / Global Hotkeys</h2>
+    <div class="links"><a href="index.html?view=hotkeys">中文 HTML</a><a href="index.html?view=hotkeys&amp;lang=en">English HTML</a><a href="renders/hotkeys.png">1028 × 714 PNG</a><a href="renders/hotkeys-last-rows.png">末尾条目 PNG</a></div>
+    <img src="renders/hotkeys.png" width="1028" height="714" alt="设计提案：四条内置热键与十六条自定义 fixture，首五条可见">
+  </section>
+  <section>
+    <h2>03 · 键盘映射编辑 / Edit Keyboard Mapping</h2>
+    <div class="links"><a href="index.html?view=mapping">中文 HTML</a><a href="index.html?view=mapping&amp;lang=en">English HTML</a><a href="renders/mapping.png">963 × 651 PNG</a></div>
+    <img src="renders/mapping.png" width="963" height="651" alt="设计提案：左 Ctrl+A 到左 Alt+F1，完整映射字段">
+  </section>
+  <section>
+    <h2>04 · 启动菜单 / Launch Menu</h2>
+    <div class="links"><a href="index.html?view=menu">中文 HTML</a><a href="index.html?view=menu&amp;lang=en">English HTML</a><a href="renders/menu.png">868 × 752 PNG</a></div>
+    <p>仅展开 Tools 的一级子菜单。Review utilities 保持折叠，其下 Document 2 等真实条目保存在 fixture 数据中，不改变层级。主菜单末尾保留渲染器自动附加的分隔与“菜单 2 / Menu 2”子菜单入口。中英模式均保留用户定义的双语名称。</p>
+    <img src="renders/menu.png" width="868" height="752" alt="设计提案：中性灰工作面上的主菜单及 Tools 一级子菜单">
+  </section>
+</body>
+</html>

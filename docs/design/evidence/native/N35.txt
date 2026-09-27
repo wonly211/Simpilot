@@ -1,0 +1,181 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		249 窗口 简驭 | Simpilot - Settings Secondary Actions: Raise
+			250 图像
+			251 文本 Simpilot
+			252 文本 Settings
+			253 列表 Settings ID: 250
+				254 列表项目 (selectable) General
+				255 列表项目 (selectable) Quick-launch menu
+				256 列表项目 (selectable) Menu icons
+				257 列表项目 (selectable) Global hotkeys
+				258 列表项目 (selectable) Keyboard mappings
+				259 列表项目 (selectable) Everything Search
+				260 列表项目 (selectable) Pointer location
+				261 列表项目 (selectable) Windows shortcut blocking
+			262 文本
+			263 窗格
+				264 文本 General settings
+				265 文本 Start 简驭 | Simpilot after signing in to Windows ID: 11
+				266 复选框 Start 简驭 | Simpilot after signing in to Windows ID: 10
+				267 文本 Display language
+				268 组合框 (settable, string) Display language Value: English ID: 12
+					269 文本 (settable, string) Display language Value: English
+					270 按钮 打开 ID: DropDown
+			280 窗格
+				281 文本 Global hotkeys
+				282 文本 Simpilot function hotkeys
+				283 文本 Quick-launch menu
+				284 按钮 Alt+Space ID: 100
+				285 按钮 Clear ID: 101
+				286 复选框 Enable Quick-launch menu hotkey ID: 102
+				287 文本 Second menu
+				288 按钮 Ctrl+Space ID: 103
+				289 按钮 Clear ID: 104
+				290 复选框 Enable Second menu hotkey ID: 105
+				291 文本 Settings window
+				292 按钮 Ctrl+Alt+S ID: 106
+				293 按钮 Clear ID: 107
+				294 复选框 Enable Settings window hotkey ID: 108
+				295 文本 Everything Search
+				296 按钮 Win+S ID: 109
+				297 按钮 Clear ID: 110
+				298 复选框 Enable Everything Search hotkey ID: 111
+				299 窗格
+					300 文本 Custom hotkeys
+					301 按钮 Add ID: 1
+					302 按钮 (disabled) Edit ID: 2
+					303 按钮 (disabled) Delete ID: 3
+					304 列表 ID: 4
+						305 标头 标头控件 ID: Header
+							306 标头项目 Enabled ID: HeaderItem 0
+							307 标头项目 Hotkey ID: HeaderItem 1
+							308 标头项目 Action type ID: HeaderItem 2
+							309 标头项目 Target ID: HeaderItem 3
+						310 滚动条 (settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+							311 按钮 上一行 ID: UpButton
+							312 缩略图 位置 ID: ScrollbarThumb
+							313 按钮 向下翻页 ID: DownPageButton
+							314 按钮 下一行 ID: DownButton
+						315 列表项目 (selectable)
+							316 文本
+							317 文本 Ctrl+Alt+F1
+							318 文本 Open application
+							319 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+						320 列表项目 (selectable)
+							321 文本
+							322 文本 Ctrl+Alt+F2
+							323 文本 Open folder
+							324 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review
+						325 列表项目 (selectable)
+							326 文本
+							327 文本 Ctrl+Alt+F3
+							328 文本 Open file
+							329 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\Sample document 3 - long descriptive target for truncation review.txt
+						330 列表项目 (selectable)
+							331 文本
+							332 文本 Ctrl+Alt+F4
+							333 文本 Open application
+							334 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+						335 列表项目 (selectable)
+							336 文本
+							337 文本 Ctrl+Alt+F5
+							338 文本 Open folder
+							339 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review
+						340 列表项目 (selectable)
+							341 文本
+							342 文本 Ctrl+Alt+F6
+							343 文本 Open file
+							344 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\Sample document 6 - long descriptive target for truncation review.txt
+						345 列表项目 (selectable)
+							346 文本
+							347 文本 Ctrl+Alt+F7
+							348 文本 Open application
+							349 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+						350 列表项目 (selectable)
+							351 文本
+							352 文本 Ctrl+Alt+F8
+							353 文本 Open folder
+							354 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review
+						355 列表项目 (selectable)
+							356 文本
+							357 文本 Ctrl+Alt+F9
+							358 文本 Open file
+							359 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\Sample document 9 - long descriptive target for truncation review.txt
+						360 列表项目 (selectable)
+							361 文本
+							362 文本 Ctrl+Alt+F10
+							363 文本 Open application
+							364 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+						365 列表项目 (selectable)
+							366 文本
+							367 文本 Ctrl+Alt+F11
+							368 文本 Open folder
+							369 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review
+						370 列表项目 (selectable)
+							371 文本
+							372 文本 Ctrl+Alt+F12
+							373 文本 Open file
+							374 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\Sample document 12 - long descriptive target for truncation review.txt
+						375 列表项目 (selectable)
+							376 文本
+							377 文本 Ctrl+Alt+Shift+F1
+							378 文本 Open application
+							379 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+						380 列表项目 (selectable)
+							381 文本
+							382 文本 Ctrl+Alt+Shift+F2
+							383 文本 Open folder
+							384 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review
+						385 列表项目 (selectable)
+							386 文本
+							387 文本 Ctrl+Alt+Shift+F3
+							388 文本 Open file
+							389 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\Sample document 15 - long descriptive target for truncation review.txt
+						390 列表项目 (selectable)
+							391 文本
+							392 文本 Ctrl+Alt+Shift+F4
+							393 文本 Open application
+							394 文本 C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30}\Variant-4-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe
+			271 按钮 Cancel ID: 2
+			272 按钮 (disabled) Apply ID: 3
+			273 按钮 Save ID: 1
+			274 标题栏 (settable, string) Value: 简驭 | Simpilot - Settings
+				275 菜单栏 系统 ID: MenuBar
+					276 菜单项 系统
+				277 按钮 最小化
+				278 按钮 最大化
+				279 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | en-US | Commit: FAILURE | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Settings open: change a real control, then Apply/Save to exercise the selected fake commit.
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				248 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise.

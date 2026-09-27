@@ -212,13 +212,15 @@ private:
     std::function<void(std::wstring_view)> diagnostic_sink_;
     std::function<void()> changed_;
     Localization localization_{"zh-CN"};
+    settings_visual_style::PageTypography editor_typography_, icon_typography_;
     HINSTANCE instance_ = nullptr;
-    HWND window_ = nullptr, editor_heading_ = nullptr, icon_heading_ = nullptr,
+    HWND window_ = nullptr, editor_heading_ = nullptr,
          theme_label_ = nullptr, theme_ = nullptr;
-    HWND menu_icon_heading_ = nullptr, menu_icon_scope_ = nullptr, menu_icon_list_ = nullptr,
+    HWND menu_icon_heading_ = nullptr, menu_icon_list_ = nullptr,
          menu_icon_select_button_ = nullptr, menu_icon_restore_button_ = nullptr;
     HIMAGELIST menu_icon_images_ = nullptr;
     UINT dpi_ = 96;
+    UINT icon_dpi_ = 0;
     std::vector<MenuIconTarget> menu_icon_targets_;
     std::unique_ptr<MenuEditorWindow> menu_editor_;
     MenuEditorWindow::SourceSnapshot menu_snapshot_;
@@ -236,17 +238,16 @@ void UiState::create_page(bool icons, HWND parent, const SettingsPageContext& co
         menu_icon_targets_ = targets_();
             menu_icon_heading_ = CreateWindowW(L"STATIC", text("settings.menu_icons.heading"),
         WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
-    menu_icon_scope_ = CreateWindowW(L"STATIC", text("settings.menu_icons.scope"),
-        WS_CHILD | WS_VISIBLE, 0, 0, 0, 0, window_, nullptr, instance_, nullptr);
-    menu_icon_list_ = CreateWindowExW(WS_EX_STATICEDGE, WC_LISTVIEWW, L"",
+    menu_icon_list_ = CreateWindowExW(0, WC_LISTVIEWW, L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(menu_icon_list_identifier)), instance_, nullptr);
     ListView_SetExtendedListViewStyle(menu_icon_list_,
         LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_LABELTIP);
     settings_visual_style::style_list_view(menu_icon_list_);
-    menu_icon_images_ = ImageList_Create(MulDiv(32, dpi_, 96), MulDiv(32, dpi_, 96),
+    menu_icon_images_ = ImageList_Create(MulDiv(32, dpi_, 96), MulDiv(36, dpi_, 96),
         ILC_COLOR32 | ILC_MASK, 8, 8);
+    icon_dpi_ = dpi_;
     ListView_SetImageList(menu_icon_list_, menu_icon_images_, LVSIL_SMALL);
     LVCOLUMNW icon_column{.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM};
     icon_column.cx = 90;
@@ -272,6 +273,8 @@ void UiState::create_page(bool icons, HWND parent, const SettingsPageContext& co
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON, 0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(menu_icon_restore_identifier)),
         instance_, nullptr);
+    settings_visual_style::style_button(menu_icon_select_button_);
+    settings_visual_style::style_button(menu_icon_restore_button_);
     refresh_menu_icon_list();
 
 
@@ -292,26 +295,46 @@ void UiState::create_page(bool icons, HWND parent, const SettingsPageContext& co
 }
 void UiState::layout_page(bool icons, int width, int height, UINT dpi, HFONT font) {
     dpi_ = dpi;
+    auto& typography = icons ? icon_typography_ : editor_typography_;
+    typography.update(font, dpi);
     const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
     const auto place = [&](HWND control, int x, int y, int w, int h) {
-        SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+        SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography.body()), TRUE);
         MoveWindow(control, x, y, std::max(1, w), std::max(1, h), TRUE);
     };
     if (!icons) {
         menu_editor_->set_dpi(dpi);
-        place(editor_heading_, 0, 0, width, scale(32));
-        place(theme_label_, 0, scale(42), width / 3, scale(28));
-        place(theme_, width / 3, scale(38), std::min(scale(260), width * 2 / 3), scale(180));
-        menu_editor_->set_bounds(0, scale(82), width, std::max(1, height - scale(82)));
+        place(editor_heading_, 0, 0, width, scale(36));
+        SendMessageW(editor_heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography.title()), TRUE);
+        place(theme_label_, 0, scale(57), scale(120), scale(24));
+        SendMessageW(theme_label_, WM_SETFONT, reinterpret_cast<WPARAM>(typography.section()), TRUE);
+        const int theme_x = scale(136);
+        place(theme_, theme_x, scale(52), std::min(scale(200), width - theme_x), scale(180));
+        menu_editor_->set_bounds(0, scale(100), width, std::max(1, height - scale(100)));
         return;
     }
-    place(menu_icon_heading_, 0, 0, width, scale(32));
-    place(menu_icon_scope_, 0, scale(38), width, scale(44));
-    place(menu_icon_select_button_, 0, scale(88), std::min(width / 2, scale(140)), scale(34));
-    place(menu_icon_restore_button_, std::min(width / 2, scale(150)), scale(88),
-          std::min(width / 2, scale(190)), scale(34));
-    place(menu_icon_list_, 0, scale(134), width, height - scale(134));
-    const int widths[]{scale(100), scale(170), std::max(scale(180), width - scale(390)), scale(110)};
+    place(menu_icon_heading_, 0, 0, width, scale(36));
+    SendMessageW(menu_icon_heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography.title()), TRUE);
+    place(menu_icon_select_button_, 0, scale(56), scale(120), scale(32));
+    place(menu_icon_restore_button_, scale(128), scale(56), scale(180), scale(32));
+    place(menu_icon_list_, 0, scale(100), width, height - scale(100));
+    if (icon_dpi_ != dpi || !menu_icon_images_) {
+        if (const auto next = ImageList_Create(scale(32), scale(36), ILC_COLOR32 | ILC_MASK, 8, 8)) {
+            const auto selection = selected_menu_icon_index();
+            ListView_SetImageList(menu_icon_list_, next, LVSIL_SMALL);
+            if (menu_icon_images_) ImageList_Destroy(menu_icon_images_);
+            menu_icon_images_ = next;
+            icon_dpi_ = dpi;
+            refresh_menu_icon_list(selection);
+        }
+    }
+    RECT list_client{};
+    GetClientRect(menu_icon_list_, &list_client);
+    const int available = std::max(1L, list_client.right - scale(4));
+    const int menu_width = scale(96), source_width = scale(120);
+    const int name_width = scale(176);
+    const int widths[]{menu_width, name_width,
+        std::max(scale(240), available - menu_width - name_width - source_width), source_width};
     for (int i = 0; i < 4; ++i) ListView_SetColumnWidth(menu_icon_list_, i, widths[i]);
 }
 void UiState::refresh_language(const Localization& localization) {
@@ -326,8 +349,8 @@ void UiState::refresh_language(const Localization& localization) {
         menu_editor_->set_language(std::string(localization_.language_code()));
     }
     if (!menu_icon_list_) return;
+    settings_visual_style::set_list_empty_text(menu_icon_list_, text("settings.menu_icons.empty"));
     SetWindowTextW(menu_icon_heading_, text("settings.menu_icons.heading"));
-    SetWindowTextW(menu_icon_scope_, text("settings.menu_icons.scope"));
     SetWindowTextW(menu_icon_select_button_, text("settings.menu_icons.select"));
     SetWindowTextW(menu_icon_restore_button_, text("settings.menu_icons.restore_auto"));
     const std::string_view keys[]{"settings.menu_icons.column.menu", "settings.menu_icons.column.name",

@@ -60,6 +60,7 @@ public:
     ~MappingSettingsPage() override {
         keyboard_manager_.end_mapping_capture();
         if (window_) DestroyWindow(window_);
+        if (images_) ImageList_Destroy(images_);
     }
     void create(const SettingsPageContext& context) override {
         instance_ = context.instance;
@@ -81,12 +82,22 @@ public:
         create_controls();
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
+        typography_.update(font, dpi);
         MoveWindow(window_, bounds.left, bounds.top, bounds.right - bounds.left,
                    bounds.bottom - bounds.top, TRUE);
-        for (auto control : {keyboard_mapping_heading_, keyboard_mapping_scope_,
-                keyboard_mapping_switch_, keyboard_mapping_list_, keyboard_mapping_add_button_,
+        for (auto control : {keyboard_mapping_switch_, keyboard_mapping_list_, keyboard_mapping_add_button_,
                 keyboard_mapping_edit_button_, keyboard_mapping_delete_button_}) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
+        }
+        SendMessageW(keyboard_mapping_heading_, WM_SETFONT,
+            reinterpret_cast<WPARAM>(typography_.title()), TRUE);
+        if (dpi_ != dpi || !images_) {
+            if (const auto next = toggle_switch::create_state_image_list(dpi)) {
+                ListView_SetImageList(keyboard_mapping_list_, next, LVSIL_STATE);
+                if (images_) ImageList_Destroy(images_);
+                images_ = next;
+            }
+            dpi_ = dpi;
         }
         layout_controls(bounds.right - bounds.left, bounds.bottom - bounds.top, dpi);
     }
@@ -143,28 +154,28 @@ private:
     Localization localization_{UiLanguage::simplified_chinese};
     std::string language_code_;
     HWND keyboard_mapping_heading_ = nullptr;
-    HWND keyboard_mapping_scope_ = nullptr;
     HWND keyboard_mapping_switch_ = nullptr;
     HWND keyboard_mapping_list_ = nullptr;
     HWND keyboard_mapping_add_button_ = nullptr;
     HWND keyboard_mapping_edit_button_ = nullptr;
     HWND keyboard_mapping_delete_button_ = nullptr;
+    settings_visual_style::PageTypography typography_;
+    HIMAGELIST images_ = nullptr;
+    UINT dpi_ = 0;
     bool refreshing_keyboard_mappings_ = false;
 };
 void MappingSettingsPage::create_controls() {
     keyboard_mapping_heading_ = CreateWindowW(
         L"STATIC", text("settings.keyboard_mappings.heading"), WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
-    keyboard_mapping_scope_ = CreateWindowW(
-        L"STATIC", text("settings.keyboard_mappings.scope"), WS_CHILD | WS_VISIBLE,
-        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     keyboard_mapping_switch_ = toggle_switch::create(
         instance_, window_, keyboard_mapping_switch_identifier,
         text("settings.keyboard_mappings.enabled"),
         settings_.enabled, true);
     keyboard_mapping_list_ = CreateWindowExW(
-        WS_EX_STATICEDGE, WC_LISTVIEWW, L"",
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
+        0, WC_LISTVIEWW, L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL
+            | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(keyboard_mapping_list_identifier)), instance_, nullptr);
     ListView_SetExtendedListViewStyle(keyboard_mapping_list_,
@@ -207,17 +218,20 @@ void MappingSettingsPage::create_controls() {
         L"BUTTON", text("settings.delete"), WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(keyboard_mapping_delete_identifier)), instance_, nullptr);
+    for (auto button : {keyboard_mapping_add_button_, keyboard_mapping_edit_button_,
+                        keyboard_mapping_delete_button_}) {
+        settings_visual_style::style_button(button);
+    }
     refresh_keyboard_mapping_list();
 
 }
 void MappingSettingsPage::refresh_language(const Localization& localization) {
     localization_.set_language(std::string(localization.language_code()));
     language_code_ = localization_.language_code();
+    settings_visual_style::set_list_empty_text(keyboard_mapping_list_, text("settings.keyboard_mappings.empty"));
     LVCOLUMNW column{.mask = LVCF_TEXT};
     SetWindowTextW(keyboard_mapping_heading_,
                    text("settings.keyboard_mappings.heading"));
-    SetWindowTextW(keyboard_mapping_scope_,
-                   text("settings.keyboard_mappings.scope"));
     SetWindowTextW(keyboard_mapping_switch_,
                    text("settings.keyboard_mappings.enabled"));
     const std::array mapping_columns{
@@ -240,37 +254,38 @@ void MappingSettingsPage::refresh_language(const Localization& localization) {
 }
 void MappingSettingsPage::layout_controls(int width, int height, UINT dpi) {
     const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
-    const auto wide = scale;
-    const int content_x = 0, content_width = width, page_title_y = 0;
-    const auto page_scope_y = scale(38), body_top = scale(100), body_bottom = height;
-    MoveWindow(keyboard_mapping_heading_, content_x, page_title_y,
-               content_width, scale(32), TRUE);
-    MoveWindow(keyboard_mapping_scope_, content_x, page_scope_y,
-               content_width, scale(48), TRUE);
-    MoveWindow(keyboard_mapping_switch_, content_x, body_top,
-               content_width, scale(32), TRUE);
-    const auto mapping_toolbar_y = body_top + scale(42);
-    MoveWindow(keyboard_mapping_add_button_, content_x, mapping_toolbar_y,
-               wide(100), scale(36), TRUE);
-    MoveWindow(keyboard_mapping_edit_button_, content_x + wide(110), mapping_toolbar_y,
-               wide(100), scale(36), TRUE);
-    MoveWindow(keyboard_mapping_delete_button_, content_x + wide(220), mapping_toolbar_y,
-               wide(100), scale(36), TRUE);
-    const auto mapping_list_y = mapping_toolbar_y + scale(46);
-    MoveWindow(keyboard_mapping_list_, content_x, mapping_list_y,
-               content_width, std::max(scale(100), body_bottom - mapping_list_y), TRUE);
-    const auto mapping_enabled_width = wide(72);
-    const auto mapping_purpose_width = wide(190);
-    const auto mapping_source_width = wide(250);
-    const auto mapping_target_width = wide(220);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 0, mapping_enabled_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 1, mapping_purpose_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 2, mapping_source_width);
-    ListView_SetColumnWidth(keyboard_mapping_list_, 3, mapping_target_width);
+    MoveWindow(keyboard_mapping_heading_, 0, 0, width, scale(36), TRUE);
+    settings_visual_style::style_button(keyboard_mapping_add_button_, settings_visual_style::ButtonStyle::add);
+    settings_visual_style::style_button(keyboard_mapping_edit_button_, settings_visual_style::ButtonStyle::edit);
+    settings_visual_style::style_button(keyboard_mapping_delete_button_, settings_visual_style::ButtonStyle::remove);
+    const int gap = scale(8), button_width = scale(32);
+    const int toolbar_width = 3 * button_width + 2 * gap;
+    const bool stacked = width < scale(220) + toolbar_width + scale(24);
+    MoveWindow(keyboard_mapping_switch_, 0, scale(56),
+               std::min(width, scale(220)), scale(32), TRUE);
+    const int toolbar_y = scale(stacked ? 100 : 56);
+    const int toolbar_x = stacked ? 0 : width - toolbar_width;
+    MoveWindow(keyboard_mapping_add_button_, toolbar_x, toolbar_y,
+               button_width, scale(32), TRUE);
+    MoveWindow(keyboard_mapping_edit_button_, toolbar_x + button_width + gap, toolbar_y,
+               button_width, scale(32), TRUE);
+    MoveWindow(keyboard_mapping_delete_button_, toolbar_x + 2 * (button_width + gap), toolbar_y,
+               button_width, scale(32), TRUE);
+    const int list_y = toolbar_y + scale(44);
+    MoveWindow(keyboard_mapping_list_, 0, list_y, width, std::max(1, height - list_y), TRUE);
+    RECT list_client{};
+    GetClientRect(keyboard_mapping_list_, &list_client);
+    const int available = std::max(1L, list_client.right - scale(4));
+    const int enabled = scale(64);
+    const int source = scale(148), target = scale(148);
+    const int remaining = std::max(scale(224), available - enabled - source - target);
+    const int purpose = std::max(scale(112), remaining * 55 / 100);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 0, enabled);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 1, purpose);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 2, source);
+    ListView_SetColumnWidth(keyboard_mapping_list_, 3, target);
     ListView_SetColumnWidth(keyboard_mapping_list_, 4,
-        std::max(wide(160), content_width - mapping_enabled_width
-            - mapping_purpose_width - mapping_source_width - mapping_target_width - wide(6)));
-
+        std::max(scale(112), remaining - purpose));
 }
 std::wstring MappingSettingsPage::keyboard_mapping_key_label(
     const PhysicalKey& key) const {
@@ -434,9 +449,6 @@ bool MappingSettingsPage::commit_keyboard_mapping(
 
 LRESULT MappingSettingsPage::handle_message(UINT message, WPARAM wparam, LPARAM lparam) {
     if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window_, wparam);
-    if (message == WM_CTLCOLORSTATIC && reinterpret_cast<HWND>(lparam) == keyboard_mapping_scope_) {
-        return settings_visual_style::handle_secondary_text(wparam, lparam);
-    }
     if (settings_visual_style::is_color_message(message)) {
         return settings_visual_style::handle_color_message(message, wparam, lparam);
     }

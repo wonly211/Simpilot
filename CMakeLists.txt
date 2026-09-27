@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 1.0.0 LANGUAGES CXX)
+project(Simpilot VERSION 1.0.1 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -51,6 +51,8 @@ target_link_libraries(simpilot_module_support PUBLIC simpilot_core user32)
 
 include(CTest)
 add_library(simpilot_win32_ui STATIC
+    src/infrastructure/ui/scrollable_form.cpp
+    src/infrastructure/ui/settings_visual_style.cpp
     src/infrastructure/ui/toggle_switch.cpp)
 target_include_directories(simpilot_win32_ui PUBLIC src/infrastructure/ui)
 target_compile_definitions(simpilot_win32_ui PRIVATE
@@ -238,6 +240,13 @@ if(BUILD_TESTING)
     target_compile_options(simpilot_module_support_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
     target_link_libraries(simpilot_module_support_tests PRIVATE simpilot_module_support)
     add_test(NAME simpilot_module_support_tests COMMAND simpilot_module_support_tests)
+    add_executable(simpilot_visual_style_tests tests/visual_style_tests.cpp
+        "${CMAKE_CURRENT_BINARY_DIR}/Simpilot.manifest")
+    target_compile_definitions(simpilot_visual_style_tests PRIVATE
+        UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_visual_style_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_visual_style_tests PRIVATE simpilot_win32_ui)
+    add_test(NAME simpilot_visual_style_tests COMMAND simpilot_visual_style_tests)
     add_executable(simpilot_settings_module_tests
         resources/Simpilot.rc
         "${CMAKE_CURRENT_BINARY_DIR}/BuiltinLanguagePack.rc"

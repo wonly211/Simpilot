@@ -85,11 +85,14 @@ std::optional<CustomGlobalHotKey> CustomHotKeyDialog::run() {
     }
 
     const auto system_dpi = GetDpiForSystem();
+    RECT initial_bounds{0, 0, MulDiv(968, system_dpi, 96), MulDiv(664, system_dpi, 96)};
+    constexpr auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_CLIPCHILDREN;
+    constexpr auto extended = WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME;
+    AdjustWindowRectExForDpi(&initial_bounds, style, FALSE, extended, system_dpi);
     window_ = CreateWindowExW(
-        WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME, dialog_class_name,
-        text("custom_hotkey.window_title"), WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, MulDiv(980, system_dpi, 96),
-        MulDiv(700, system_dpi, 96), owner_, nullptr, instance_, this);
+        extended, dialog_class_name, text("custom_hotkey.window_title"), style,
+        CW_USEDEFAULT, CW_USEDEFAULT, initial_bounds.right - initial_bounds.left,
+        initial_bounds.bottom - initial_bounds.top, owner_, nullptr, instance_, this);
     if (!window_) return std::nullopt;
     settings_visual_style::apply_application_icons(window_, instance_, IDI_SIMPILOT);
     RECT rectangle{};
@@ -97,13 +100,15 @@ std::optional<CustomGlobalHotKey> CustomHotKeyDialog::run() {
     const auto monitor = MonitorFromWindow(owner_, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitor_information{.cbSize = sizeof(monitor_information)};
     GetMonitorInfoW(monitor, &monitor_information);
-    const auto width = rectangle.right - rectangle.left;
-    const auto height = rectangle.bottom - rectangle.top;
+    const auto width = std::min(rectangle.right - rectangle.left,
+        monitor_information.rcWork.right - monitor_information.rcWork.left - MulDiv(48, system_dpi, 96));
+    const auto height = std::min(rectangle.bottom - rectangle.top,
+        monitor_information.rcWork.bottom - monitor_information.rcWork.top - MulDiv(48, system_dpi, 96));
     const auto x = monitor_information.rcWork.left
         + (monitor_information.rcWork.right - monitor_information.rcWork.left - width) / 2;
     const auto y = monitor_information.rcWork.top
         + (monitor_information.rcWork.bottom - monitor_information.rcWork.top - height) / 2;
-    SetWindowPos(window_, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+    SetWindowPos(window_, nullptr, x, y, width, height, SWP_NOZORDER);
 
     if (owner_) EnableWindow(owner_, FALSE);
     ShowWindow(window_, SW_SHOW);
@@ -262,13 +267,13 @@ void CustomHotKeyDialog::update_fonts() {
     const auto old_font = font_;
     const auto old_section_font = section_font_;
     const auto old_title_font = title_font_;
-    font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    title_font_ = CreateFontW(-MulDiv(20, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+    title_font_ = CreateFontW(-MulDiv(24, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    section_font_ = CreateFontW(-MulDiv(16, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+    section_font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     set_font(title_, title_font_);
@@ -281,6 +286,10 @@ void CustomHotKeyDialog::update_fonts() {
         identity_label_, identity_combo_, existing_label_, existing_combo_, visibility_label_,
         visibility_combo_, save_button_, cancel_button_};
     for (const auto control : controls) set_font(control, font_);
+    for (const auto control : {program_browse_, working_directory_browse_})
+        settings_visual_style::style_button(control);
+    settings_visual_style::style_button(save_button_, settings_visual_style::ButtonStyle::primary);
+    settings_visual_style::style_button(cancel_button_, settings_visual_style::ButtonStyle::quiet);
     if (old_font) DeleteObject(old_font);
     if (old_section_font) DeleteObject(old_section_font);
     if (old_title_font) DeleteObject(old_title_font);
@@ -288,22 +297,29 @@ void CustomHotKeyDialog::update_fonts() {
 
 void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     const auto scale = [this](const int value) { return MulDiv(value, dpi_, 96); };
-    const auto margin = scale(24);
-    const auto content_width = width - margin * 2;
-    const auto control_height = scale(34);
+    if (!save_button_) return;
+    form_.attach(window_, {save_button_, cancel_button_});
+    const bool application = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 0;
+    const auto margin = scale(28);
+    const int body_height = scale(application ? 590 : 394);
+    const auto body_width = std::max(scale(696), width - (height - scale(72) < body_height
+        ? GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_) : 0));
+    const auto content_width = application ? body_width - margin * 2 : scale(640);
+    form_.layout(width, height - scale(72), body_width, body_height);
+    const auto control_height = scale(32);
     const auto browse_width = scale(80);
     const auto label_height = scale(24);
     const auto field_gap = scale(8);
 
-    MoveWindow(title_, margin, scale(24), content_width, scale(38), TRUE);
+    MoveWindow(title_, margin, scale(28), content_width, scale(32), TRUE);
     MoveWindow(trigger_heading_, margin, scale(82), content_width, scale(28), TRUE);
     MoveWindow(trigger_type_, margin, scale(116), content_width, scale(20), TRUE);
-    MoveWindow(capture_button_, margin, scale(142), content_width, scale(42), TRUE);
-    MoveWindow(allow_modifiers_, margin, scale(192), content_width, scale(28), TRUE);
-    MoveWindow(divider_, margin, scale(232), content_width, scale(2), TRUE);
+    MoveWindow(capture_button_, margin, scale(140), std::min(content_width, scale(468)), scale(36), TRUE);
+    MoveWindow(allow_modifiers_, margin, scale(184), content_width, scale(32), TRUE);
+    MoveWindow(divider_, margin, scale(232), content_width, scale(1), TRUE);
 
     MoveWindow(action_heading_, margin, scale(250), content_width, scale(28), TRUE);
-    MoveWindow(action_type_, margin, scale(284), content_width, control_height, TRUE);
+    MoveWindow(action_type_, margin, scale(278), std::min(content_width, scale(320)), scale(180), TRUE);
     auto place_edit = [&](const HWND label, const HWND edit, const HWND browse, int& y) {
         MoveWindow(label, margin, y, content_width, label_height, TRUE);
         y += scale(26);
@@ -313,14 +329,14 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
                                browse_width, control_height, TRUE);
         y += scale(48);
     };
-    auto y = scale(334);
+    auto y = scale(326);
     place_edit(program_label_, program_edit_, program_browse_, y);
     place_edit(arguments_label_, arguments_edit_, nullptr, y);
     place_edit(working_directory_label_, working_directory_edit_, working_directory_browse_, y);
 
     const auto advanced_gap = scale(16);
     const auto advanced_width = (content_width - advanced_gap * 2) / 3;
-    const auto advanced_y = scale(556);
+    const auto advanced_y = scale(532);
     const auto place_combo = [&](const HWND label, const HWND combo, const int column) {
         const auto x = margin + column * (advanced_width + advanced_gap);
         MoveWindow(label, x, advanced_y, advanced_width, label_height, TRUE);
@@ -330,10 +346,10 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     place_combo(existing_label_, existing_combo_, 1);
     place_combo(visibility_label_, visibility_combo_, 2);
 
-    MoveWindow(cancel_button_, width - margin - scale(96), height - scale(54),
-               scale(96), scale(38), TRUE);
-    MoveWindow(save_button_, width - margin - scale(202), height - scale(54),
-               scale(96), scale(38), TRUE);
+    MoveWindow(cancel_button_, width - margin - scale(184), height - scale(54),
+               scale(88), scale(36), TRUE);
+    MoveWindow(save_button_, width - margin - scale(88), height - scale(54),
+               scale(88), scale(36), TRUE);
 }
 
 void CustomHotKeyDialog::begin_capture() {
@@ -397,6 +413,8 @@ void CustomHotKeyDialog::handle_capture_result(
 void CustomHotKeyDialog::update_capture_button() {
     const auto label = hotkey_capture_button_text(gesture_, capturing_, localization_);
     SetWindowTextW(capture_button_, label.c_str());
+    settings_visual_style::style_button(capture_button_, capturing_
+        ? settings_visual_style::ButtonStyle::recording : settings_visual_style::ButtonStyle::capture);
 }
 
 void CustomHotKeyDialog::diagnose_capture(const std::wstring_view reason) const noexcept {
@@ -421,6 +439,11 @@ void CustomHotKeyDialog::update_action_controls() {
         ShowWindow(control, application ? SW_SHOW : SW_HIDE);
     }
     update_save_state();
+    if (save_button_) {
+        RECT client{};
+        GetClientRect(window_, &client);
+        layout_controls(client.right, client.bottom);
+    }
 }
 
 void CustomHotKeyDialog::browse_target() {

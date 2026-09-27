@@ -67,10 +67,26 @@ int main() {
                     static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
                 for (int index = 0; index < 26; ++index) {
                     if (index == 11) continue;
-                    (void)settings_page_test::visible_bounds(child, GetDlgItem(child, 100 + index));
+                    SendMessageW(child, WM_COMMAND, MAKEWPARAM(100 + index, BN_SETFOCUS),
+                        reinterpret_cast<LPARAM>(GetDlgItem(child, 100 + index)));
+                    const auto bounds = settings_page_test::visible_bounds(child, GetDlgItem(child, 100 + index));
+                    require(bounds.bottom - bounds.top == MulDiv(32, dpi, 96),
+                        "Blocking controls retain the full switch height");
                 }
+                SendMessageW(child, WM_VSCROLL, SB_TOP, 0);
                 settings_page_test::uniform_background(child);
             }
+            page->layout({0, 0, MulDiv(650, dpi, 96), MulDiv(320, dpi, 96)}, dpi,
+                static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
+            SendMessageW(child, WM_COMMAND, MAKEWPARAM(125, BN_SETFOCUS),
+                reinterpret_cast<LPARAM>(GetDlgItem(child, 125)));
+            (void)settings_page_test::visible_bounds(child, GetDlgItem(child, 125));
+            require(GetScrollPos(child, SB_VERT) > 0,
+                "Keyboard focus reveals lower rows without shrinking switches");
+            SendMessageW(child, WM_COMMAND, MAKEWPARAM(100, BN_SETFOCUS),
+                reinterpret_cast<LPARAM>(GetDlgItem(child, 100)));
+            (void)settings_page_test::visible_bounds(child, GetDlgItem(child, 100));
+            SendMessageW(child, WM_VSCROLL, SB_TOP, 0);
         }
         const auto toggle = GetDlgItem(child, 100);
         SendMessageW(toggle, BM_CLICK, 0, 0);

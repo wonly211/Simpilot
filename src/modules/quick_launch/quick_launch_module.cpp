@@ -512,8 +512,8 @@ std::vector<MenuIconTarget> QuickLaunchModule::collect_menu_icon_targets() const
             }
         }
     };
-    const auto main_menu_name = localization_.text("ui.menu_one");
-    const auto second_menu_name = localization_.text("ui.menu_two");
+    const auto main_menu_name = localization_.text("menu_editor.main_menu");
+    const auto second_menu_name = localization_.text("menu_editor.second_menu");
     collect(document_.get(), main_menu_name);
     collect(secondary_document_.get(), second_menu_name);
     return targets;

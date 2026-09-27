@@ -53,7 +53,7 @@ inline void uniform_background(HWND page) {
     HIGHCONTRASTW contrast{sizeof(contrast)};
     SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
     const auto expected = contrast.dwFlags & HCF_HIGHCONTRASTON
-        ? GetSysColor(COLOR_WINDOW) : RGB(245, 246, 247);
+        ? GetSysColor(COLOR_WINDOW) : RGB(247, 248, 250);
     bool matched = background == expected;
     int checked = 0;
     for (auto child = GetWindow(page, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT)) {
@@ -95,7 +95,7 @@ inline void check_page(simpilot::SettingsRegistry& pages, const wchar_t* class_n
                 page->layout({0, 0, MulDiv(650, dpi, 96), MulDiv(440, dpi, 96)}, dpi, font);
                 page->show(true);
                 for (auto child = GetWindow(window, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT))
-                    (void)visible_bounds(window, child);
+                    if (IsWindowVisible(child)) (void)visible_bounds(window, child);
                 uniform_background(window);
                 page->show(false);
                 require(!IsWindowVisible(window), "Hiding a page hides its controls");

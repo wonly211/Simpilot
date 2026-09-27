@@ -1,6 +1,7 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "settings.windows_shortcuts.block": "屏蔽",
     "settings.tab.windows_shortcuts": "Windows 快捷键屏蔽",
     "settings.windows_shortcuts.heading": "屏蔽 Windows 快捷键",
     "settings.windows_shortcuts.scope": "选择要在简驭运行期间屏蔽的 Windows 快捷键。此功能只实时拦截键盘输入，不会修改系统策略或关闭对应的 Windows 功能。",

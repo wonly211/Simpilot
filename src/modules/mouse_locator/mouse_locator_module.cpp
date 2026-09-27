@@ -2,6 +2,7 @@
 
 #include "cursor_locator.hpp"
 #include "settings_visual_style.hpp"
+#include "toggle_switch.hpp"
 
 #include <algorithm>
 #include <cwctype>
@@ -33,12 +34,12 @@ public:
         if (!window_) throw std::runtime_error("Cannot create mouse locator settings page");
         heading_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
             0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
-        toggle_ = CreateWindowW(L"BUTTON", L"",
-            WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX | BS_MULTILINE,
-            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(1), context.instance, nullptr);
+        label_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(2), context.instance, nullptr);
+        toggle_ = toggle_switch::create(context.instance, window_, 1, L"", draft_.enabled);
         description_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
-            0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
-        if (!heading_ || !toggle_ || !description_) {
+            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(3), context.instance, nullptr);
+        if (!heading_ || !label_ || !toggle_ || !description_) {
             throw std::runtime_error("Cannot create mouse locator settings controls");
         }
         SendMessageW(toggle_, BM_SETCHECK, draft_.enabled ? BST_CHECKED : BST_UNCHECKED, 0);
@@ -46,22 +47,51 @@ public:
         layout({}, context.dpi, context.font);
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
+        bounds_ = bounds;
+        dpi_ = dpi;
+        font_ = font;
+        typography_.update(font, dpi);
         const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
-        MoveWindow(window_, bounds.left, bounds.top, bounds.right - bounds.left,
+        const auto width = std::min<LONG>(scale(640), std::max<LONG>(1, bounds.right - bounds.left));
+        MoveWindow(window_, bounds.left, bounds.top, width,
                    bounds.bottom - bounds.top, TRUE);
-        const auto width = std::max<LONG>(1, bounds.right - bounds.left);
-        MoveWindow(heading_, 0, 0, width, scale(40), TRUE);
-        MoveWindow(toggle_, 0, scale(76), width, scale(48), TRUE);
-        MoveWindow(description_, 0, scale(140), width, scale(96), TRUE);
-        for (auto control : {heading_, toggle_, description_}) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
+        MoveWindow(heading_, 0, 0, width, scale(36), TRUE);
+        SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.title()), TRUE);
+        for (auto control : {label_, toggle_, description_}) {
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         }
+        SendMessageW(description_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.caption()), TRUE);
+        const int label_width = std::max(1L, width - scale(72));
+        const auto dc = GetDC(window_);
+        const auto previous = SelectObject(dc, typography_.body());
+        const auto measured_height = [&](HWND control) {
+            std::wstring text(static_cast<std::size_t>(GetWindowTextLengthW(control)) + 1, L'\0');
+            GetWindowTextW(control, text.data(), static_cast<int>(text.size()));
+            RECT area{0, 0, label_width, 0};
+            DrawTextW(dc, text.c_str(), -1, &area, DT_CALCRECT | DT_WORDBREAK | DT_NOPREFIX);
+            return area.bottom;
+        };
+        const int label_height = measured_height(label_);
+        SelectObject(dc, typography_.caption());
+        const int description_height = measured_height(description_);
+        SelectObject(dc, previous);
+        ReleaseDC(window_, dc);
+        MoveWindow(label_, 0, scale(68), label_width, label_height, TRUE);
+        MoveWindow(description_, 0, scale(72) + label_height,
+                   label_width, description_height, TRUE);
+        const int row_height = std::max(scale(72), label_height + description_height + scale(28));
+        MoveWindow(toggle_, std::max(0L, width - scale(44)),
+                   scale(56) + (row_height - scale(32)) / 2, scale(44), scale(32), TRUE);
+        separator_ = scale(56) + row_height;
+        InvalidateRect(window_, nullptr, TRUE);
     }
     void show(bool visible) override { ShowWindow(window_, visible ? SW_SHOW : SW_HIDE); }
     void refresh_language(const Localization& localization) override {
         SetWindowTextW(heading_, localization.text("settings.section.cursor_locator").data());
         SetWindowTextW(toggle_, localization.text("settings.cursor_locator").data());
+        SetWindowTextW(label_, localization.text("settings.cursor_locator").data());
         SetWindowTextW(description_, localization.text("settings.cursor_locator.description").data());
+        if (font_) layout(bounds_, dpi_, font_);
     }
 
 private:
@@ -73,6 +103,15 @@ private:
         }
         auto* page = reinterpret_cast<MouseLocatorSettingsPage*>(
             GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (page && message == WM_PAINT) {
+            PAINTSTRUCT painting{};
+            const auto dc = BeginPaint(window, &painting);
+            RECT client{};
+            GetClientRect(window, &client);
+            settings_visual_style::draw_separator(dc, 0, client.right, page->separator_, page->dpi_);
+            EndPaint(window, &painting);
+            return 0;
+        }
         if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window, wparam);
         if (page && message == WM_CTLCOLORSTATIC
             && reinterpret_cast<HWND>(lparam) == page->description_) {
@@ -95,7 +134,13 @@ private:
     HWND window_ = nullptr;
     HWND heading_ = nullptr;
     HWND toggle_ = nullptr;
+    HWND label_ = nullptr;
     HWND description_ = nullptr;
+    settings_visual_style::PageTypography typography_;
+    RECT bounds_{};
+    UINT dpi_ = 96;
+    HFONT font_ = nullptr;
+    int separator_ = 0;
 };
 
 class MouseLocatorModule final : public IAppModule {

@@ -47,6 +47,44 @@ void detector_tests() {
     }
 }
 
+void setting_row_tests(simpilot::SettingsRegistry& pages, simpilot::SettingsParticipantRegistry& participants) {
+    settings_page_test::Host host;
+    simpilot::Localization localization(simpilot::UiLanguage::english);
+    const auto font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    simpilot::SettingsSession session(participants, {});
+    int changed = 0;
+    pages.visit([&](const auto&, const auto& contribution) {
+        auto page = contribution.create();
+        page->create({GetModuleHandleW(nullptr), host.window, 96, font, localization, [&] { ++changed; }});
+        const auto window = FindWindowExW(host.window, nullptr, L"Simpilot.MouseLocatorSettingsPage", nullptr);
+        page->show(true);
+        for (const auto language : {simpilot::UiLanguage::english, simpilot::UiLanguage::simplified_chinese,
+                                    simpilot::UiLanguage::traditional_chinese}) {
+            localization.set_language(language);
+            page->refresh_language(localization);
+            for (const UINT dpi : {96U, 144U, 192U}) {
+                for (const int width : {420, 650, 840}) {
+                    page->layout({0, 0, MulDiv(width, dpi, 96), MulDiv(360, dpi, 96)}, dpi, font);
+                    const auto toggle = settings_page_test::visible_bounds(window, GetDlgItem(window, 1));
+                    const auto label = settings_page_test::visible_bounds(window, GetDlgItem(window, 2));
+                    const auto description = settings_page_test::visible_bounds(window, GetDlgItem(window, 3));
+                    require(toggle.right - toggle.left == MulDiv(44, dpi, 96)
+                        && toggle.bottom - toggle.top == MulDiv(32, dpi, 96),
+                        "Pointer setting uses a compact, consistently sized switch");
+                    require(label.right < toggle.left && description.right < toggle.left
+                        && description.top > label.bottom,
+                        "Pointer setting name, description and switch never overlap");
+                }
+            }
+        }
+        SendMessageW(GetDlgItem(window, 1), BM_CLICK, 0, 0);
+        require(changed == 1 && session.dirty(), "Switch changes the module draft without applying it");
+        SendMessageW(GetDlgItem(window, 1), BM_CLICK, 0, 0);
+        require(changed == 2 && !session.dirty(), "Switch can restore the original draft");
+    });
+    session.cancel();
+}
+
 void settings_tests() {
     for (auto language : {simpilot::UiLanguage::english,
                           simpilot::UiLanguage::simplified_chinese,
@@ -85,6 +123,7 @@ void module_tests() {
     module->start();
     require(pages.size() == 1 && participants.size() == 1, "Page and settings contributions");
     settings_page_test::check_page(pages, L"Simpilot.MouseLocatorSettingsPage");
+    setting_row_tests(pages, participants);
     simpilot::SettingsSession session(participants, {});
     require(!session.dirty(), "Fresh module session is clean");
     require(session.apply([](const auto& document) {

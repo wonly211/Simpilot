@@ -10,16 +10,16 @@ namespace {
 COLORREF background_color(const bool dark, const bool high_contrast,
                           const bool selected) noexcept {
     if (high_contrast) return GetSysColor(selected ? COLOR_HIGHLIGHT : COLOR_MENU);
-    if (dark) return selected ? RGB(64, 64, 64) : RGB(32, 32, 32);
-    return selected ? RGB(229, 243, 255) : GetSysColor(COLOR_MENU);
+    if (dark) return selected ? RGB(53, 53, 53) : RGB(32, 32, 32);
+    return selected ? RGB(231, 241, 250) : RGB(255, 255, 255);
 }
 
 COLORREF foreground_color(const bool dark, const bool high_contrast,
                           const bool selected, const bool disabled) noexcept {
     if (disabled) return high_contrast ? GetSysColor(COLOR_GRAYTEXT)
-                                      : dark ? RGB(145, 145, 145) : GetSysColor(COLOR_GRAYTEXT);
+                                      : dark ? RGB(194, 194, 194) : RGB(133, 139, 148);
     if (high_contrast) return GetSysColor(selected ? COLOR_HIGHLIGHTTEXT : COLOR_MENUTEXT);
-    return dark ? RGB(245, 245, 245) : GetSysColor(COLOR_MENUTEXT);
+    return dark ? RGB(243, 243, 243) : RGB(32, 33, 36);
 }
 
 } // namespace
@@ -44,7 +44,7 @@ void LaunchMenuRenderer::begin(const MenuTheme theme, const UINT dpi) {
     high_contrast_ = SystemParametersInfoW(
         SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0)
         && (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0;
-    font_ = CreateFontW(-scale(15), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-scale(14), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
 }
@@ -119,15 +119,13 @@ bool LaunchMenuRenderer::measure(MEASUREITEMSTRUCT& measurement) const noexcept 
               &text_rectangle, DT_CALCRECT | DT_SINGLELINE);
     SelectObject(dc, previous_font);
     ReleaseDC(nullptr, dc);
-    const auto icon_size = scale(24);
     const auto text_height = static_cast<int>(
         text_rectangle.bottom - text_rectangle.top);
     measurement.itemHeight = static_cast<UINT>(
-        std::max(icon_size + scale(10), text_height + scale(14)));
+        std::max(scale(32), text_height + scale(8)));
     measurement.itemWidth = static_cast<UINT>(
-        scale(10) + icon_size + scale(10)
-        + (text_rectangle.right - text_rectangle.left)
-        + (item->submenu ? scale(28) : scale(16)));
+        std::clamp(static_cast<int>(text_rectangle.right - text_rectangle.left) + scale(64),
+            scale(280), scale(360)));
     return true;
 }
 
@@ -176,7 +174,7 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
 
     if (item->separator) {
         const auto line_color = high_contrast_ ? GetSysColor(COLOR_MENUTEXT)
-            : dark_ ? RGB(82, 82, 82) : RGB(210, 210, 210);
+            : dark_ ? RGB(119, 119, 119) : RGB(227, 230, 234);
         const auto pen = CreatePen(PS_SOLID, std::max(1, scale(1)), line_color);
         const auto previous_pen = SelectObject(drawing.hDC, pen);
         const auto y = (drawing.rcItem.top + drawing.rcItem.bottom) / 2;
@@ -187,8 +185,8 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
         return true;
     }
 
-    const auto icon_size = scale(24);
-    const auto icon_x = drawing.rcItem.left + scale(10);
+    const auto icon_size = scale(16);
+    const auto icon_x = drawing.rcItem.left + scale(12);
     const auto icon_y = drawing.rcItem.top
         + ((drawing.rcItem.bottom - drawing.rcItem.top) - icon_size) / 2;
     if (item->icon) {
@@ -201,10 +199,10 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
     const auto previous_text_color = SetTextColor(
         drawing.hDC, foreground_color(dark_, high_contrast_, selected, disabled));
     RECT text_rectangle = drawing.rcItem;
-    text_rectangle.left = icon_x + icon_size + scale(10);
+    text_rectangle.left = icon_x + scale(24);
     text_rectangle.right -= item->submenu ? scale(28) : scale(12);
     DrawTextW(drawing.hDC, item->text.c_str(), static_cast<int>(item->text.size()),
-              &text_rectangle, DT_LEFT | DT_SINGLELINE | DT_VCENTER);
+              &text_rectangle, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
     // Windows draws the submenu glyph after WM_DRAWITEM. We only reserve its
     // space here; drawing another chevron would produce overlapping arrows.
 

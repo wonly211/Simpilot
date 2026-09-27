@@ -1,6 +1,7 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "settings.windows_shortcuts.block": "封鎖",
     "settings.tab.windows_shortcuts": "Windows 快速鍵封鎖",
     "settings.windows_shortcuts.heading": "封鎖 Windows 快速鍵",
     "settings.windows_shortcuts.scope": "選擇要在简驭執行期間封鎖的 Windows 快速鍵。此功能只會即時攔截鍵盤輸入，不會修改系統原則或關閉對應的 Windows 功能。",

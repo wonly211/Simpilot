@@ -2,6 +2,7 @@
 
 #include "resource.h"
 #include "settings_visual_style.hpp"
+#include "toggle_switch.hpp"
 
 #include <commctrl.h>
 
@@ -29,8 +30,8 @@ constexpr int target_action_identifier = 140;
 constexpr int save_identifier = 1;
 constexpr int cancel_identifier = 2;
 constexpr auto no_option = std::numeric_limits<std::size_t>::max();
-constexpr int dialog_client_width = 960;
-constexpr int dialog_client_height = 620;
+constexpr int dialog_client_width = 963;
+constexpr int dialog_client_height = 621;
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT,
@@ -97,7 +98,7 @@ std::optional<KeyboardMappingRule> KeyboardMappingDialog::run() {
         return std::nullopt;
     }
     const auto system_dpi = GetDpiForSystem();
-    constexpr auto dialog_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU;
+    constexpr auto dialog_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_CLIPCHILDREN;
     constexpr auto dialog_extended_style = WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME;
     RECT initial_bounds{
         .left = 0,
@@ -120,13 +121,15 @@ std::optional<KeyboardMappingRule> KeyboardMappingDialog::run() {
     const auto monitor = MonitorFromWindow(owner_, MONITOR_DEFAULTTONEAREST);
     MONITORINFO monitor_information{.cbSize = sizeof(monitor_information)};
     GetMonitorInfoW(monitor, &monitor_information);
-    const auto width = rectangle.right - rectangle.left;
-    const auto height = rectangle.bottom - rectangle.top;
+    const auto width = std::min(rectangle.right - rectangle.left,
+        monitor_information.rcWork.right - monitor_information.rcWork.left - MulDiv(48, system_dpi, 96));
+    const auto height = std::min(rectangle.bottom - rectangle.top,
+        monitor_information.rcWork.bottom - monitor_information.rcWork.top - MulDiv(48, system_dpi, 96));
     const auto x = monitor_information.rcWork.left
         + (monitor_information.rcWork.right - monitor_information.rcWork.left - width) / 2;
     const auto y = monitor_information.rcWork.top
         + (monitor_information.rcWork.bottom - monitor_information.rcWork.top - height) / 2;
-    SetWindowPos(window_, nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+    SetWindowPos(window_, nullptr, x, y, width, height, SWP_NOZORDER);
     if (owner_) EnableWindow(owner_, FALSE);
     ShowWindow(window_, SW_SHOW);
     UpdateWindow(window_);
@@ -264,10 +267,8 @@ void KeyboardMappingDialog::create_controls() {
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(exact_match_identifier)), instance_, nullptr);
-    enabled_ = CreateWindowW(L"BUTTON", text("settings.keyboard_mappings.enabled"),
-        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
-        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
-            static_cast<INT_PTR>(enabled_identifier)), instance_, nullptr);
+    enabled_ = toggle_switch::create(instance_, window_, enabled_identifier,
+        text("settings.keyboard_mappings.rule_enabled"), true, true);
     save_button_ = CreateWindowW(L"BUTTON", text("settings.save"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
@@ -528,10 +529,10 @@ void KeyboardMappingDialog::update_fonts() {
     font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    section_font_ = CreateFontW(-MulDiv(15, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
+    section_font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    title_font_ = CreateFontW(-MulDiv(22, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
+    title_font_ = CreateFontW(-MulDiv(24, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     set_font(title_, title_font_);
@@ -548,6 +549,10 @@ void KeyboardMappingDialog::update_fonts() {
     for (const auto control : controls) set_font(control, font_);
     for (const auto control : source_modifier_combos_) set_font(control, font_);
     for (const auto control : target_modifier_combos_) set_font(control, font_);
+    for (const auto control : {source_record_, target_record_, process_foreground_})
+        settings_visual_style::style_button(control);
+    settings_visual_style::style_button(save_button_, settings_visual_style::ButtonStyle::primary);
+    settings_visual_style::style_button(cancel_button_, settings_visual_style::ButtonStyle::quiet);
     if (old_font) DeleteObject(old_font);
     if (old_section_font) DeleteObject(old_section_font);
     if (old_title_font) DeleteObject(old_title_font);
@@ -555,76 +560,81 @@ void KeyboardMappingDialog::update_fonts() {
 
 void KeyboardMappingDialog::layout_controls(const int width, const int height) {
     const auto scale = [this](const int value) { return MulDiv(value, dpi_, 96); };
-    const auto margin = scale(24);
+    if (!save_button_) return;
+    form_.attach(window_, {save_button_, cancel_button_});
+    const int body_width = std::max(scale(900), width - (height < scale(621)
+        ? GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_) : 0));
+    form_.layout(width, height - scale(72), body_width, scale(549));
+    const auto margin = scale(28);
     const auto column_gap = scale(24);
-    const auto content_width = std::max(1, width - margin * 2);
+    const auto content_width = std::max(1, body_width - margin * 2);
     const auto column_width = std::max(scale(300), (content_width - column_gap) / 2);
     const auto right_x = margin + column_width + column_gap;
-    const auto row_height = scale(34);
+    const auto row_height = scale(32);
     const auto record_width = scale(132);
     const auto summary_width = column_width - record_width - scale(8);
     const auto combo_gap = scale(8);
     const auto half_combo = (column_width - combo_gap) / 2;
 
-    MoveWindow(title_, margin, scale(20), content_width, scale(36), TRUE);
-    MoveWindow(source_heading_, margin, scale(68), column_width, scale(26), TRUE);
-    MoveWindow(target_heading_, right_x, scale(68), column_width, scale(26), TRUE);
-    MoveWindow(source_hint_, margin, scale(98), column_width, scale(40), TRUE);
-    MoveWindow(target_hint_, right_x, scale(98), column_width, scale(40), TRUE);
-    MoveWindow(source_summary_, margin, scale(144), summary_width, row_height, TRUE);
-    MoveWindow(source_record_, margin + summary_width + scale(8), scale(144),
-               record_width, row_height, TRUE);
-    MoveWindow(target_summary_, right_x, scale(144), summary_width, row_height, TRUE);
-    MoveWindow(target_record_, right_x + summary_width + scale(8), scale(144),
-               record_width, row_height, TRUE);
+    MoveWindow(title_, margin, scale(28), content_width, scale(32), TRUE);
+    MoveWindow(source_heading_, margin, scale(84), column_width, scale(20), TRUE);
+    MoveWindow(target_heading_, right_x, scale(84), column_width, scale(20), TRUE);
+    MoveWindow(source_hint_, margin, scale(112), column_width, scale(40), TRUE);
+    MoveWindow(target_hint_, right_x, scale(112), column_width, scale(40), TRUE);
+    MoveWindow(source_summary_, margin, scale(160), summary_width, scale(36), TRUE);
+    MoveWindow(source_record_, margin + summary_width + scale(8), scale(160),
+               record_width, scale(36), TRUE);
+    MoveWindow(target_summary_, right_x, scale(160), summary_width, scale(36), TRUE);
+    MoveWindow(target_record_, right_x + summary_width + scale(8), scale(160),
+               record_width, scale(36), TRUE);
 
-    MoveWindow(source_modifiers_label_, margin, scale(188), column_width, scale(24), TRUE);
-    MoveWindow(target_modifiers_label_, right_x, scale(188), column_width, scale(24), TRUE);
+    MoveWindow(source_modifiers_label_, margin, scale(204), column_width, scale(20), TRUE);
+    MoveWindow(target_modifiers_label_, right_x, scale(204), column_width, scale(20), TRUE);
     for (std::size_t index = 0; index < 4; ++index) {
         const auto x = (index % 2 == 0) ? margin : margin + half_combo + combo_gap;
         const auto target_x = (index % 2 == 0) ? right_x
                                                 : right_x + half_combo + combo_gap;
-        const auto y = scale(index < 2 ? 214 : 254);
+        const auto y = scale(index < 2 ? 232 : 272);
         MoveWindow(source_modifier_combos_[index], x, y, half_combo, row_height, TRUE);
         MoveWindow(target_modifier_combos_[index], target_x, y,
                    half_combo, row_height, TRUE);
     }
 
-    MoveWindow(source_action_label_, margin, scale(300), half_combo, scale(24), TRUE);
-    MoveWindow(source_chord_label_, margin + half_combo + combo_gap, scale(300),
+    MoveWindow(source_action_label_, margin, scale(316), half_combo, scale(24), TRUE);
+    MoveWindow(source_chord_label_, margin + half_combo + combo_gap, scale(316),
                half_combo, scale(24), TRUE);
-    MoveWindow(target_action_label_, right_x, scale(300), column_width, scale(24), TRUE);
-    MoveWindow(source_action_combo_, margin, scale(326), half_combo, row_height, TRUE);
-    MoveWindow(source_chord_combo_, margin + half_combo + combo_gap, scale(326),
+    MoveWindow(target_action_label_, right_x, scale(316), column_width, scale(24), TRUE);
+    MoveWindow(source_action_combo_, margin, scale(342), half_combo, row_height, TRUE);
+    MoveWindow(source_chord_combo_, margin + half_combo + combo_gap, scale(342),
                half_combo, row_height, TRUE);
-    MoveWindow(target_action_combo_, right_x, scale(326), column_width, row_height, TRUE);
+    MoveWindow(target_action_combo_, right_x, scale(342), column_width, row_height, TRUE);
 
-    MoveWindow(divider_, margin, scale(378), content_width, scale(2), TRUE);
-    const auto purpose_y = scale(400);
-    const auto process_y = scale(444);
-    const auto label_width = scale(104);
-    const auto foreground_width = scale(170);
+    MoveWindow(divider_, margin, scale(394), content_width, scale(1), TRUE);
+    const auto purpose_y = scale(416);
+    const auto process_y = scale(460);
+    const auto label_width = scale(88);
+    const auto foreground_width = scale(164);
     MoveWindow(purpose_label_, margin, purpose_y, label_width, row_height, TRUE);
-    MoveWindow(purpose_edit_, margin + label_width + scale(8), purpose_y,
-               content_width - label_width - scale(8), row_height, TRUE);
+    MoveWindow(purpose_edit_, margin + label_width + scale(16), purpose_y,
+               content_width - label_width - scale(16), row_height, TRUE);
     MoveWindow(process_label_, margin, process_y, label_width, row_height, TRUE);
-    MoveWindow(process_edit_, margin + label_width + scale(8), process_y,
-               content_width - label_width - foreground_width - scale(20),
+    MoveWindow(process_edit_, margin + label_width + scale(16), process_y,
+               content_width - label_width - foreground_width - scale(28),
                row_height, TRUE);
-    MoveWindow(process_foreground_, width - margin - foreground_width, process_y,
+    MoveWindow(process_foreground_, body_width - margin - foreground_width, process_y,
                foreground_width, row_height, TRUE);
     const auto checkbox_y = process_y + scale(48);
-    MoveWindow(exact_match_, margin, checkbox_y, content_width / 2,
+    MoveWindow(exact_match_, margin + label_width + scale(16), checkbox_y,
+               content_width / 2 - label_width - scale(16),
                row_height, TRUE);
     MoveWindow(enabled_, margin + content_width / 2, checkbox_y,
                content_width / 2, row_height, TRUE);
-    const auto button_height = scale(34);
-    const auto button_y = std::max(checkbox_y + row_height + scale(20),
-                                   height - margin - button_height);
-    MoveWindow(cancel_button_, width - margin - scale(100), button_y,
-               scale(100), button_height, TRUE);
-    MoveWindow(save_button_, width - margin - scale(210), button_y,
-               scale(100), button_height, TRUE);
+    const auto button_height = scale(36);
+    const auto button_y = height - scale(54);
+    MoveWindow(cancel_button_, width - margin - scale(184), button_y,
+               scale(88), button_height, TRUE);
+    MoveWindow(save_button_, width - margin - scale(88), button_y,
+               scale(88), button_height, TRUE);
 }
 
 void KeyboardMappingDialog::begin_trigger_capture() {

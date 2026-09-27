@@ -13,6 +13,45 @@ namespace {
 void require(bool condition, const char* message) {
     if (!condition) throw std::runtime_error(message);
 }
+
+void task_row_tests(simpilot::SettingsRegistry& pages) {
+    settings_page_test::Host host;
+    simpilot::Localization localization(simpilot::UiLanguage::english);
+    const auto font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    pages.visit([&](const auto&, const auto& contribution) {
+        auto page = contribution.create();
+        page->create({GetModuleHandleW(nullptr), host.window, 96, font, localization, {}});
+        const auto window = FindWindowExW(host.window, nullptr, L"Simpilot.EverythingSettingsPage", nullptr);
+        page->show(true);
+        for (const auto language : {simpilot::UiLanguage::english, simpilot::UiLanguage::simplified_chinese,
+                                    simpilot::UiLanguage::traditional_chinese}) {
+            localization.set_language(language);
+            page->refresh_language(localization);
+            for (const UINT dpi : {96U, 144U, 192U}) {
+                for (const int width : {420, 650, 840}) {
+                    page->layout({0, 0, MulDiv(width, dpi, 96), MulDiv(360, dpi, 96)}, dpi, font);
+                    LONG previous_bottom = 0;
+                    for (int id : {1, 2}) {
+                        const auto button = GetDlgItem(window, id);
+                        const auto action = settings_page_test::visible_bounds(window, button);
+                        require(action.right - action.left > MulDiv(100, dpi, 96)
+                            && action.bottom - action.top == MulDiv(32, dpi, 96),
+                            "Everything task actions stay compact at every width and DPI");
+                        require(action.left == 0 && action.top > previous_bottom
+                            && !IsWindowVisible(GetDlgItem(window, id + 10)),
+                            "Actions are left-aligned text commands without duplicate labels");
+                        require(!IsWindowEnabled(button), "Unavailable Everything tasks remain disabled");
+                        LOGFONTW actual_font{};
+                        GetObjectW(reinterpret_cast<HFONT>(SendMessageW(button, WM_GETFONT, 0, 0)),
+                                   sizeof(actual_font), &actual_font);
+                        require(actual_font.lfHeight == -MulDiv(14, dpi, 96), "Task actions use 14dip body type");
+                        previous_bottom = action.bottom;
+                    }
+                }
+            }
+        }
+    });
+}
 }
 
 int main() {
@@ -44,6 +83,7 @@ int main() {
         require(tray.size() == 2, "Module contributes both maintenance commands");
         require(pages.size() == 1, "Module contributes its own settings page");
         settings_page_test::check_page(pages, L"Simpilot.EverythingSettingsPage");
+        task_row_tests(pages);
         {
             simpilot::SettingsSession session(participants, {});
             hotkeys.visit([](const auto&, const auto& contribution) {

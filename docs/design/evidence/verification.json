@@ -1,0 +1,96 @@
+{
+  "generatedAt": "2026-09-27T00:56:04.459Z",
+  "productionFilesCompared": 173,
+  "productionFilesUnchanged": true,
+  "changed": [],
+  "removed": [],
+  "headUnchanged": true,
+  "originalImageFilesVerified": 39,
+  "evidenceIds": 37,
+  "retiredEvidenceIds": [
+    "N14"
+  ],
+  "linkedInputsUnchangedAfterCurrentWorkspaceBuild": true,
+  "libraryChecks": [
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/BuiltinLanguagePack.rc",
+      "expected": "525a2c312a17ba63e6ff5c368be81c104a0155acbc48f18713448c7fcd211985",
+      "actual": "525a2c312a17ba63e6ff5c368be81c104a0155acbc48f18713448c7fcd211985"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/builtin-languages.lng",
+      "expected": "faa8f368043948f3bce21d9fd619da51f3261209d997ff6957eadbc4e7b355bd",
+      "actual": "faa8f368043948f3bce21d9fd619da51f3261209d997ff6957eadbc4e7b355bd"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Simpilot.manifest",
+      "expected": "bc60a807a6c50ab3e2cea85e68c0d9facdbd7fdbeb3aa7abe22c5f8173e07ab2",
+      "actual": "bc60a807a6c50ab3e2cea85e68c0d9facdbd7fdbeb3aa7abe22c5f8173e07ab2"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/everything/Release/simpilot_module_everything.lib",
+      "expected": "d3ba6540da2990a83f497052403ac257a7c547f33782fcec7be9b725317989d5",
+      "actual": "d3ba6540da2990a83f497052403ac257a7c547f33782fcec7be9b725317989d5"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/mouse_locator/Release/simpilot_module_mouse_locator.lib",
+      "expected": "9dbe2ce7610d42a228674d7ef90f773b672961b5a8b47a29b011ee2a51cb1e32",
+      "actual": "9dbe2ce7610d42a228674d7ef90f773b672961b5a8b47a29b011ee2a51cb1e32"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/windows_hotkey_blocker/Release/simpilot_module_windows_hotkey_blocker.lib",
+      "expected": "4885e2554064bfa50164d948ee45490dae2b05dcdf67e2baed7c0c4119cc0914",
+      "actual": "4885e2554064bfa50164d948ee45490dae2b05dcdf67e2baed7c0c4119cc0914"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/custom_hotkey/Release/simpilot_module_custom_hotkey.lib",
+      "expected": "a2ee8ce887f5c1d17e7a5ec4f5ac5dad18103cdae6b5101591c4984e135bc3bc",
+      "actual": "a2ee8ce887f5c1d17e7a5ec4f5ac5dad18103cdae6b5101591c4984e135bc3bc"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/keyboard_mapping/Release/simpilot_module_keyboard_mapping.lib",
+      "expected": "93e5e4bd3351a47b888975fdd868e157f7c9674f59af3c405925a08bd029cffa",
+      "actual": "93e5e4bd3351a47b888975fdd868e157f7c9674f59af3c405925a08bd029cffa"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/quick_launch/Release/simpilot_module_quick_launch.lib",
+      "expected": "03f3d44c058a821ff97994d844c39d8900e8d79f229b7cc123e9a62fb91eaa2a",
+      "actual": "03f3d44c058a821ff97994d844c39d8900e8d79f229b7cc123e9a62fb91eaa2a"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_core.lib",
+      "expected": "7a54e12163b9107ed2140780aa2c35190fe3344c6542435f27e5bac046459825",
+      "actual": "7a54e12163b9107ed2140780aa2c35190fe3344c6542435f27e5bac046459825"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_keyboard.lib",
+      "expected": "1d684cc6d72b0f7183688174334a481dd5c20deb1aa8779a3355812fbc75343b",
+      "actual": "1d684cc6d72b0f7183688174334a481dd5c20deb1aa8779a3355812fbc75343b"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_module_support.lib",
+      "expected": "450b747977a7e2972e8920dd3799fa76913f41fdedc328d8ba00355eb3e4ddee",
+      "actual": "450b747977a7e2972e8920dd3799fa76913f41fdedc328d8ba00355eb3e4ddee"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_win32_ui.lib",
+      "expected": "51859728bb0fae2841aee07c5a1f76ca6335da0032309cfae7223e5248aacb6f",
+      "actual": "51859728bb0fae2841aee07c5a1f76ca6335da0032309cfae7223e5248aacb6f"
+    },
+    {
+      "path": "E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_hotkey_ui.lib",
+      "expected": "7fe176afcc1cacf43b639c88e47b092cf8eb8c0a8bd68f36642829c22c7a8a46",
+      "actual": "7fe176afcc1cacf43b639c88e47b092cf8eb8c0a8bd68f36642829c22c7a8a46"
+    }
+  ],
+  "fixtureExecutableSha256": "4662605e31fc391694c3777f063e025e5787be54edae64cd0f8358e288c3eb13",
+  "fixtureSelfTestReceipt": "self-test-results.ini",
+  "nativeDpiMeasured": [
+    144
+  ],
+  "nativeDpiUnverified": [
+    96,
+    192
+  ],
+  "nativeCoverageComplete": false
+}

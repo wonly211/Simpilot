@@ -1,0 +1,66 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		212 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise
+			213 图像
+			214 文本 Simpilot
+			215 文本 设置
+			216 列表 设置 ID: 250
+				217 列表项目 (selectable) 常规
+				218 列表项目 (selectable) 快捷启动菜单
+				219 列表项目 (selectable) 菜单图标
+				220 列表项目 (selectable) 全局热键
+				221 列表项目 (selectable) 键盘映射
+				222 列表项目 (selectable) Everything 搜索
+				223 列表项目 (selectable) 光标定位
+				224 列表项目 (selectable) Windows 快捷键屏蔽
+			225 文本 有未应用的更改
+			226 窗格
+				227 文本 常规设置
+				228 文本 登录 Windows 后自动启动简驭 | Simpilot ID: 11
+				229 复选框 登录 Windows 后自动启动简驭 | Simpilot ID: 10
+				230 文本 显示语言
+				231 组合框 (settable, string) 显示语言 Value: 简体中文 ID: 12
+					232 文本 (settable, string) 显示语言 Value: 简体中文
+					233 按钮 打开 ID: DropDown
+			234 按钮 取消 ID: 2
+			235 按钮 应用 ID: 3
+			236 按钮 保存 ID: 1
+			237 标题栏 (settable, string) Value: 简驭 | Simpilot - 设置
+				238 菜单栏 系统 ID: MenuBar
+					239 菜单项 系统
+				240 按钮 最小化
+				241 按钮 最大化
+				242 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | zh-CN | Commit: FAILURE | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{90D41B7B-1E26-47A8-A802-FEBA3A049C30} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Fake commit returned FAILURE; real SettingsSession rollback executed.
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				211 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise.

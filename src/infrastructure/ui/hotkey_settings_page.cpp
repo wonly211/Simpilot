@@ -74,13 +74,9 @@ public:
         if (!window_) throw std::runtime_error("Cannot create hotkey settings page");
         heading_ = control(L"STATIC", 0, 0);
         status_ = control(L"STATIC", 0, 0);
-        constexpr std::string_view keys[]{"settings.global_hotkeys.column.enabled",
-            "settings.global_hotkeys.column.function", "settings.global_hotkeys.column.hotkey",
-            "settings.global_hotkeys.column.command"};
-        for (std::size_t i = 0; i < headers_.size(); ++i) {
-            headers_[i] = control(L"STATIC", 0, i == 0 ? SS_CENTER : SS_LEFT);
-            header_keys_[i] = keys[i];
-        }
+        section_heading_ = control(L"STATIC", 0, 0);
+        hotkey_heading_ = control(L"STATIC", 0, 0);
+        enabled_heading_ = control(L"STATIC", 0, 0);
         for (const auto& draft : hotkeys_.editable_drafts()) {
             if (draft.common_row) add_row(draft);
         }
@@ -99,6 +95,7 @@ public:
     void layout(RECT bounds, UINT dpi, HFONT font) override {
         dpi_ = dpi;
         font_ = font;
+        typography_.update(font, dpi);
         MoveWindow(window_, bounds.left, bounds.top, std::max(1L, bounds.right - bounds.left),
                    std::max(1L, bounds.bottom - bounds.top), TRUE);
         arrange();
@@ -112,9 +109,10 @@ public:
     void refresh_language(const Localization& localization) override {
         localization_ = &localization;
         SetWindowTextW(heading_, localization.text("settings.global_hotkeys.heading").data());
-        for (std::size_t i = 0; i < headers_.size(); ++i) {
-            SetWindowTextW(headers_[i], localization.text(header_keys_[i]).data());
-        }
+        SetWindowTextW(section_heading_, localization.text("settings.section.built_in_hotkeys").data());
+        SetWindowTextW(hotkey_heading_, localization.text("settings.hotkeys.column.gesture").data());
+        SetWindowTextW(enabled_heading_, localization.text("settings.hotkeys.column.enabled").data());
+        if (capture_failed_) SetWindowTextW(status_, localization.text("settings.capture_failed").data());
         refresh_rows();
         for (auto& section : sections_) section->refresh_language(localization);
     }
@@ -133,10 +131,15 @@ private:
     void add_row(const HotkeyDraftBinding& draft) {
         if (rows_.size() >= 1000) throw std::runtime_error("Too many hotkey settings rows");
         const auto id = 100 + static_cast<int>(rows_.size()) * 3;
-        rows_.push_back({draft, control(L"STATIC", 0, SS_CENTERIMAGE),
-            control(L"BUTTON", id, WS_TABSTOP | BS_PUSHBUTTON),
-            control(L"BUTTON", id + 1, WS_TABSTOP | BS_PUSHBUTTON),
+        rows_.push_back({draft, control(L"STATIC", 0, SS_LEFT),
+            control(L"BUTTON", id, WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY),
+            control(L"BUTTON", id + 1, WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY),
             toggle_switch::create(instance_, window_, id + 2, L"", false)});
+        if (!rows_.back().enabled) throw std::runtime_error("Cannot create hotkey enable switch");
+        SetWindowLongPtrW(rows_.back().enabled, GWL_STYLE,
+            GetWindowLongPtrW(rows_.back().enabled, GWL_STYLE) | BS_NOTIFY);
+        settings_visual_style::style_button(rows_.back().capture);
+        settings_visual_style::style_button(rows_.back().clear, settings_visual_style::ButtonStyle::clear);
     }
     void refresh_rows() {
         for (std::size_t i = 0; i < rows_.size(); ++i) {
@@ -144,11 +147,22 @@ private:
             const auto active = row.draft.active();
             const auto value = active ? row.draft.read() : BuiltInHotKey{};
             SetWindowTextW(row.label, localization_->text(row.draft.label_key).data());
-            SetWindowTextW(row.clear, localization_->text("settings.clear").data());
-            const auto title = hotkey_capture_button_text(value.binding.gesture,
-                capturing_ == i, *localization_);
+            const auto clear_name = std::wstring(localization_->text("settings.clear")) + L" "
+                + std::wstring(localization_->text(row.draft.label_key));
+            SetWindowTextW(row.clear, clear_name.c_str());
+            const auto title = capturing_ == i || !value.binding.gesture
+                ? hotkey_capture_button_text(value.binding.gesture, capturing_ == i, *localization_)
+                : value.binding.gesture->display_text();
             SetWindowTextW(row.capture, title.c_str());
-            SetWindowTextW(row.enabled, localization_->text(row.draft.label_key).data());
+            settings_visual_style::style_button(row.capture, capturing_ == i
+                ? settings_visual_style::ButtonStyle::recording : settings_visual_style::ButtonStyle::capture);
+            const auto tooltip = hotkey_capture_button_text(value.binding.gesture, capturing_ == i, *localization_);
+            settings_visual_style::set_button_tooltip(row.capture, tooltip);
+            settings_visual_style::set_button_tooltip(row.clear, clear_name);
+            const auto label = localization_->text(row.draft.label_key);
+            const auto name = std::vformat(localization_->text("settings.enable_hotkey"),
+                std::make_wformat_args(label));
+            SetWindowTextW(row.enabled, name.c_str());
             SendMessageW(row.enabled, BM_SETCHECK, value.enabled ? BST_CHECKED : BST_UNCHECKED, 0);
             EnableWindow(row.capture, active);
             EnableWindow(row.clear, active && value.binding.gesture.has_value());
@@ -161,8 +175,15 @@ private:
         RECT client{};
         GetClientRect(window_, &client);
         const int height = std::max(1L, client.bottom);
-        const int section_height = scale(250);
-        const int content_height = scale(110 + static_cast<int>(rows_.size()) * 48)
+        // Decide wrapping before showing the scrollbar so its appearance cannot flip the layout.
+        RECT outer{};
+        GetWindowRect(window_, &outer);
+        compact_ = outer.right - outer.left < scale(492);
+        const int row_height = scale(compact_ ? 88 : 56);
+        const int section_height = scale(216);
+        const int section_top = scale(80) + static_cast<int>(rows_.size()) * row_height
+            + scale(capture_failed_ ? 56 : 16);
+        const int content_height = section_top
             + static_cast<int>(sections_.size()) * section_height;
         scroll_ = std::clamp(scroll_, 0, std::max(0, content_height - height));
         SCROLLINFO info{sizeof(info), SIF_RANGE | SIF_PAGE | SIF_POS,
@@ -171,36 +192,62 @@ private:
         // Updating the scroll range can change the client width.
         GetClientRect(window_, &client);
         const int width = std::max(1L, client.right);
-        const int gap = std::min(scale(12), width / 20);
-        const int toggle_width = std::min(scale(72), width / 6);
-        const int clear_width = std::min(scale(80), width / 6);
-        const int flexible_width = std::max(2, width - toggle_width - clear_width - gap * 3);
-        const int label_width = flexible_width * 45 / 100;
-        const int capture_width = flexible_width - label_width;
-        auto place = [&](HWND control, int x, int y, int w, int h) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font_), TRUE);
+        const int gap = scale(12);
+        const int toggle_width = scale(44);
+        const int clear_width = scale(32);
+        const int trailing_width = scale(96);
+        const int label_width = compact_ ? width : scale(132);
+        const int capture_x = compact_ ? 0 : scale(144);
+        const int capture_width = std::max(1,
+            std::min(scale(228), width - capture_x - trailing_width));
+        const int clear_x = capture_x + capture_width + scale(8);
+        const int toggle_x = clear_x + clear_width + gap;
+        auto place = [&](HWND control, int x, int y, int w, int h, HFONT font = nullptr) {
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font ? font : typography_.body()), TRUE);
             MoveWindow(control, x, y - scroll_, w, h, TRUE);
         };
-        place(heading_, 0, 0, width, scale(30));
-        const int label_x = toggle_width + gap;
-        const int capture_x = label_x + label_width + gap;
-        const int clear_x = capture_x + capture_width + gap;
-        const int xs[]{0, label_x, capture_x, clear_x};
-        const int widths[]{toggle_width, label_width, capture_width, clear_width};
-        for (int i = 0; i < 4; ++i) place(headers_[i], xs[i], scale(38), widths[i], scale(28));
+        place(heading_, 0, 0, width, scale(36), typography_.title());
+        place(section_heading_, 0, scale(56), label_width, scale(20), typography_.section());
+        place(hotkey_heading_, capture_x, scale(56), capture_width, scale(20), typography_.caption());
+        place(enabled_heading_, toggle_x, scale(56), toggle_width, scale(20), typography_.caption());
+        ShowWindow(hotkey_heading_, compact_ ? SW_HIDE : SW_SHOWNA);
+        ShowWindow(enabled_heading_, compact_ ? SW_HIDE : SW_SHOWNA);
         for (std::size_t i = 0; i < rows_.size(); ++i) {
-            const int y = scale(72 + static_cast<int>(i) * 48);
-            const HWND controls[]{rows_[i].enabled, rows_[i].label, rows_[i].capture, rows_[i].clear};
-            for (int j = 0; j < 4; ++j) place(controls[j], xs[j], y, widths[j], scale(34));
+            const int y = scale(80) + static_cast<int>(i) * row_height;
+            RECT measured{0, 0, label_width, 0};
+            const auto dc = GetDC(window_);
+            const auto old = SelectObject(dc, typography_.body());
+            const auto label = localization_->text(rows_[i].draft.label_key);
+            DrawTextW(dc, label.data(), static_cast<int>(label.size()), &measured,
+                DT_CALCRECT | DT_WORDBREAK | DT_NOPREFIX);
+            SelectObject(dc, old);
+            ReleaseDC(window_, dc);
+            const int label_height = std::min(scale(40), static_cast<int>(measured.bottom));
+            place(rows_[i].label, 0, y + (compact_ ? 0 : (row_height - label_height) / 2),
+                label_width, compact_ ? scale(40) : label_height);
+            const int control_y = y + scale(compact_ ? 42 : 10);
+            place(rows_[i].capture, capture_x, control_y, capture_width, scale(36));
+            place(rows_[i].clear, clear_x, control_y + scale(2), clear_width, scale(32));
+            place(rows_[i].enabled, toggle_x, control_y + scale(2), toggle_width, scale(32));
         }
-        int y = scale(76 + static_cast<int>(rows_.size()) * 48);
-        place(status_, 0, y, width, scale(28));
-        y += scale(34);
+        place(status_, 0, section_top - scale(40), width, scale(28), typography_.caption());
+        ShowWindow(status_, capture_failed_ ? SW_SHOWNA : SW_HIDE);
+        int y = section_top;
         for (std::size_t i = 0; i < sections_.size(); ++i) {
             const int allocated_height = i + 1 == sections_.size()
                 ? std::max(section_height, height - y) : section_height;
             sections_[i]->layout({0, y - scroll_, width, y - scroll_ + allocated_height}, dpi_, font_);
             y += allocated_height;
+        }
+        InvalidateRect(window_, nullptr, FALSE);
+    }
+    void paint_background(HDC dc) {
+        settings_visual_style::erase_background(window_, reinterpret_cast<WPARAM>(dc));
+        RECT client{};
+        GetClientRect(window_, &client);
+        for (std::size_t i = 1; i <= rows_.size(); ++i) {
+            const int y = scale(80 + static_cast<int>(i) * (compact_ ? 88 : 56)) - scroll_;
+            settings_visual_style::draw_separator(dc, 0, std::min(client.right, static_cast<LONG>(scale(468))), y, dpi_);
         }
     }
     void cancel_capture() {
@@ -209,9 +256,21 @@ private:
         capturing_.reset();
         refresh_rows();
     }
+    void reveal_control(HWND control) {
+        RECT bounds{}, client{};
+        GetWindowRect(control, &bounds);
+        MapWindowPoints(HWND_DESKTOP, window_, reinterpret_cast<POINT*>(&bounds), 2);
+        GetClientRect(window_, &client);
+        if (bounds.top < 0) scroll_ += bounds.top;
+        else if (bounds.bottom > client.bottom) scroll_ += bounds.bottom - client.bottom;
+        else return;
+        arrange();
+    }
     void begin_capture(std::size_t index) {
         cancel_capture();
         if (!rows_[index].draft.active()) return;
+        capture_failed_ = false;
+        SetWindowTextW(status_, L"");
         capturing_ = index;
         if (!keyboard_.begin_capture([this, index](const KeyboardCaptureResult& result) {
             if (capturing_ != index) return;
@@ -228,12 +287,18 @@ private:
             }, [&] { if (draft.active()) draft.write(value); });
         })) {
             capturing_.reset();
+            capture_failed_ = true;
             SetWindowTextW(status_, localization_->text("settings.capture_failed").data());
             if (diagnose_) diagnose_(L"hotkey capture activation failed");
         }
         refresh_rows();
+        arrange();
     }
     LRESULT message(UINT message, WPARAM wparam, LPARAM lparam) {
+        if (message == WM_COMMAND && HIWORD(wparam) == BN_SETFOCUS) {
+            reveal_control(reinterpret_cast<HWND>(lparam));
+            return 0;
+        }
         if (message == WM_COMMAND && HIWORD(wparam) == BN_CLICKED && LOWORD(wparam) >= 100) {
             const auto index = static_cast<std::size_t>((LOWORD(wparam) - 100) / 3);
             const auto action = (LOWORD(wparam) - 100) % 3;
@@ -251,22 +316,38 @@ private:
             return 0;
         }
         if (message == WM_VSCROLL || message == WM_MOUSEWHEEL) {
-            if (message == WM_MOUSEWHEEL) scroll_ -= GET_WHEEL_DELTA_WPARAM(wparam) / WHEEL_DELTA * scale(48);
+            if (message == WM_MOUSEWHEEL) {
+                wheel_delta_ += GET_WHEEL_DELTA_WPARAM(wparam);
+                scroll_ -= wheel_delta_ / WHEEL_DELTA * scale(48);
+                wheel_delta_ %= WHEEL_DELTA;
+            }
             else {
                 SCROLLINFO info{sizeof(info), SIF_ALL};
                 GetScrollInfo(window_, SB_VERT, &info);
                 switch (LOWORD(wparam)) {
+                case SB_TOP: scroll_ = 0; break;
+                case SB_BOTTOM: scroll_ = info.nMax; break;
                 case SB_LINEUP: scroll_ -= scale(30); break;
                 case SB_LINEDOWN: scroll_ += scale(30); break;
                 case SB_PAGEUP: scroll_ -= info.nPage; break;
                 case SB_PAGEDOWN: scroll_ += info.nPage; break;
-                case SB_THUMBTRACK: scroll_ = info.nTrackPos; break;
+                case SB_THUMBTRACK:
+                case SB_THUMBPOSITION: scroll_ = info.nTrackPos; break;
                 }
             }
             arrange();
             return 0;
         }
-        if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window_, wparam);
+        if (message == WM_ERASEBKGND) { paint_background(reinterpret_cast<HDC>(wparam)); return 1; }
+        if (message == WM_PAINT) {
+            PAINTSTRUCT painting{};
+            const auto dc = BeginPaint(window_, &painting);
+            paint_background(dc);
+            EndPaint(window_, &painting);
+            return 0;
+        }
+        if (message == WM_CTLCOLORSTATIC && reinterpret_cast<HWND>(lparam) == status_)
+            return settings_visual_style::handle_secondary_text(wparam, lparam);
         if (settings_visual_style::is_color_message(message)) {
             return settings_visual_style::handle_color_message(message, wparam, lparam);
         }
@@ -294,16 +375,19 @@ private:
     std::function<void()> changed_;
     const Localization* localization_ = nullptr;
     HINSTANCE instance_ = nullptr;
-    HWND window_ = nullptr, heading_ = nullptr, status_ = nullptr;
-    std::array<HWND, 4> headers_{};
-    std::array<std::string_view, 4> header_keys_{};
+    HWND window_ = nullptr, heading_ = nullptr, status_ = nullptr, section_heading_ = nullptr;
+    HWND hotkey_heading_ = nullptr, enabled_heading_ = nullptr;
     std::vector<Row> rows_;
     std::vector<std::unique_ptr<ISettingsPage>> sections_;
     Registration observer_;
     std::optional<std::size_t> capturing_;
     UINT dpi_ = 96;
     HFONT font_ = nullptr;
+    settings_visual_style::PageTypography typography_;
     int scroll_ = 0;
+    int wheel_delta_ = 0;
+    bool compact_ = false;
+    bool capture_failed_ = false;
 };
 } // namespace
 
