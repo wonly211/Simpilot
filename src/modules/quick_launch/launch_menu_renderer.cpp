@@ -7,6 +7,18 @@
 namespace simpilot {
 namespace {
 
+constexpr int menu_font_size = 15;
+constexpr int menu_icon_size = 24;
+constexpr int menu_left_padding = 10;
+constexpr int menu_icon_text_gap = 10;
+constexpr int menu_text_left = menu_left_padding + menu_icon_size + menu_icon_text_gap;
+constexpr int menu_right_padding = 16;
+constexpr int menu_submenu_padding = 28;
+constexpr int menu_min_row_height = 34;
+constexpr int menu_vertical_padding = 14;
+constexpr int menu_max_width = 360;
+constexpr int menu_separator_height = 9;
+
 COLORREF background_color(const bool dark, const bool high_contrast,
                           const bool selected) noexcept {
     if (high_contrast) return GetSysColor(selected ? COLOR_HIGHLIGHT : COLOR_MENU);
@@ -44,7 +56,7 @@ void LaunchMenuRenderer::begin(const MenuTheme theme, const UINT dpi) {
     high_contrast_ = SystemParametersInfoW(
         SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0)
         && (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0;
-    font_ = CreateFontW(-scale(14), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-scale(menu_font_size), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
 }
@@ -107,7 +119,7 @@ bool LaunchMenuRenderer::measure(MEASUREITEMSTRUCT& measurement) const noexcept 
     if (measurement.CtlType != ODT_MENU || measurement.itemData == 0 || !font_) return false;
     const auto* item = reinterpret_cast<const Item*>(measurement.itemData);
     if (item->separator) {
-        measurement.itemHeight = static_cast<UINT>(scale(9));
+        measurement.itemHeight = static_cast<UINT>(scale(menu_separator_height));
         measurement.itemWidth = 0;
         return true;
     }
@@ -122,10 +134,11 @@ bool LaunchMenuRenderer::measure(MEASUREITEMSTRUCT& measurement) const noexcept 
     const auto text_height = static_cast<int>(
         text_rectangle.bottom - text_rectangle.top);
     measurement.itemHeight = static_cast<UINT>(
-        std::max(scale(32), text_height + scale(8)));
+        std::max(scale(menu_min_row_height), text_height + scale(menu_vertical_padding)));
+    const auto right_padding = item->submenu ? menu_submenu_padding : menu_right_padding;
     measurement.itemWidth = static_cast<UINT>(
-        std::clamp(static_cast<int>(text_rectangle.right - text_rectangle.left) + scale(64),
-            scale(280), scale(360)));
+        std::min(static_cast<int>(text_rectangle.right - text_rectangle.left)
+            + scale(menu_text_left) + scale(right_padding), scale(menu_max_width)));
     return true;
 }
 
@@ -174,19 +187,19 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
 
     if (item->separator) {
         const auto line_color = high_contrast_ ? GetSysColor(COLOR_MENUTEXT)
-            : dark_ ? RGB(119, 119, 119) : RGB(227, 230, 234);
+            : dark_ ? RGB(82, 82, 82) : RGB(227, 230, 234);
         const auto pen = CreatePen(PS_SOLID, std::max(1, scale(1)), line_color);
         const auto previous_pen = SelectObject(drawing.hDC, pen);
         const auto y = (drawing.rcItem.top + drawing.rcItem.bottom) / 2;
-        MoveToEx(drawing.hDC, drawing.rcItem.left + scale(10), y, nullptr);
-        LineTo(drawing.hDC, drawing.rcItem.right - scale(10), y);
+        MoveToEx(drawing.hDC, drawing.rcItem.left + scale(menu_left_padding), y, nullptr);
+        LineTo(drawing.hDC, drawing.rcItem.right - scale(menu_left_padding), y);
         SelectObject(drawing.hDC, previous_pen);
         DeleteObject(pen);
         return true;
     }
 
-    const auto icon_size = scale(16);
-    const auto icon_x = drawing.rcItem.left + scale(12);
+    const auto icon_size = scale(menu_icon_size);
+    const auto icon_x = drawing.rcItem.left + scale(menu_left_padding);
     const auto icon_y = drawing.rcItem.top
         + ((drawing.rcItem.bottom - drawing.rcItem.top) - icon_size) / 2;
     if (item->icon) {
@@ -199,8 +212,8 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
     const auto previous_text_color = SetTextColor(
         drawing.hDC, foreground_color(dark_, high_contrast_, selected, disabled));
     RECT text_rectangle = drawing.rcItem;
-    text_rectangle.left = icon_x + scale(24);
-    text_rectangle.right -= item->submenu ? scale(28) : scale(12);
+    text_rectangle.left += scale(menu_text_left);
+    text_rectangle.right -= scale(item->submenu ? menu_submenu_padding : menu_right_padding);
     DrawTextW(drawing.hDC, item->text.c_str(), static_cast<int>(item->text.size()),
               &text_rectangle, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
     // Windows draws the submenu glyph after WM_DRAWITEM. We only reserve its

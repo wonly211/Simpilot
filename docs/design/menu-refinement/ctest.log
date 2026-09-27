@@ -1,0 +1,52 @@
+[OUTPUT]
+Internal ctest changing into directory: E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64
+
+[HANDLER_OUTPUT]
+Test project E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64
+
+      Start  1: simpilot_module_boundaries
+ 1/21 Test  #1: simpilot_module_boundaries .................   Passed    1.20 sec
+      Start  2: simpilot_module_support_tests
+ 2/21 Test  #2: simpilot_module_support_tests ..............   Passed    0.10 sec
+      Start  3: simpilot_visual_style_tests
+ 3/21 Test  #3: simpilot_visual_style_tests ................   Passed    0.06 sec
+      Start  4: simpilot_settings_module_tests
+ 4/21 Test  #4: simpilot_settings_module_tests .............   Passed    1.24 sec
+      Start  5: simpilot_core_tests
+ 5/21 Test  #5: simpilot_core_tests ........................   Passed    0.07 sec
+      Start  6: simpilot_localization_resource_tests
+ 6/21 Test  #6: simpilot_localization_resource_tests .......   Passed    0.03 sec
+      Start  7: simpilot_windows_hotkey_blocker_tests
+ 7/21 Test  #7: simpilot_windows_hotkey_blocker_tests ......   Passed    0.01 sec
+      Start  8: simpilot_keyboard_thread_lifecycle_test
+ 8/21 Test  #8: simpilot_keyboard_thread_lifecycle_test ....   Passed    0.16 sec
+      Start  9: simpilot_keyboard_capture_state_tests
+ 9/21 Test  #9: simpilot_keyboard_capture_state_tests ......   Passed    0.01 sec
+      Start 10: simpilot_about_window_test
+10/21 Test #10: simpilot_about_window_test .................   Passed    0.14 sec
+      Start 11: simpilot_everything_tests
+11/21 Test #11: simpilot_everything_tests ..................   Passed    0.20 sec
+      Start 12: simpilot_mouse_locator_tests
+12/21 Test #12: simpilot_mouse_locator_tests ...............   Passed    0.69 sec
+      Start 13: simpilot_windows_hotkey_policy_tests
+13/21 Test #13: simpilot_windows_hotkey_policy_tests .......   Passed    1.09 sec
+      Start 14: simpilot_keyboard_mapping_engine_tests
+14/21 Test #14: simpilot_keyboard_mapping_engine_tests .....   Passed    0.02 sec
+      Start 15: simpilot_keyboard_mapping_settings_tests
+15/21 Test #15: simpilot_keyboard_mapping_settings_tests ...   Passed    0.03 sec
+      Start 16: simpilot_keyboard_mapping_module_tests
+16/21 Test #16: simpilot_keyboard_mapping_module_tests .....   Passed    0.08 sec
+      Start 17: simpilot_custom_hotkey_tests
+17/21 Test #17: simpilot_custom_hotkey_tests ...............   Passed    0.07 sec
+      Start 18: simpilot_quick_launch_algorithm_tests
+18/21 Test #18: simpilot_quick_launch_algorithm_tests ......   Passed    0.41 sec
+      Start 19: simpilot_menu_presentation_tests
+19/21 Test #19: simpilot_menu_presentation_tests ...........   Passed    0.16 sec
+      Start 20: simpilot_program_selection_dialog_test
+20/21 Test #20: simpilot_program_selection_dialog_test .....   Passed    0.14 sec
+      Start 21: simpilot_quick_launch_module_tests
+21/21 Test #21: simpilot_quick_launch_module_tests .........   Passed    0.63 sec
+
+100% tests passed, 0 tests failed out of 21
+
+Total Test time (real) =   6.59 sec

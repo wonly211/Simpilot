@@ -16,6 +16,18 @@ directory records configure-time SHA-256 fingerprints of these existing inputs;
 reconfigure after the parent changes/rebuilds them. Mixed source/library revisions
 are possible and must be considered when interpreting screenshots.
 
+Historical menu comparison
+--------------------------
+SIMPILOT_AUDIT_MENU_RENDERER may point to an unmodified historical
+launch_menu_renderer.cpp extracted from a Git tag under build/. Configure each
+variant into a separate build directory. That translation unit is linked into
+the fixture executable instead of the renderer object in the production static
+library; the public renderer header must remain ABI-compatible. The source hash
+is included in input-provenance.txt. Omit the option for the current renderer.
+This captures real historical renderer code using identical current fixture
+data and infrastructure. It is NOT evidence of running the complete old release.
+No historical override is available in the product's CMake or executable.
+
 Surfaces
 --------
 - Eight real settings pages: General, Quick Launch, Menu Icons, Global Hotkeys
@@ -87,7 +99,9 @@ Safety And Evidence Limits
   Manually navigating elsewhere is outside the controlled audit dataset.
 - About layout and module UI are real, but version/installed-program metadata,
   keyboard availability and commit outcomes are not production-state evidence.
-- No temporary production-source copies or replacement renderers are compiled.
+- Default builds compile no temporary production-source copies or replacement
+  renderers. The explicitly selected historical comparison option above is the
+  only exception and is recorded separately from current-product evidence.
 
 --self-test validates all four typed datasets and menu round trips, eight-page
 registration, module start/stop, real commit-failure rollback and commit success,

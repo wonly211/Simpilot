@@ -1,0 +1,52 @@
+{
+  "id": "A03-v100-second-submenu-light",
+  "capturedUtc": "2026-09-27T21:01:04.045Z",
+  "window": {
+    "app": "process:E:\\SynologyDrive\\github\\Simpilot\\build\\menu-refinement\\v1.0.0\\Release\\audit_preview.exe",
+    "id": 22154446,
+    "title": "Simpilot native audit fixture - synthetic data / no execution"
+  },
+  "screenshots": [
+    {
+      "height": 754,
+      "id": "screenshot-0",
+      "originX": 275,
+      "originY": 266,
+      "width": 868,
+      "zIndex": 0
+    },
+    {
+      "height": 86,
+      "id": "screenshot-1",
+      "originX": 504,
+      "originY": 692,
+      "width": 283,
+      "zIndex": 1
+    },
+    {
+      "height": 83,
+      "id": "screenshot-2",
+      "originX": 504,
+      "originY": 692,
+      "width": 280,
+      "zIndex": 2
+    },
+    {
+      "height": 285,
+      "id": "screenshot-3",
+      "originX": 918,
+      "originY": 758,
+      "width": 337,
+      "zIndex": 3
+    },
+    {
+      "height": 281,
+      "id": "screenshot-4",
+      "originX": 918,
+      "originY": 758,
+      "width": 333,
+      "zIndex": 4
+    }
+  ],
+  "accessibility": null
+}

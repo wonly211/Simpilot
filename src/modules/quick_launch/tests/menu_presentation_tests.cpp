@@ -4,6 +4,7 @@
 
 #include <Windows.h>
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -35,6 +36,81 @@ std::filesystem::path system_directory() {
     return value;
 }
 
+MEASUREITEMSTRUCT measure_item(const simpilot::LaunchMenuRenderer& renderer,
+                              const HMENU menu, const UINT index) {
+    MENUITEMINFOW item{.cbSize = sizeof(item), .fMask = MIIM_DATA};
+    require(GetMenuItemInfoW(menu, index, TRUE, &item) != FALSE, "Read item metadata");
+    MEASUREITEMSTRUCT measurement{.CtlType = ODT_MENU, .itemData = item.dwItemData};
+    require(renderer.measure(measurement), "Measure an owner-drawn item");
+    return measurement;
+}
+
+void check_menu_geometry(const HICON icon) {
+    for (const auto dpi : {96u, 144u, 192u}) {
+        const auto scale = [dpi](const int dip) { return MulDiv(dip, dpi, 96); };
+        const auto font = CreateFontW(-scale(15), 0, 0, 0, FW_NORMAL,
+            FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+            CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        require(font != nullptr, "Create the reference 15-DIP font");
+        const auto dc = CreateCompatibleDC(nullptr);
+        require(dc != nullptr, "Create the reference text measurement DC");
+        const auto previous = SelectObject(dc, font);
+        const auto text_size = [dc](const std::wstring_view text) {
+            RECT bounds{};
+            DrawTextW(dc, text.data(), static_cast<int>(text.size()), &bounds,
+                DT_CALCRECT | DT_SINGLELINE);
+            return SIZE{bounds.right - bounds.left, bounds.bottom - bounds.top};
+        };
+        for (const auto theme : {simpilot::MenuTheme::light, simpilot::MenuTheme::dark}) {
+            simpilot::LaunchMenuRenderer renderer;
+            renderer.begin(theme, dpi);
+            const auto root = CreatePopupMenu();
+            const auto child = CreatePopupMenu();
+            require(root && child, "Create independent parent and child menus");
+            const std::vector<std::wstring> labels{
+                L"A", L"Tools / \u5de5\u5177",
+                L"Review documents / \u5ba1\u6838\u6587\u6863",
+                L"Extremely long application name " + std::wstring(160, L'W'),
+                std::wstring(100, L'\u6587'), L"Access(&A)", L"Literal && ampersand"};
+            UINT index = 0;
+            for (const auto& label : labels) {
+                require(renderer.append(root, 2000 + index, label, icon), "Append sizing sample");
+                const auto actual = measure_item(renderer, root, index++);
+                const auto text = text_size(label);
+                require(actual.itemWidth == static_cast<UINT>(
+                    std::min(text.cx + scale(44) + scale(16), static_cast<LONG>(scale(360)))),
+                    "Size to actual text plus icon slot and padding, with only an upper cap");
+                require(actual.itemHeight == static_cast<UINT>(
+                    std::max(static_cast<LONG>(scale(34)), text.cy + scale(14))),
+                    "Restore the original row height at each DPI");
+            }
+            require(measure_item(renderer, root, 0).itemWidth < static_cast<UINT>(scale(280)),
+                "Do not force short names to the old 280-DIP minimum");
+            require(measure_item(renderer, root, 3).itemWidth == static_cast<UINT>(scale(360))
+                && measure_item(renderer, root, 4).itemWidth == static_cast<UINT>(scale(360)),
+                "Cap both English and Chinese oversized labels");
+            require(renderer.append(root, 2100, labels[1], nullptr), "Append iconless sample");
+            require(measure_item(renderer, root, index++).itemWidth
+                == measure_item(renderer, root, 1).itemWidth, "Keep the icon slot when no icon exists");
+            require(renderer.append(child, 2200, L"A", icon), "Append a short child item");
+            require(renderer.append(root, 2300, labels[1], icon, child), "Append a submenu sample");
+            require(measure_item(renderer, root, index++).itemWidth
+                == measure_item(renderer, root, 1).itemWidth + scale(28) - scale(16),
+                "Reserve the submenu arrow separately from command padding");
+            require(renderer.measure_menu(child).cx < renderer.measure_menu(root).cx,
+                "Measure the child independently of the wide parent");
+            require(renderer.append_separator(root), "Append a separator sizing sample");
+            const auto separator = measure_item(renderer, root, index);
+            require(separator.itemHeight == static_cast<UINT>(scale(9))
+                && separator.itemWidth == 0, "Keep separators from expanding the menu");
+            DestroyMenu(root);
+        }
+        SelectObject(dc, previous);
+        DeleteDC(dc);
+        DeleteObject(font);
+    }
+}
+
 } // namespace
 
 int wmain() {
@@ -53,6 +129,7 @@ int wmain() {
             const auto application_icon = icons.icon_for(application);
             require(application_icon != nullptr,
                     "Load an application icon from its executable");
+            check_menu_geometry(application_icon);
 
             const auto target = executable_path().wstring();
             const auto custom_key = simpilot::MenuIconCache::custom_key_for(application);
@@ -148,8 +225,8 @@ int wmain() {
                 .CtlType = ODT_MENU,
                 .itemData = item.dwItemData,
             };
-            require(renderer.measure(measurement) && measurement.itemHeight == 32
-                && measurement.itemWidth == 280, "Measure the baseline menu density and width");
+            require(renderer.measure(measurement) && measurement.itemHeight >= 34
+                && measurement.itemWidth < 280, "Restore compact, content-sized menu proportions");
             require(renderer.append_separator(menu),
                     "Append a theme-aware owner-drawn separator");
             MENUITEMINFOW separator{

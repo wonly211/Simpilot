@@ -1,0 +1,36 @@
+{
+  "id": "A01-v100-main-light",
+  "capturedUtc": "2026-09-27T20:59:05.476Z",
+  "window": {
+    "app": "process:E:\\SynologyDrive\\github\\Simpilot\\build\\menu-refinement\\v1.0.0\\Release\\audit_preview.exe",
+    "id": 22154446,
+    "title": "Simpilot native audit fixture - synthetic data / no execution"
+  },
+  "screenshots": [
+    {
+      "height": 754,
+      "id": "screenshot-0",
+      "originX": 275,
+      "originY": 266,
+      "width": 868,
+      "zIndex": 0
+    },
+    {
+      "height": 130,
+      "id": "screenshot-1",
+      "originX": 1344,
+      "originY": 626,
+      "width": 229,
+      "zIndex": 1
+    },
+    {
+      "height": 127,
+      "id": "screenshot-2",
+      "originX": 1344,
+      "originY": 626,
+      "width": 226,
+      "zIndex": 2
+    }
+  ],
+  "accessibility": null
+}
