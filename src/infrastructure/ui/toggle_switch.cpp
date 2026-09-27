@@ -50,21 +50,21 @@ void draw_glyph(const HDC dc, const RECT bounds, const bool checked,
     }
 
     COLORREF fill = RGB(255, 255, 255);
-    COLORREF border = RGB(118, 118, 118);
-    COLORREF thumb = RGB(95, 95, 95);
+    COLORREF border = RGB(138, 146, 157);
+    COLORREF thumb = RGB(96, 101, 109);
     if (!enabled) {
-        fill = checked ? RGB(166, 200, 225) : RGB(237, 237, 237);
-        border = checked ? fill : RGB(200, 200, 200);
-        thumb = checked ? RGB(255, 255, 255) : RGB(160, 160, 160);
+        fill = RGB(247, 248, 250);
+        border = RGB(227, 230, 234);
+        thumb = RGB(133, 139, 148);
     } else if (checked) {
-        fill = pressed ? RGB(0, 78, 145) : hot ? RGB(0, 90, 158) : RGB(0, 103, 192);
+        fill = pressed ? RGB(0, 79, 139) : hot ? RGB(0, 90, 158) : RGB(0, 103, 184);
         border = fill;
         thumb = RGB(255, 255, 255);
     } else if (pressed) {
-        fill = RGB(224, 224, 224);
+        fill = RGB(226, 230, 235);
         thumb = RGB(48, 48, 48);
     } else if (hot) {
-        fill = RGB(240, 240, 240);
+        fill = RGB(238, 241, 245);
         thumb = RGB(64, 64, 64);
     }
 
@@ -75,8 +75,8 @@ void draw_glyph(const HDC dc, const RECT bounds, const bool checked,
     RoundRect(dc, track.left, track.top, track.right, track.bottom,
               track_height, track_height);
 
-    const auto thumb_size = scaled(16, dpi);
-    const auto inset = scaled(2, dpi);
+    const auto thumb_size = scaled(12, dpi);
+    const auto inset = scaled(4, dpi);
     const auto thumb_left = checked ? track.right - inset - thumb_size
                                     : track.left + inset;
     const auto thumb_brush = CreateSolidBrush(thumb);
@@ -96,9 +96,7 @@ void paint_control(const HWND window, const HDC dc, const ControlState& state) {
     RECT client{};
     GetClientRect(window, &client);
     FillRect(dc, &client, settings_visual_style::background_brush());
-    const auto available_dpi = static_cast<UINT>(
-        std::max(72L, (client.bottom - client.top) * 96L / 32L));
-    const auto dpi = std::min(GetDpiForWindow(window), available_dpi);
+    const auto dpi = GetDpiForWindow(window);
     RECT glyph = client;
     if (state.draw_label) {
         glyph.left = std::max(client.left, client.right - scaled(48, dpi));
@@ -217,8 +215,9 @@ HWND create(const HINSTANCE instance, const HWND parent, const int identifier,
 
 HIMAGELIST create_state_image_list(const UINT dpi) {
     const auto width = scaled(64, dpi);
-    const auto height = scaled(32, dpi);
-    const auto images = ImageList_Create(width, height, ILC_COLOR32 | ILC_MASK, 2, 0);
+    const auto height = scaled(36, dpi);
+    // GDI draws RGB pixels without alpha; use the mask instead of a 32-bit alpha channel.
+    const auto images = ImageList_Create(width, height, ILC_COLOR24 | ILC_MASK, 2, 0);
     if (!images) return nullptr;
     ImageList_SetBkColor(images, CLR_NONE);
     const auto screen = GetDC(nullptr);
@@ -242,7 +241,9 @@ HIMAGELIST create_state_image_list(const UINT dpi) {
     for (const bool checked : {false, true}) {
         FillRect(memory, &canvas, mask_brush);
         draw_glyph(memory, canvas, checked, true, false, false, dpi);
+        SelectObject(memory, old_bitmap);
         ImageList_AddMasked(images, bitmap, mask_color);
+        SelectObject(memory, bitmap);
     }
     SelectObject(memory, old_bitmap);
     DeleteObject(mask_brush);

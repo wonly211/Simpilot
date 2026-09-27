@@ -3,6 +3,7 @@
 #include "settings_visual_style.hpp"
 #include "toggle_switch.hpp"
 
+#include <commctrl.h>
 #include <algorithm>
 #include <format>
 #include <stdexcept>
@@ -31,50 +32,57 @@ public:
             throw std::runtime_error("Cannot register Windows shortcut settings page");
         }
         window_ = CreateWindowExW(WS_EX_CONTROLPARENT, type.lpszClassName, L"",
-            WS_CHILD | WS_CLIPCHILDREN, 0, 0, 0, 0, context.parent, nullptr,
+            WS_CHILD | WS_CLIPCHILDREN | WS_VSCROLL, 0, 0, 0, 0, context.parent, nullptr,
             context.instance, this);
         if (!window_) throw std::runtime_error("Cannot create Windows shortcut settings page");
-        for (auto* control : {&heading_, &scope_, &runtime_}) {
-            *control = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
-                0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
-            if (!*control) throw std::runtime_error("Cannot create Windows shortcut label");
-        }
+        heading_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
+        if (!heading_) throw std::runtime_error("Cannot create Windows shortcut label");
+        tooltip_ = CreateWindowExW(WS_EX_TOPMOST, TOOLTIPS_CLASSW, nullptr,
+            WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX, 0, 0, 0, 0,
+            window_, nullptr, context.instance, nullptr);
+        if (tooltip_) SendMessageW(tooltip_, TTM_SETMAXTIPWIDTH, 0, 480);
         for (std::size_t index = 0; index < toggles_.size(); ++index) {
             if (index == lock_index) continue;
             toggles_[index] = toggle_switch::create(context.instance, window_,
-                100 + static_cast<int>(index), L"", draft_.disabled[index], true);
+                100 + static_cast<int>(index), L"", draft_.disabled[index], false);
+            keys_[index] = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+                0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
+            descriptions_[index] = CreateWindowW(L"STATIC", L"",
+                WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE | SS_ENDELLIPSIS,
+                0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
             if (!toggles_[index]) throw std::runtime_error("Cannot create Windows shortcut switch");
+            SetWindowLongPtrW(toggles_[index], GWL_STYLE,
+                GetWindowLongPtrW(toggles_[index], GWL_STYLE) | BS_NOTIFY);
+            if (tooltip_) {
+                TOOLINFOW tool{sizeof(tool)};
+                tool.uFlags = TTF_IDISHWND | TTF_SUBCLASS;
+                tool.hwnd = window_;
+                tool.uId = reinterpret_cast<UINT_PTR>(toggles_[index]);
+                tool.lpszText = LPSTR_TEXTCALLBACKW;
+                SendMessageW(tooltip_, TTM_ADDTOOLW, 0, reinterpret_cast<LPARAM>(&tool));
+            }
         }
+        for (auto& header : headers_) header = CreateWindowW(L"STATIC", L"",
+            WS_CHILD | WS_VISIBLE | SS_CENTER, 0, 0, 0, 0, window_, nullptr, context.instance, nullptr);
         refresh_language(context.localization);
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
+        typography_.update(font, dpi);
+        if (dpi_ != dpi) scroll_ = MulDiv(scroll_, dpi, dpi_);
+        dpi_ = dpi;
+        width_ = std::max(1L, bounds.right - bounds.left);
         MoveWindow(window_, bounds.left, bounds.top, bounds.right - bounds.left,
                    bounds.bottom - bounds.top, TRUE);
-        const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
-        const auto width = std::max(1L, bounds.right - bounds.left);
-        const auto height = std::max(1L, bounds.bottom - bounds.top);
-        const auto columns = width >= scale(850) ? 3 : 2;
-        const auto rows = (25 + columns - 1) / columns;
-        const auto top = scale(100);
-        const auto row_height = std::min(scale(32), std::max(scale(20),
-            (static_cast<int>(height) - top - scale(64)) / rows));
-        const auto gap = scale(16);
-        const auto column_width = (width - gap * (columns - 1)) / columns;
-        MoveWindow(heading_, 0, 0, width, scale(32), TRUE);
-        MoveWindow(scope_, 0, scale(38), width, scale(56), TRUE);
-        int visual = 0;
-        for (std::size_t index = 0; index < toggles_.size(); ++index) {
-            if (!toggles_[index]) continue;
-            MoveWindow(toggles_[index], (visual % columns) * (column_width + gap),
-                top + (visual / columns) * row_height, column_width, row_height, TRUE);
-            SendMessageW(toggles_[index], WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
-            ++visual;
-        }
-        MoveWindow(runtime_, 0, top + rows * row_height + scale(8),
-            width, scale(56), TRUE);
-        for (auto control : {heading_, scope_, runtime_}) {
-            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
-        }
+        SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.title()), TRUE);
+        for (auto toggle : toggles_)
+            if (toggle) SendMessageW(toggle, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
+        for (const auto& labels : {keys_, descriptions_})
+            for (auto label : labels) if (label)
+                SendMessageW(label, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
+        for (auto header : headers_)
+            SendMessageW(header, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.caption()), TRUE);
+        arrange();
     }
     void show(bool visible) override {
         if (visible) refresh_linkage();
@@ -83,12 +91,62 @@ public:
     void refresh_language(const Localization& localization) override {
         localization_ = &localization;
         SetWindowTextW(heading_, localization.text("settings.windows_shortcuts.heading").data());
-        SetWindowTextW(scope_, localization.text("settings.windows_shortcuts.scope").data());
-        SetWindowTextW(runtime_, localization.text("settings.windows_shortcuts.runtime").data());
+        for (auto header : headers_)
+            SetWindowTextW(header, localization.text("settings.windows_shortcuts.block").data());
         refresh_linkage();
     }
 
 private:
+    int scale(int value) const { return MulDiv(value, dpi_, 96); }
+    void arrange() {
+        RECT client{};
+        GetClientRect(window_, &client);
+        columns_ = width_ >= scale(704) ? 2 : 1;
+        const int rows = (25 + columns_ - 1) / columns_;
+        const int content_height = scale(80 + rows * 36 + 4);
+        scroll_ = std::clamp(scroll_, 0, std::max(0, content_height - static_cast<int>(client.bottom)));
+        SCROLLINFO info{sizeof(info), SIF_RANGE | SIF_PAGE | SIF_POS,
+            0, content_height - 1, static_cast<UINT>(client.bottom), scroll_};
+        SetScrollInfo(window_, SB_VERT, &info, TRUE);
+        GetClientRect(window_, &client);
+        column_width_ = std::max(1, (static_cast<int>(client.right) - scale(32) * (columns_ - 1)) / columns_);
+        MoveWindow(heading_, 0, -scroll_, client.right, scale(36), TRUE);
+        for (int i = 0; i < 2; ++i) {
+            ShowWindow(headers_[i], i < columns_ ? SW_SHOWNA : SW_HIDE);
+            MoveWindow(headers_[i], i * (column_width_ + scale(32)) + column_width_ - scale(44),
+                scale(56) - scroll_, scale(44), scale(20), TRUE);
+        }
+        int visual = 0;
+        for (std::size_t i = 0; i < toggles_.size(); ++i) {
+            auto toggle = toggles_[i];
+            if (!toggle) continue;
+            const int x = (visual % columns_) * (column_width_ + scale(32));
+            const int y = scale(80 + visual / columns_ * 36 + 2) - scroll_;
+            MoveWindow(keys_[i], x, y, scale(64), scale(32), TRUE);
+            MoveWindow(descriptions_[i], x + scale(76), y,
+                std::max(1, column_width_ - scale(132)), scale(32), TRUE);
+            MoveWindow(toggle, x + column_width_ - scale(44), y, scale(44), scale(32), TRUE);
+            ++visual;
+        }
+        InvalidateRect(window_, nullptr, TRUE);
+    }
+    void reveal(HWND control) {
+        RECT bounds{}, client{};
+        GetWindowRect(control, &bounds);
+        MapWindowPoints(HWND_DESKTOP, window_, reinterpret_cast<POINT*>(&bounds), 2);
+        GetClientRect(window_, &client);
+        if (bounds.top < 0) scroll_ += bounds.top;
+        else if (bounds.bottom > client.bottom) scroll_ += bounds.bottom - client.bottom;
+        else return;
+        arrange();
+    }
+    void draw_separators(HDC dc) const {
+        for (int visual = 0; visual < 25; ++visual) {
+            const int x = (visual % columns_) * (column_width_ + scale(32));
+            settings_visual_style::draw_separator(dc, x, x + column_width_,
+                scale(80 + (visual / columns_ + 1) * 36) - scroll_, dpi_);
+        }
+    }
     void refresh_linkage() {
         if (!localization_) return;
         for (std::size_t index = 0; index < toggles_.size(); ++index) {
@@ -101,6 +159,11 @@ private:
                 std::make_wformat_args(letter, description));
             if (required) label += localization_->text("settings.windows_shortcuts.linked_suffix");
             SetWindowTextW(toggles_[index], label.c_str());
+            const auto gesture = L"Win+" + std::wstring(1, letter);
+            SetWindowTextW(keys_[index], gesture.c_str());
+            SetWindowTextW(descriptions_[index], std::wstring(description).c_str());
+            EnableWindow(keys_[index], !required);
+            EnableWindow(descriptions_[index], !required);
             SendMessageW(toggles_[index], BM_SETCHECK,
                 draft_.disabled[index] || required ? BST_CHECKED : BST_UNCHECKED, 0);
             EnableWindow(toggles_[index], required ? FALSE : TRUE);
@@ -109,12 +172,64 @@ private:
     static LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
         if (message == WM_NCCREATE) {
             const auto* creation = reinterpret_cast<CREATESTRUCTW*>(lparam);
+            static_cast<BlockingSettingsPage*>(creation->lpCreateParams)->window_ = window;
             SetWindowLongPtrW(window, GWLP_USERDATA,
                 reinterpret_cast<LONG_PTR>(creation->lpCreateParams));
         }
         auto* page = reinterpret_cast<BlockingSettingsPage*>(GetWindowLongPtrW(window, GWLP_USERDATA));
         if (page) {
             try {
+                if (message == WM_PAINT) {
+                    PAINTSTRUCT painting{};
+                    const auto dc = BeginPaint(window, &painting);
+                    page->draw_separators(dc);
+                    EndPaint(window, &painting);
+                    return 0;
+                }
+                if (message == WM_PRINTCLIENT) {
+                    settings_visual_style::erase_background(window, wparam);
+                    page->draw_separators(reinterpret_cast<HDC>(wparam));
+                    return 0;
+                }
+                if (message == WM_VSCROLL) {
+                    SCROLLINFO info{sizeof(info), SIF_ALL};
+                    GetScrollInfo(window, SB_VERT, &info);
+                    switch (LOWORD(wparam)) {
+                    case SB_TOP: page->scroll_ = 0; break;
+                    case SB_BOTTOM: page->scroll_ = info.nMax; break;
+                    case SB_LINEUP: page->scroll_ -= page->scale(36); break;
+                    case SB_LINEDOWN: page->scroll_ += page->scale(36); break;
+                    case SB_PAGEUP: page->scroll_ -= info.nPage; break;
+                    case SB_PAGEDOWN: page->scroll_ += info.nPage; break;
+                    case SB_THUMBTRACK:
+                    case SB_THUMBPOSITION: page->scroll_ = info.nTrackPos; break;
+                    default: return 0;
+                    }
+                    page->arrange();
+                    return 0;
+                }
+                if (message == WM_MOUSEWHEEL) {
+                    page->wheel_delta_ += GET_WHEEL_DELTA_WPARAM(wparam);
+                    const int steps = page->wheel_delta_ / WHEEL_DELTA;
+                    page->wheel_delta_ %= WHEEL_DELTA;
+                    page->scroll_ -= steps * page->scale(36 * 3);
+                    page->arrange();
+                    return 0;
+                }
+                if (message == WM_COMMAND && HIWORD(wparam) == BN_SETFOCUS) {
+                    page->reveal(reinterpret_cast<HWND>(lparam));
+                    return 0;
+                }
+                if (message == WM_NOTIFY && reinterpret_cast<NMHDR*>(lparam)->hwndFrom == page->tooltip_
+                    && reinterpret_cast<NMHDR*>(lparam)->code == TTN_GETDISPINFOW) {
+                    auto* info = reinterpret_cast<NMTTDISPINFOW*>(lparam);
+                    const auto control = reinterpret_cast<HWND>(info->hdr.idFrom);
+                    const auto length = GetWindowTextLengthW(control);
+                    page->tooltip_text_.resize(static_cast<std::size_t>(length) + 1);
+                    GetWindowTextW(control, page->tooltip_text_.data(), length + 1);
+                    info->lpszText = page->tooltip_text_.data();
+                    return 0;
+                }
                 if (message == WM_COMMAND && HIWORD(wparam) == BN_CLICKED) {
                     const auto id = LOWORD(wparam);
                     if (id >= 100 && id < 126 && id - 100 != lock_index) {
@@ -130,11 +245,6 @@ private:
                 if (message == WM_ERASEBKGND) {
                     return settings_visual_style::erase_background(window, wparam);
                 }
-                if (message == WM_CTLCOLORSTATIC
-                    && (reinterpret_cast<HWND>(lparam) == page->scope_
-                        || reinterpret_cast<HWND>(lparam) == page->runtime_)) {
-                    return settings_visual_style::handle_secondary_text(wparam, lparam);
-                }
                 if (settings_visual_style::is_color_message(message)) {
                     return settings_visual_style::handle_color_message(message, wparam, lparam);
                 }
@@ -149,9 +259,14 @@ private:
     std::function<void()> changed_;
     HWND window_ = nullptr;
     HWND heading_ = nullptr;
-    HWND scope_ = nullptr;
-    HWND runtime_ = nullptr;
+    HWND tooltip_ = nullptr;
+    std::wstring tooltip_text_;
+    settings_visual_style::PageTypography typography_;
+    UINT dpi_ = 96;
+    int width_ = 0, scroll_ = 0, wheel_delta_ = 0, columns_ = 2, column_width_ = 0;
     std::array<HWND, 26> toggles_{};
+    std::array<HWND, 26> keys_{}, descriptions_{};
+    std::array<HWND, 2> headers_{};
 };
 
 class WindowsHotkeyBlockingModule final : public IAppModule {

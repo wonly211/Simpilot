@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-09-27T00:49:20.824Z",
+  "kind": "HTML evidence overview only",
+  "comparisonImagesLoaded": true,
+  "records": [
+    {
+      "file": "sheet-1.html",
+      "output": "sheet-1.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-2.html",
+      "output": "sheet-2.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-3.html",
+      "output": "sheet-3.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-4.html",
+      "output": "sheet-4.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-5.html",
+      "output": "sheet-5.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-6.html",
+      "output": "sheet-6.png",
+      "allImagesLoaded": true
+    },
+    {
+      "file": "sheet-7.html",
+      "output": "sheet-7.png",
+      "allImagesLoaded": true
+    }
+  ]
+}

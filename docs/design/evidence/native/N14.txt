@@ -1,0 +1,161 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		32 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise
+			33 图像
+			34 文本 Simpilot
+			35 文本 设置
+			36 列表 设置 ID: 250
+				37 列表项目 (selectable) 常规
+				38 列表项目 (selectable) 快捷启动菜单
+				39 列表项目 (selectable) 菜单图标
+				40 列表项目 (selectable) 全局热键
+				41 列表项目 (selectable) 键盘映射
+				42 列表项目 (selectable) Everything 搜索
+				43 列表项目 (selectable) 光标定位
+				44 列表项目 (selectable) Windows 快捷键屏蔽
+			45 文本
+			63 窗格
+				64 文本 快捷启动菜单
+				65 文本 快捷启动菜单主题
+			122 窗格
+				123 文本 快捷启动菜单图标
+				124 列表 快捷启动菜单图标 ID: 500
+					125 标头 标头控件 ID: Header
+						126 标头项目 菜单 ID: HeaderItem 0
+						127 标头项目 名称 ID: HeaderItem 1
+						128 标头项目 目标 ID: HeaderItem 2
+						129 标头项目 图标来源 ID: HeaderItem 3
+					130 滚动条 (settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+						131 按钮 上一行 ID: UpButton
+						132 缩略图 位置 ID: ScrollbarThumb
+						133 按钮 向下翻页 ID: DownPageButton
+						134 按钮 下一行 ID: DownButton
+					135 列表项目 (selectable) [missing translation] Description: [missing translation]
+						136 文本 [missing translation] Description: [missing translation]
+						137 文本 Audit Tool / 模拟应用 Description: [missing translation]
+						138 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe" Description: [missing translation]
+						139 文本 自动 Description: [missing translation]
+					140 列表项目 (selectable) [missing translation] Description: [missing translation]
+						141 文本 [missing translation] Description: [missing translation]
+						142 文本 Document 2 / 文档 - detailed review Description: [missing translation]
+						143 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 2 - long descriptive target for truncation review.txt" Description: [missing translation]
+						144 文本 自动 Description: [missing translation]
+					145 列表项目 (selectable) [missing translation] Description: [missing translation]
+						146 文本 [missing translation] Description: [missing translation]
+						147 文本 Document 4 / 文档 - detailed review Description: [missing translation]
+						148 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 4 - long descriptive target for truncation review.txt" Description: [missing translation]
+						149 文本 自动 Description: [missing translation]
+					150 列表项目 (selectable) [missing translation] Description: [missing translation]
+						151 文本 [missing translation] Description: [missing translation]
+						152 文本 Document 6 / 文档 - detailed review Description: [missing translation]
+						153 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 6 - long descriptive target for truncation review.txt" Description: [missing translation]
+						154 文本 自动 Description: [missing translation]
+					155 列表项目 (selectable) [missing translation] Description: [missing translation]
+						156 文本 [missing translation] Description: [missing translation]
+						157 文本 Document 8 / 文档 - detailed review Description: [missing translation]
+						158 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 8 - long descriptive target for truncation review.txt" Description: [missing translation]
+						159 文本 自动 Description: [missing translation]
+					160 列表项目 (selectable) [missing translation] Description: [missing translation]
+						161 文本 [missing translation] Description: [missing translation]
+						162 文本 Document 10 / 文档 - detailed review Description: [missing translation]
+						163 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 10 - long descriptive target for truncation review.txt" Description: [missing translation]
+						164 文本 自动 Description: [missing translation]
+					165 列表项目 (selectable) [missing translation] Description: [missing translation]
+						166 文本 [missing translation] Description: [missing translation]
+						167 文本 Document 12 / 文档 - detailed review Description: [missing translation]
+						168 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 12 - long descriptive target for truncation review.txt" Description: [missing translation]
+						169 文本 自动 Description: [missing translation]
+					170 列表项目 (selectable) [missing translation] Description: [missing translation]
+						171 文本 [missing translation] Description: [missing translation]
+						172 文本 Document 14 / 文档 - detailed review Description: [missing translation]
+						173 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 14 - long descriptive target for truncation review.txt" Description: [missing translation]
+						174 文本 自动 Description: [missing translation]
+					175 列表项目 (selectable) [missing translation] Description: [missing translation]
+						176 文本 [missing translation] Description: [missing translation]
+						177 文本 Document 16 / 文档 - detailed review Description: [missing translation]
+						178 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 16 - long descriptive target for truncation review.txt" Description: [missing translation]
+						179 文本 自动 Description: [missing translation]
+					180 列表项目 (selectable) [missing translation] Description: [missing translation]
+						181 文本 [missing translation] Description: [missing translation]
+						182 文本 Document 1 / 文档 - detailed review Description: [missing translation]
+						183 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 1 - long descriptive target for truncation review.txt" Description: [missing translation]
+						184 文本 自动 Description: [missing translation]
+					185 列表项目 (selectable) [missing translation] Description: [missing translation]
+						186 文本 [missing translation] Description: [missing translation]
+						187 文本 Document 3 / 文档 - detailed review Description: [missing translation]
+						188 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 3 - long descriptive target for truncation review.txt" Description: [missing translation]
+						189 文本 自动 Description: [missing translation]
+					190 列表项目 (selectable) [missing translation] Description: [missing translation]
+						191 文本 [missing translation] Description: [missing translation]
+						192 文本 Document 5 / 文档 - detailed review Description: [missing translation]
+						193 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 5 - long descriptive target for truncation review.txt" Description: [missing translation]
+						194 文本 自动 Description: [missing translation]
+					195 列表项目 (selectable) [missing translation] Description: [missing translation]
+						196 文本 [missing translation] Description: [missing translation]
+						197 文本 Document 7 / 文档 - detailed review Description: [missing translation]
+						198 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 7 - long descriptive target for truncation review.txt" Description: [missing translation]
+						199 文本 自动 Description: [missing translation]
+					200 列表项目 (selectable) [missing translation] Description: [missing translation]
+						201 文本 [missing translation] Description: [missing translation]
+						202 文本 Document 9 / 文档 - detailed review Description: [missing translation]
+						203 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 9 - long descriptive target for truncation review.txt" Description: [missing translation]
+						204 文本 自动 Description: [missing translation]
+					205 列表项目 (selectable) [missing translation] Description: [missing translation]
+						206 文本 [missing translation] Description: [missing translation]
+						207 文本 Document 11 / 文档 - detailed review Description: [missing translation]
+						208 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 11 - long descriptive target for truncation review.txt" Description: [missing translation]
+						209 文本 自动 Description: [missing translation]
+					210 列表项目 (selectable) [missing translation] Description: [missing translation]
+						211 文本 [missing translation] Description: [missing translation]
+						212 文本 Document 13 / 文档 - detailed review Description: [missing translation]
+						213 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 13 - long descriptive target for truncation review.txt" Description: [missing translation]
+						214 文本 自动 Description: [missing translation]
+					215 列表项目 (selectable) [missing translation] Description: [missing translation]
+						216 文本 [missing translation] Description: [missing translation]
+						217 文本 Document 15 / 文档 - detailed review Description: [missing translation]
+						218 文本 "C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\Sample document 15 - long descriptive target for truncation review.txt" Description: [missing translation]
+						219 文本 自动 Description: [missing translation]
+				220 按钮 (disabled) 选择图标... ID: 501
+				221 按钮 (disabled) 恢复自动图标 ID: 502
+			54 按钮 取消 ID: 2
+			55 按钮 (disabled) 应用 ID: 3
+			56 按钮 保存 ID: 1
+			57 标题栏 (settable, string) Value: 简驭 | Simpilot - 设置
+				58 菜单栏 系统 ID: MenuBar
+					59 菜单项 系统
+				60 按钮 最小化
+				61 按钮 最大化
+				62 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | zh-CN | Commit: SUCCESS | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Settings open: change a real control, then Apply/Save to exercise the selected fake commit.
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				28 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise.

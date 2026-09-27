@@ -1,6 +1,7 @@
 {
   "locale": "en-US",
   "strings": {
+    "settings.menu_icons.empty": "No launch items available for icon customization",
     "ui.menu_two": "Menu 2",
     "ui.edit_menus": "Edit menus...",
     "ui.main_menu": "Edit main menu",
@@ -16,7 +17,7 @@
     "ui.calculator": "Calculator",
     "settings.main_menu": "Quick-launch menu",
     "settings.second_menu": "Second menu",
-    "settings.menu_theme": "Quick-launch menu theme",
+    "settings.menu_theme": "Menu theme",
     "settings.system_theme": "Follow Windows",
     "settings.light_theme": "Light",
     "settings.dark_theme": "Dark",
@@ -50,9 +51,9 @@
     "menu_editor.browse": "Browse...",
     "menu_editor.arguments": "Arguments (optional)",
     "menu_editor.run_as_administrator": "Run as administrator",
-    "menu_editor.add_category": "Add category",
+    "menu_editor.add_category": "Add group",
     "menu_editor.add_item": "Add item",
-    "menu_editor.add_separator": "Add separator",
+    "menu_editor.add_separator": "Separator",
     "menu_editor.delete": "Delete",
     "menu_editor.move_up": "Move up",
     "menu_editor.move_down": "Move down",

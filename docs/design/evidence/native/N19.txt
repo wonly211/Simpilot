@@ -1,0 +1,72 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		491 窗口 简驭 | Simpilot - 添加全局热键 Secondary Actions: Raise
+			492 文本 添加新的全局热键
+			493 文本 热键
+			494 文本 点击下方区域，然后按下要使用的按键或组合键。
+			495 按钮 Ctrl+Alt+F1 · 重新录制 ID: 100
+			496 复选框 允许使用 Ctrl、Alt、Shift 或 Win 组合键 ID: 101
+			497 图像
+			498 文本 执行操作
+			499 组合框 (settable, string) 执行操作 Value: 打开应用 ID: 203
+				500 文本 (settable, string) 执行操作 Value: 打开应用
+				501 按钮 打开 ID: DropDown
+			502 文本 程序路径
+			503 编辑 (settable, string) 程序路径 Value: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review\AuditTool.exe ID: 200
+			504 按钮 浏览... ID: 201
+			505 文本 参数（可选）
+			506 编辑 (settable, string) 参数（可选） Value: --audit-only "Synthetic workspace"
+			507 文本 在目录中启动（可选）
+			508 编辑 (settable, string) 在目录中启动（可选） Value: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8}\Variant-1-rows-16\Mock files\Long project name for native column overflow review
+			509 按钮 浏览... ID: 202
+			510 文本 运行权限
+			511 组合框 (settable, string) 运行权限 Value: 正常
+				512 文本 (settable, string) 运行权限 Value: 正常
+				513 按钮 打开 ID: DropDown
+			514 文本 程序已运行时
+			515 组合框 (settable, string) 程序已运行时 Value: 显示窗口
+				516 文本 (settable, string) 程序已运行时 Value: 显示窗口
+				517 按钮 打开 ID: DropDown
+			518 文本 启动后窗口状态
+			519 组合框 (settable, string) 启动后窗口状态 Value: 正常
+				520 文本 (settable, string) 启动后窗口状态 Value: 正常
+				521 按钮 打开 ID: DropDown
+			522 按钮 保存 ID: 1
+			523 按钮 取消 ID: 2
+			524 标题栏 (settable, string) Value: 简驭 | Simpilot - 添加全局热键
+				525 菜单栏 系统 ID: MenuBar
+					526 菜单项 系统
+				527 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | zh-CN | Commit: SUCCESS | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Hotkey dialog closed. Recording is unsupported (keyboard thread is not started).
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				453 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 491 窗口 简驭 | Simpilot - 添加全局热键 Secondary Actions: Raise.

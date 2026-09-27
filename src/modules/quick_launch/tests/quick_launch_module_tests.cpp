@@ -89,17 +89,33 @@ void transaction(const std::filesystem::path& root, int failure) {
     editor_page->create({instance, parent, 96, font, localization, [] {}});
     std::cout << "Editor created\n" << std::flush;
     icon_page->create({instance, parent, 96, font, localization, [] {}});
-    for (auto dpi : {96u, 144u, 192u}) {
-        editor_page->layout({0, 0, 780, 600}, dpi, font);
-        icon_page->layout({0, 0, 780, 600}, dpi, font);
-    }
     auto editor_parent = FindWindowExW(parent, nullptr, L"Simpilot.QuickLaunchSettingsPage", nullptr);
     auto icon_parent = FindWindowExW(parent, editor_parent, L"Simpilot.QuickLaunchSettingsPage", nullptr);
     const auto editor = FindWindowExW(editor_parent, nullptr, L"Simpilot.MenuEditorWindow", nullptr);
     require(editor && icon_parent, "Both settings pages created");
-    const auto tree = GetDlgItem(editor, 101);
+    for (auto dpi : {96u, 144u, 192u}) {
+        editor_page->layout({0, 0, MulDiv(780, dpi, 96), MulDiv(600, dpi, 96)}, dpi, font);
+        icon_page->layout({0, 0, MulDiv(780, dpi, 96), MulDiv(600, dpi, 96)}, dpi, font);
+        const auto list = GetDlgItem(icon_parent, 500);
+        int icon_width = 0, icon_height = 0;
+        ImageList_GetIconSize(ListView_GetImageList(list, LVSIL_SMALL), &icon_width, &icon_height);
+        require(icon_width == MulDiv(32, dpi, 96) && icon_height == MulDiv(36, dpi, 96),
+            "Menu icon previews follow page DPI changes");
+        RECT client{}, button{};
+        GetClientRect(list, &client);
+        int columns = 0;
+        for (int column = 0; column < 4; ++column) columns += ListView_GetColumnWidth(list, column);
+        require(columns >= MulDiv(632, dpi, 96),
+            "Icon columns preserve readable minimum widths with horizontal scrolling");
+        GetWindowRect(GetDlgItem(icon_parent, 501), &button);
+        require(button.bottom - button.top == MulDiv(32, dpi, 96)
+            && button.right - button.left == MulDiv(120, dpi, 96),
+            "Icon action uses a compact 32dip toolbar button");
+    }
+    const auto editor_body = GetWindow(GetWindow(editor, GW_CHILD), GW_CHILD);
+    const auto tree = GetDlgItem(editor_body, 101);
     TreeView_SelectItem(tree, TreeView_GetRoot(tree));
-    SetWindowTextW(GetDlgItem(editor, 300), L"Edited");
+    SetWindowTextW(GetDlgItem(editor_body, 300), L"Edited");
     const auto list = GetDlgItem(icon_parent, 500);
     require(ListView_GetItemCount(list) == 1, "Icon page enumerates real menu target");
     ListView_SetItemState(list, 0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -162,10 +178,13 @@ void ini_and_icon_failures(const std::filesystem::path& root) {
     simpilot::Localization language("en-US");
     auto page = ui->page(false);
     page->create({instance, parent, 96, static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)), language, [] {}});
+    page->layout({0, 0, 900, 600}, 96, static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
     const auto child = FindWindowExW(parent, nullptr, L"Simpilot.QuickLaunchSettingsPage", nullptr);
     const auto editor = FindWindowExW(child, nullptr, L"Simpilot.MenuEditorWindow", nullptr);
-    TreeView_SelectItem(GetDlgItem(editor, 101), TreeView_GetRoot(GetDlgItem(editor, 101)));
-    SetWindowTextW(GetDlgItem(editor, 300), L"Draft");
+    const auto editor_body = GetWindow(GetWindow(editor, GW_CHILD), GW_CHILD);
+    require(GetDlgItem(editor_body, 101) && GetDlgItem(editor_body, 300), "Locate scrollable editor fields");
+    TreeView_SelectItem(GetDlgItem(editor_body, 101), TreeView_GetRoot(GetDlgItem(editor_body, 101)));
+    SetWindowTextW(GetDlgItem(editor_body, 300), L"Draft");
     const auto baseline = bytes(config / L"Simpilot.ini");
     simpilot::SettingsParticipantRegistry registry;
     auto registration = registry.add("quick_launch", 0, {

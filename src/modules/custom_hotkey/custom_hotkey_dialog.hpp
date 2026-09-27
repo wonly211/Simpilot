@@ -3,6 +3,7 @@
 #include "custom_hotkey_settings.hpp"
 #include "simpilot/localization.hpp"
 #include "keyboard_manager.hpp"
+#include "scrollable_form.hpp"
 
 #include <Windows.h>
 
@@ -62,6 +63,7 @@ private:
     DiagnosticSink diagnostic_sink_;
     std::optional<CustomGlobalHotKey> initial_;
     HWND window_ = nullptr;
+    ScrollableForm form_;
     std::optional<CustomGlobalHotKey> result_;
     std::optional<HotKeyGesture> gesture_;
     bool capturing_ = false;

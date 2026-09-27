@@ -1,0 +1,34 @@
+Window: "简驭 | Simpilot - 设置", App: settings_preview.exe.
+	0 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise
+		1 图像
+		2 文本 Simpilot
+		3 文本 设置
+		4 列表 设置 ID: 250
+			5 列表项目 (selectable) 常规
+			6 列表项目 (selectable) 快捷启动菜单
+			7 列表项目 (selectable) 菜单图标
+			8 列表项目 (selectable) 全局热键
+			9 列表项目 (selectable) 键盘映射
+			10 列表项目 (selectable) Everything 搜索
+			11 列表项目 (selectable) 光标定位
+			12 列表项目 (selectable) Windows 快捷键屏蔽
+		13 文本
+		14 窗格
+			15 文本 常规设置
+			16 文本 登录 Windows 后自动启动简驭 | Simpilot ID: 11
+			17 复选框 登录 Windows 后自动启动简驭 | Simpilot ID: 10
+			18 文本 显示语言
+			19 组合框 (settable, string) 显示语言 Value: 简体中文 ID: 12
+				20 文本 (settable, string) 显示语言 Value: 简体中文
+				21 按钮 打开 ID: DropDown
+		22 按钮 取消 ID: 2
+		23 按钮 (disabled) 应用 ID: 3
+		24 按钮 保存 ID: 1
+		25 标题栏 (settable, string) Value: 简驭 | Simpilot - 设置
+			26 菜单栏 系统 ID: MenuBar
+				27 菜单项 系统
+			28 按钮 最小化
+			29 按钮 最大化
+			30 按钮 关闭
+
+The focused UI element is 0 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise.

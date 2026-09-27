@@ -368,10 +368,10 @@ void MenuEditorWindow::refresh_localized_text() {
 void MenuEditorWindow::update_fonts() {
     const auto old_font = font_;
     const auto old_section_font = section_font_;
-    font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    section_font_ = CreateFontW(-MulDiv(16, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
+    section_font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_SEMIBOLD, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     set_font(detail_title_, section_font_);
@@ -382,6 +382,14 @@ void MenuEditorWindow::update_fonts() {
         add_item_button_, add_category_button_, add_separator_button_, delete_button_,
         move_up_button_, move_down_button_, decrease_level_button_, increase_level_button_};
     for (const auto control : controls) set_font(control, font_);
+    for (auto control : {add_category_button_, add_item_button_, add_separator_button_,
+        browse_button_, reselect_program_button_, main_menu_button_, second_menu_button_})
+        settings_visual_style::style_button(control);
+    settings_visual_style::style_button(delete_button_, settings_visual_style::ButtonStyle::remove);
+    settings_visual_style::style_button(move_up_button_, settings_visual_style::ButtonStyle::up);
+    settings_visual_style::style_button(move_down_button_, settings_visual_style::ButtonStyle::down);
+    settings_visual_style::style_button(increase_level_button_, settings_visual_style::ButtonStyle::outdent);
+    settings_visual_style::style_button(decrease_level_button_, settings_visual_style::ButtonStyle::indent);
     TreeView_SetItemHeight(tree_, MulDiv(30, dpi_, 96));
     if (old_font) DeleteObject(old_font);
     if (old_section_font) DeleteObject(old_section_font);
@@ -389,36 +397,38 @@ void MenuEditorWindow::update_fonts() {
 
 void MenuEditorWindow::layout_controls(const int width, const int height) {
     if (width <= 0 || height <= 0) return;
-    const auto layout_dpi = std::min(dpi_, std::max(dpi_ * 2 / 3,
-        static_cast<UINT>(std::max(1, height) * 96 / 500)));
-    const auto scale = [layout_dpi](const int value) {
-        return MulDiv(value, layout_dpi, 96);
+    const auto scale = [this](const int value) {
+        return MulDiv(value, dpi_, 96);
     };
+    form_.attach(window_);
+    const int body_width = std::max(scale(664), width - GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_));
+    const int body_height = std::max(scale(620), height);
+    form_.layout(width, height, body_width, body_height);
     const auto margin = scale(2);
     TreeView_SetItemHeight(tree_, scale(30));
-    const auto segment_width = scale(126);
-    const auto segment_height = scale(36);
+    const auto segment_width = scale(112);
+    const auto segment_height = scale(32);
     MoveWindow(main_menu_button_, margin, margin, segment_width, segment_height, TRUE);
     MoveWindow(second_menu_button_, margin + segment_width, margin,
                segment_width, segment_height, TRUE);
 
     const auto content_top = margin + segment_height + scale(16);
-    const auto content_bottom = height - margin;
+    const auto content_bottom = body_height - margin;
     const auto left_x = margin;
-    const auto content_right = width - margin;
-    const auto splitter_width = scale(8);
+    const auto content_right = body_width - margin;
+    const auto splitter_width = scale(4);
     const auto minimum_left = scale(280);
-    const auto minimum_right = scale(330);
+    const auto minimum_right = scale(360);
     if (splitter_x_ == 0) {
-        splitter_x_ = left_x + (content_right - left_x) * 42 / 100;
+        splitter_x_ = left_x + scale(316);
     }
     splitter_x_ = std::clamp(splitter_x_, left_x + minimum_left,
-        content_right - splitter_width - scale(16) - minimum_right);
+        std::max(left_x + minimum_left, content_right - splitter_width - scale(16) - minimum_right));
     const auto left_width = splitter_x_ - left_x;
     const auto right_x = splitter_x_ + splitter_width + scale(16);
     const auto right_width = content_right - right_x;
     const auto gap = scale(8);
-    const auto button_height = scale(36);
+    const auto button_height = scale(32);
     const auto add_width = (left_width - gap * 2) / 3;
     MoveWindow(add_category_button_, left_x, content_top, add_width, button_height, TRUE);
     MoveWindow(add_item_button_, left_x + add_width + gap, content_top,
@@ -427,37 +437,37 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
                add_width, button_height, TRUE);
 
     const auto structure_top = content_bottom - button_height;
-    const auto structure_width = (left_width - gap * 3) / 4;
+    const auto structure_width = scale(32);
     MoveWindow(tree_, left_x, content_top + button_height + scale(12), left_width,
                structure_top - content_top - button_height - scale(24), TRUE);
     MoveWindow(move_up_button_, left_x, structure_top, structure_width, button_height, TRUE);
-    MoveWindow(move_down_button_, left_x + structure_width + gap, structure_top,
+    MoveWindow(move_down_button_, left_x + structure_width + scale(4), structure_top,
                structure_width, button_height, TRUE);
-    MoveWindow(increase_level_button_, left_x + (structure_width + gap) * 2,
+    MoveWindow(increase_level_button_, left_x + (structure_width + scale(4)) * 2,
                structure_top, structure_width, button_height, TRUE);
-    MoveWindow(decrease_level_button_, left_x + (structure_width + gap) * 3,
+    MoveWindow(decrease_level_button_, left_x + (structure_width + scale(4)) * 3,
                structure_top, structure_width, button_height, TRUE);
     MoveWindow(splitter_, splitter_x_, content_top, splitter_width,
                content_bottom - content_top, TRUE);
 
-    const auto delete_width = scale(104);
+    const auto delete_width = scale(32);
     MoveWindow(detail_title_, right_x, content_top,
                std::max(1, right_width - delete_width - gap), scale(30), TRUE);
     MoveWindow(delete_button_, right_x + right_width - delete_width, content_top,
                delete_width, button_height, TRUE);
-    const auto field_height = scale(30);
+    const auto field_height = scale(32);
     const auto browse_width = scale(112);
     auto row_y = content_top + scale(40);
     const auto place_field = [&](const HWND label, const HWND control, const HWND browse) {
-        MoveWindow(label, right_x, row_y, right_width, scale(18), TRUE);
-        row_y += scale(20);
+        MoveWindow(label, right_x, row_y, right_width, scale(20), TRUE);
+        row_y += scale(28);
         MoveWindow(control, right_x, row_y,
             right_width - (browse ? browse_width + scale(8) : 0), field_height, TRUE);
         if (browse) {
             MoveWindow(browse, right_x + right_width - browse_width, row_y,
                        browse_width, field_height, TRUE);
         }
-        row_y += field_height + scale(6);
+        row_y += field_height + scale(16);
     };
     place_field(name_label_, name_edit_, nullptr);
     place_field(access_key_label_, access_key_edit_, nullptr);
@@ -1091,7 +1101,7 @@ LRESULT CALLBACK MenuEditorWindow::splitter_procedure(
     }
     if (message == WM_MOUSEMOVE && GetCapture() == window && editor) {
         POINT point{GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam)};
-        MapWindowPoints(window, editor->window_, &point, 1);
+        MapWindowPoints(window, GetParent(window), &point, 1);
         RECT splitter_rectangle{};
         GetClientRect(window, &splitter_rectangle);
         editor->splitter_x_ = point.x
@@ -1111,15 +1121,6 @@ LRESULT CALLBACK MenuEditorWindow::splitter_procedure(
         RECT rectangle{};
         GetClientRect(window, &rectangle);
         FillRect(dc, &rectangle, settings_visual_style::background_brush());
-        const auto pen = CreatePen(PS_SOLID, 1,
-            settings_visual_style::high_contrast_enabled()
-                ? GetSysColor(COLOR_3DSHADOW) : RGB(208, 208, 208));
-        const auto old_pen = SelectObject(dc, pen);
-        const auto x = (rectangle.right - rectangle.left) / 2;
-        MoveToEx(dc, x, rectangle.top, nullptr);
-        LineTo(dc, x, rectangle.bottom);
-        SelectObject(dc, old_pen);
-        DeleteObject(pen);
         EndPaint(window, &paint);
         return 0;
     }

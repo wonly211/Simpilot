@@ -42,9 +42,11 @@ bool SettingsWindow::run() {
     dpi_ = GetDpiForSystem();
     MONITORINFO monitor{sizeof(monitor)};
     GetMonitorInfoW(MonitorFromWindow(owner_, MONITOR_DEFAULTTONEAREST), &monitor);
-    const int width = std::min(MulDiv(1080, dpi_, 96),
+    RECT preferred{0, 0, MulDiv(1028, dpi_, 96), MulDiv(684, dpi_, 96)};
+    AdjustWindowRectExForDpi(&preferred, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_CONTROLPARENT, dpi_);
+    const int width = std::min(static_cast<int>(preferred.right - preferred.left),
         static_cast<int>((monitor.rcWork.right - monitor.rcWork.left) * 92 / 100));
-    const int height = std::min(MulDiv(760, dpi_, 96),
+    const int height = std::min(static_cast<int>(preferred.bottom - preferred.top),
         static_cast<int>((monitor.rcWork.bottom - monitor.rcWork.top) * 92 / 100));
     window_ = CreateWindowExW(WS_EX_CONTROLPARENT, wc.lpszClassName,
         localization_.text("settings.title").data(), WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
@@ -83,14 +85,23 @@ bool SettingsWindow::run() {
     if (window_) DestroyWindow(window_);
     pages_.clear();
     session_.cancel();
-    if (disable_owner) EnableWindow(owner_, TRUE);
+    if (disable_owner) {
+        EnableWindow(owner_, TRUE);
+        SetForegroundWindow(owner_);
+    }
     if (repost) PostQuitMessage(quit);
     return applied_;
 }
 void SettingsWindow::create_controls() {
     dpi_ = GetDpiForWindow(window_);
+    brand_icon_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_ICON,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    brand_ = CreateWindowW(L"STATIC", L"Simpilot", WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    navigation_label_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     navigation_ = CreateWindowW(L"LISTBOX", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP
-        | LBS_NOTIFY | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL,
+        | LBS_NOTIFY | LBS_OWNERDRAWVARIABLE | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(250), instance_, nullptr);
     const auto button = [&](int id) {
         return CreateWindowW(L"BUTTON", L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP
@@ -98,9 +109,12 @@ void SettingsWindow::create_controls() {
             window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr);
     };
     save_ = button(1); cancel_ = button(2); apply_ = button(3);
+    settings_visual_style::style_button(save_, settings_visual_style::ButtonStyle::primary);
+    settings_visual_style::style_button(apply_);
+    settings_visual_style::style_button(cancel_, settings_visual_style::ButtonStyle::quiet);
     status_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE, 0, 0, 0, 0,
         window_, nullptr, instance_, nullptr);
-    if (!navigation_ || !save_ || !cancel_ || !apply_ || !status_)
+    if (!navigation_ || !save_ || !cancel_ || !apply_ || !status_ || !brand_ || !brand_icon_ || !navigation_label_)
         throw std::runtime_error("Cannot create settings host controls");
     update_font();
     registry_.visit([this](const auto&, const SettingsPageContribution& contribution) {
@@ -110,15 +124,26 @@ void SettingsWindow::create_controls() {
             [this](std::string language) { return change_language(std::move(language)); }});
         pages_.push_back({contribution.title_key, std::move(page)});
     });
+    // Native dialog navigation follows sibling order, including contributed page children.
+    for (const auto control : {cancel_, apply_, save_})
+        SetWindowPos(control, HWND_BOTTOM, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     refresh_language(); select_page(); changed();
 }
 void SettingsWindow::update_font() {
     const auto old = font_;
-    font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
-        DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
+        DEFAULT_PITCH | FF_DONTCARE, localization_.language_code().starts_with("zh")
+            ? L"Microsoft YaHei UI" : L"Segoe UI");
     for (auto control : {navigation_, save_, apply_, cancel_, status_})
         SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font_), TRUE);
+    typography_.update(font_, dpi_);
+    SendMessageW(brand_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.section()), TRUE);
+    SendMessageW(navigation_label_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.caption()), TRUE);
+    const auto icon = LoadImageW(instance_, MAKEINTRESOURCEW(IDI_SIMPILOT), IMAGE_ICON,
+        MulDiv(32, dpi_, 96), MulDiv(32, dpi_, 96), LR_SHARED);
+    SendMessageW(brand_icon_, STM_SETICON, reinterpret_cast<WPARAM>(icon), 0);
     layout();
     if (old) DeleteObject(old);
 }
@@ -127,34 +152,61 @@ void SettingsWindow::layout() {
     RECT client{};
     GetClientRect(window_, &client);
     const auto scale = [this](int value) { return MulDiv(value, dpi_, 96); };
-    const int navigation_width = std::min(scale(230), static_cast<int>(client.right * 30 / 100));
-    const int footer = scale(64), margin = scale(24);
-    SendMessageW(navigation_, LB_SETITEMHEIGHT, 0, scale(42));
-    MoveWindow(navigation_, 0, 0, navigation_width, std::max(1L, client.bottom - footer), TRUE);
-    RECT content{navigation_width + margin, margin,
-        std::max(navigation_width + margin + 1L, client.right - margin),
-        std::max(margin + 1L, client.bottom - footer - margin)};
+    const bool redraw = IsWindowVisible(window_) != FALSE;
+    if (redraw) SendMessageW(window_, WM_SETREDRAW, FALSE, 0);
+    navigation_width_ = std::min(scale(216), static_cast<int>(client.right * 28 / 100));
+    const bool compact_footer = client.right < scale(850);
+    footer_height_ = scale(compact_footer ? 96 : 72);
+    const int margin = scale(28);
+    MoveWindow(brand_icon_, scale(20), scale(24), scale(32), scale(32), TRUE);
+    MoveWindow(brand_, scale(62), scale(22), std::max(1, navigation_width_ - scale(74)), scale(22), TRUE);
+    MoveWindow(navigation_label_, scale(62), scale(46), std::max(1, navigation_width_ - scale(74)), scale(20), TRUE);
+    MoveWindow(navigation_, scale(12), scale(88), std::max(1, navigation_width_ - scale(24)),
+        std::max(1L, client.bottom - footer_height_ - scale(100)), TRUE);
+    const auto dc = GetDC(navigation_);
+    const auto old_font = SelectObject(dc, font_);
+    for (std::size_t i = 0; i < pages_.size(); ++i) {
+        RECT text{0, 0, std::max(1, navigation_width_ - scale(52)), 0};
+        const auto label = localization_.text(pages_[i].title);
+        DrawTextW(dc, label.data(), static_cast<int>(label.size()), &text,
+            DT_CALCRECT | DT_WORDBREAK | DT_NOPREFIX);
+        SendMessageW(navigation_, LB_SETITEMHEIGHT, i, std::max(scale(48), static_cast<int>(text.bottom) + scale(8)));
+    }
+    SelectObject(dc, old_font);
+    ReleaseDC(navigation_, dc);
+    const int available = std::max(1L, client.right - navigation_width_ - margin * 2);
+    const int width = std::min(available, scale(840));
+    const int left = navigation_width_ + margin;
+    RECT content{left, margin, left + width,
+        std::max(margin + 1L, client.bottom - footer_height_ - margin)};
     for (const auto& page : pages_) page.instance->layout(content, dpi_, font_);
-    const int button_width = std::min(scale(96), static_cast<int>(std::max(1L, client.right / 5)));
-    const HWND buttons[]{cancel_, apply_, save_};
+    const int button_width = std::min(scale(88), static_cast<int>(std::max(1L, client.right / 5)));
+    const HWND buttons[]{save_, apply_, cancel_};
     for (int i = 0; i < 3; ++i) MoveWindow(buttons[i],
-        client.right - margin - button_width * (i + 1) - scale(10) * i,
-        client.bottom - scale(50), button_width, scale(36), TRUE);
-    MoveWindow(status_, content.left, client.bottom - scale(48),
-        std::max(1L, content.right - content.left - (button_width + scale(10)) * 3), scale(32), TRUE);
+        client.right - margin - button_width * (i + 1) - scale(8) * i,
+        client.bottom - scale(54), button_width, scale(36), TRUE);
+    const int buttons_left = client.right - margin - 3 * button_width - scale(16);
+    MoveWindow(status_, content.left, client.bottom - scale(compact_footer ? 90 : 56),
+        compact_footer ? width : std::max(1L, buttons_left - scale(24) - content.left), scale(40), TRUE);
+    if (redraw) {
+        SendMessageW(window_, WM_SETREDRAW, TRUE, 0);
+        RedrawWindow(window_, nullptr, nullptr, RDW_INVALIDATE | RDW_ALLCHILDREN);
+    }
 }
 void SettingsWindow::refresh_language() {
     SetWindowTextW(window_, localization_.text("settings.title").data());
     SetWindowTextW(save_, localization_.text("settings.save").data());
     SetWindowTextW(apply_, localization_.text("settings.apply").data());
     SetWindowTextW(cancel_, localization_.text("settings.cancel").data());
+    SetWindowTextW(navigation_label_, localization_.text("settings.navigation").data());
     SendMessageW(navigation_, LB_RESETCONTENT, 0, 0);
     for (const auto& page : pages_) {
         SendMessageW(navigation_, LB_ADDSTRING, 0, reinterpret_cast<LPARAM>(localization_.text(page.title).data()));
         page.instance->refresh_language(localization_);
     }
     SendMessageW(navigation_, LB_SETCURSEL, selected_, 0);
-    layout();
+    update_font();
+    changed();
 }
 bool SettingsWindow::change_language(std::string language) {
     if (language.empty()) return false;
@@ -168,7 +220,23 @@ void SettingsWindow::select_page() {
     for (std::size_t i = 0; i < pages_.size(); ++i)
         pages_[i].instance->show(static_cast<int>(i) == selected_);
 }
-void SettingsWindow::changed() { SetWindowTextW(status_, L""); EnableWindow(apply_, session_.dirty()); }
+void SettingsWindow::changed() {
+    save_failed_ = false;
+    const bool dirty = session_.dirty();
+    SetWindowTextW(status_, dirty ? localization_.text("settings.pending_changes").data() : L"");
+    EnableWindow(apply_, dirty);
+}
+void SettingsWindow::paint_background(HDC dc) {
+    RECT client{};
+    GetClientRect(window_, &client);
+    FillRect(dc, &client, settings_visual_style::background_brush());
+    RECT sidebar{0, 0, navigation_width_, client.bottom};
+    FillRect(dc, &sidebar, settings_visual_style::high_contrast_enabled()
+        ? GetSysColorBrush(COLOR_WINDOW) : settings_visual_style::brushes().navigation);
+    const RECT footer{navigation_width_, client.bottom - footer_height_, client.right, client.bottom};
+    FillRect(dc, &footer, settings_visual_style::background_brush());
+    settings_visual_style::draw_separator(dc, navigation_width_, client.right, footer.top, dpi_);
+}
 bool SettingsWindow::apply() {
     for (const auto& page : pages_) page.instance->show(false);
     select_page();
@@ -180,6 +248,7 @@ bool SettingsWindow::apply() {
     });
     applied_ = applied_ || result;
     changed();
+    save_failed_ = !result;
     SetWindowTextW(status_, localization_.text(result ? "settings.applied" : "ui.settings_save_failed").data());
     return result;
 }
@@ -209,13 +278,22 @@ LRESULT SettingsWindow::message(UINT message, WPARAM wparam, LPARAM lparam) {
         auto* limits = reinterpret_cast<MINMAXINFO*>(lparam);
         MONITORINFO monitor{sizeof(monitor)};
         GetMonitorInfoW(MonitorFromWindow(window_, MONITOR_DEFAULTTONEAREST), &monitor);
-        limits->ptMinTrackSize.x = std::min(MulDiv(960, dpi_, 96),
+        RECT minimum{0, 0, MulDiv(960, dpi_, 96), MulDiv(684, dpi_, 96)};
+        AdjustWindowRectExForDpi(&minimum, WS_OVERLAPPEDWINDOW, FALSE, WS_EX_CONTROLPARENT, dpi_);
+        limits->ptMinTrackSize.x = std::min(static_cast<int>(minimum.right - minimum.left),
             static_cast<int>((monitor.rcWork.right - monitor.rcWork.left) * 92 / 100));
-        limits->ptMinTrackSize.y = std::min(MulDiv(680, dpi_, 96),
+        limits->ptMinTrackSize.y = std::min(static_cast<int>(minimum.bottom - minimum.top),
             static_cast<int>((monitor.rcWork.bottom - monitor.rcWork.top) * 92 / 100));
         return 0;
     }
     if (message == WM_CREATE) { create_controls(); return 0; }
+    if (message == WM_MEASUREITEM) {
+        auto* measure = reinterpret_cast<MEASUREITEMSTRUCT*>(lparam);
+        if (measure && measure->CtlID == 250) {
+            measure->itemHeight = MulDiv(48, dpi_, 96);
+            return TRUE;
+        }
+    }
     if (message == WM_SIZE) { layout(); return 0; }
     if (message == WM_DPICHANGED) {
         dpi_ = HIWORD(wparam);
@@ -243,7 +321,24 @@ LRESULT SettingsWindow::message(UINT message, WPARAM wparam, LPARAM lparam) {
             settings_visual_style::draw_navigation_item(*drawing, navigation_); return TRUE;
         }
     }
-    if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window_, wparam);
+    if (message == WM_ERASEBKGND) { paint_background(reinterpret_cast<HDC>(wparam)); return 1; }
+    if (message == WM_PAINT) {
+        PAINTSTRUCT painting{};
+        const auto dc = BeginPaint(window_, &painting);
+        paint_background(dc);
+        EndPaint(window_, &painting);
+        return 0;
+    }
+    if (message == WM_CTLCOLORSTATIC
+        && (reinterpret_cast<HWND>(lparam) == brand_ || reinterpret_cast<HWND>(lparam) == navigation_label_
+            || reinterpret_cast<HWND>(lparam) == brand_icon_))
+        return settings_visual_style::handle_navigation_color(wparam);
+    if (message == WM_CTLCOLORSTATIC && reinterpret_cast<HWND>(lparam) == status_) {
+        const auto brush = settings_visual_style::handle_secondary_text(wparam, lparam);
+        if (save_failed_ && !settings_visual_style::high_contrast_enabled())
+            SetTextColor(reinterpret_cast<HDC>(wparam), RGB(180, 35, 24));
+        return brush;
+    }
     if (message == WM_CTLCOLORLISTBOX) return settings_visual_style::handle_navigation_color(wparam);
     if (settings_visual_style::is_color_message(message))
         return settings_visual_style::handle_color_message(message, wparam, lparam);

@@ -1,6 +1,7 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "settings.menu_icons.empty": "尚無可設定圖示的啟動項目",
     "ui.menu_two": "選單 2",
     "ui.edit_menus": "編輯選單...",
     "ui.main_menu": "編輯主選單",
@@ -16,7 +17,7 @@
     "ui.calculator": "計算機",
     "settings.main_menu": "快速啟動選單",
     "settings.second_menu": "第二選單",
-    "settings.menu_theme": "快速啟動選單佈景主題",
+    "settings.menu_theme": "選單主題",
     "settings.system_theme": "跟隨 Windows",
     "settings.light_theme": "淺色",
     "settings.dark_theme": "深色",

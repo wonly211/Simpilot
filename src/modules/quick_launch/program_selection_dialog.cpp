@@ -201,35 +201,37 @@ void ProgramSelectionDialog::create_controls() {
 
 void ProgramSelectionDialog::update_font() {
     const auto old_font = font_;
-    font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     set_font(prompt_, font_);
     set_font(list_, font_);
     set_font(select_button_, font_);
     set_font(cancel_button_, font_);
+    settings_visual_style::style_button(select_button_, settings_visual_style::ButtonStyle::primary);
+    settings_visual_style::style_button(cancel_button_, settings_visual_style::ButtonStyle::quiet);
     if (old_font) DeleteObject(old_font);
 }
 
 void ProgramSelectionDialog::layout_controls(const int width, const int height) {
     const auto scale = [this](const int value) { return MulDiv(value, dpi_, 96); };
-    const auto margin = scale(24);
-    const auto button_width = scale(96);
+    const auto margin = scale(28);
+    const auto button_width = scale(88);
     const auto button_height = scale(36);
-    const auto gap = scale(12);
-    const auto button_y = height - margin - button_height;
+    const auto gap = scale(8);
+    const auto button_y = height - scale(54);
     MoveWindow(prompt_, margin, scale(18), width - margin * 2, scale(36), TRUE);
     MoveWindow(list_, margin, scale(62), width - margin * 2,
                std::max(0, button_y - scale(76)), TRUE);
-    MoveWindow(cancel_button_, width - margin - button_width, button_y,
+    MoveWindow(select_button_, width - margin - button_width, button_y,
                button_width, button_height, TRUE);
-    MoveWindow(select_button_, width - margin - button_width * 2 - gap, button_y,
+    MoveWindow(cancel_button_, width - margin - button_width * 2 - gap, button_y,
                button_width, button_height, TRUE);
 
     const auto list_width = std::max(0, width - margin * 2 - GetSystemMetrics(SM_CXVSCROLL) - scale(4));
-    ListView_SetColumnWidth(list_, 0, list_width * 64 / 100);
-    ListView_SetColumnWidth(list_, 1, list_width * 15 / 100);
-    ListView_SetColumnWidth(list_, 2, list_width - list_width * 79 / 100);
+    ListView_SetColumnWidth(list_, 0, std::max(scale(360), list_width - scale(280)));
+    ListView_SetColumnWidth(list_, 1, scale(112));
+    ListView_SetColumnWidth(list_, 2, scale(168));
 }
 
 void ProgramSelectionDialog::accept_selection() {

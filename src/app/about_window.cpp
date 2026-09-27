@@ -50,7 +50,7 @@ std::wstring link_markup(const std::wstring_view label) {
 
 SIZE about_window_size(const UINT dpi) noexcept {
     constexpr DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_VSCROLL;
-    RECT desired{0, 0, MulDiv(680, dpi, 96), MulDiv(420, dpi, 96)};
+    RECT desired{0, 0, MulDiv(683, dpi, 96), MulDiv(421, dpi, 96)};
     AdjustWindowRectExForDpi(&desired, style,
                             FALSE, WS_EX_CONTROLPARENT | WS_EX_DLGMODALFRAME, dpi);
     return SIZE{desired.right - desired.left, desired.bottom - desired.top};
@@ -153,7 +153,9 @@ void AboutWindow::run() {
     if (!window_) return;
     const auto actual_size = about_window_size(GetDpiForWindow(window_));
     const auto actual_width = std::min(actual_size.cx, work_width * 96 / 100);
-    const auto actual_height = std::min(actual_size.cy, work_height * 96 / 100);
+    const auto actual_height = std::min(
+        std::max(actual_size.cy, content_height_ + actual_size.cy - MulDiv(421, GetDpiForWindow(window_), 96)),
+        work_height - MulDiv(48, GetDpiForWindow(window_), 96));
     SetWindowPos(window_, nullptr,
         monitor_information.rcWork.left + (work_width - actual_width) / 2,
         monitor_information.rcWork.top + (work_height - actual_height) / 2,
@@ -278,16 +280,16 @@ void AboutWindow::update_fonts() {
     const auto old_semibold = semibold_font_;
     const auto old_section = section_font_;
     const auto old_title = title_font_;
-    font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    semibold_font_ = CreateFontW(-MulDiv(13, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
+    semibold_font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    section_font_ = CreateFontW(-MulDiv(16, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
+    section_font_ = CreateFontW(-MulDiv(14, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
-    title_font_ = CreateFontW(-MulDiv(20, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
+    title_font_ = CreateFontW(-MulDiv(24, dpi_, 96), 0, 0, 0, FW_SEMIBOLD,
         FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
         CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
     set_font(product_name_, title_font_);
@@ -297,6 +299,7 @@ void AboutWindow::update_fonts() {
         positioning_, version_label_, tagline_, local_data_, third_party_summary_,
         close_button_};
     for (const auto control : regular_controls) set_font(control, font_);
+    settings_visual_style::style_button(close_button_);
     for (const auto control : primary_links_) set_font(control, font_);
     for (const auto control : information_values_) set_font(control, font_);
     for (const auto control : legal_links_) set_font(control, font_);
@@ -330,10 +333,10 @@ void AboutWindow::layout_controls(const int width, const int height) {
             window_, font, value, maximum_width, DT_WORDBREAK).height);
     };
 
-    auto y = scale(16);
-    const auto icon_size = scale(60);
+    auto y = scale(28);
+    const auto icon_size = scale(56);
     place(icon_, margin, y, icon_size, icon_size);
-    const auto header_x = margin + icon_size + scale(20);
+    const auto header_x = margin + icon_size + scale(12);
     const auto header_width = std::max(scale(100), width - margin - header_x);
     auto header_y = y - scale(3);
     const auto product_height = paragraph_height(
@@ -349,9 +352,9 @@ void AboutWindow::layout_controls(const int width, const int height) {
         version_value.c_str(), font_, header_width);
     place(version_label_, header_x, header_y, header_width, version_height);
     const auto header_bottom = std::max(y + icon_size, header_y + version_height);
-    divider_positions_[0] = header_bottom + scale(10);
+    divider_positions_[0] = header_bottom + scale(12);
 
-    y = divider_positions_[0] + scale(10);
+    y = divider_positions_[0] + scale(12);
     const auto tagline_height = paragraph_height(
         text(AboutText::tagline_text), font_, content_width);
     place(tagline_, margin, y, content_width, tagline_height);
@@ -404,7 +407,7 @@ void AboutWindow::layout_controls(const int width, const int height) {
     const std::array value_texts{
         AboutText::system_value_text, AboutText::distribution_value_text,
         AboutText::license_value_text};
-    auto label_width = scale(112);
+    auto label_width = scale(108);
     for (const auto identifier : label_texts) {
         label_width = std::max(label_width, measure_text(
             window_, semibold_font_, text(identifier), content_width,
@@ -436,8 +439,8 @@ void AboutWindow::layout_controls(const int width, const int height) {
 
     divider_positions_[1] = y;
     y += scale(10);
-    const auto button_width = scale(96);
-    const auto button_height = scale(34);
+    const auto button_width = scale(88);
+    const auto button_height = scale(36);
     const auto button_x = width - margin - button_width;
     const auto legal_width = std::max(
         scale(120), content_width - button_width - scale(20));

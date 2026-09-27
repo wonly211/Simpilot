@@ -148,8 +148,8 @@ int wmain() {
                 .CtlType = ODT_MENU,
                 .itemData = item.dwItemData,
             };
-            require(renderer.measure(measurement) && measurement.itemHeight >= 34,
-                    "Measure a larger launch-menu item");
+            require(renderer.measure(measurement) && measurement.itemHeight == 32
+                && measurement.itemWidth == 280, "Measure the baseline menu density and width");
             require(renderer.append_separator(menu),
                     "Append a theme-aware owner-drawn separator");
             MENUITEMINFOW separator{

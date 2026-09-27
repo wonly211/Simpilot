@@ -1,0 +1,732 @@
+{
+  "recordedAt": "2026-09-26T10:08:26.8167652+08:00",
+  "head": "fd89a97a712cb313e0888199e315842395f7c011",
+  "branch": "codex/release-v1.0.0",
+  "status": [
+    " M CMakeLists.txt",
+    " M Languages/en-US.json",
+    " M Languages/zh-CN.json",
+    " M Languages/zh-TW.json",
+    " M src/app/general_settings_page.cpp",
+    " M src/app/settings_window.cpp",
+    " M src/app/settings_window.hpp",
+    " M src/infrastructure/ui/hotkey_settings_page.cpp",
+    " M src/infrastructure/ui/settings_visual_style.hpp",
+    " M src/infrastructure/ui/toggle_switch.cpp",
+    " M src/modules/custom_hotkey/custom_hotkey_page.cpp",
+    " M src/modules/custom_hotkey/tests/custom_hotkey_tests.cpp",
+    " M src/modules/everything/everything_module.cpp",
+    " M src/modules/everything/tests/everything_tests.cpp",
+    " M src/modules/keyboard_mapping/keyboard_mapping_page.cpp",
+    " M src/modules/keyboard_mapping/tests/keyboard_mapping_module_tests.cpp",
+    " M src/modules/mouse_locator/mouse_locator_module.cpp",
+    " M src/modules/mouse_locator/tests/mouse_locator_tests.cpp",
+    " M src/modules/quick_launch/quick_launch_settings_ui.cpp",
+    " M src/modules/quick_launch/tests/quick_launch_module_tests.cpp",
+    " M src/modules/windows_hotkey_blocker/tests/windows_hotkey_policy_tests.cpp",
+    " M src/modules/windows_hotkey_blocker/windows_hotkey_blocker_module.cpp",
+    " M tests/settings_module_integration_tests.cpp",
+    "?? assets/ancient-glyph-logo-16.png",
+    "?? assets/ancient-glyph-logo-256.png",
+    "?? assets/ancient-glyph-logo-32.png",
+    "?? assets/ancient-glyph-logo-64.png",
+    "?? assets/ancient-glyph-logo-preview.png",
+    "?? assets/ancient-glyph-logo.png",
+    "?? docs/design/",
+    "?? src/infrastructure/ui/settings_visual_style.cpp"
+  ],
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "3BF63A2006103E95E84C13CE16A84482B6B9C9ABB2745C606A38ED84618F4C5D"
+    },
+    {
+      "path": "include/simpilot/app_module.hpp",
+      "sha256": "9E117B9309BCF79CB4EE2C2114F086ABF007AE0FF12C3487FF770D58500CF4F6"
+    },
+    {
+      "path": "include/simpilot/app_settings.hpp",
+      "sha256": "E9571023E61B83265E486ABA3F57D20FD77DF3DBD0A44984AC621E8618AC9611"
+    },
+    {
+      "path": "include/simpilot/atomic_file.hpp",
+      "sha256": "E2F2BC061F04CCCEC72218E084902000237891BD2FECBBA85C8E91BC43219ED7"
+    },
+    {
+      "path": "include/simpilot/command_executor.hpp",
+      "sha256": "913E906E95B96FFB9AF9FAB286A4CB7CB22128FB9B4B6508B953D3D9BD5F1709"
+    },
+    {
+      "path": "include/simpilot/command.hpp",
+      "sha256": "61489585968AD6B43D97A233838388130C0C1840ECA94719DF2893FE83CDF7EE"
+    },
+    {
+      "path": "include/simpilot/config_file.hpp",
+      "sha256": "E9343CAE8A237B9D9E8FCACFC843F28F51D552E4B6AF8B497CBCBF679B68CC19"
+    },
+    {
+      "path": "include/simpilot/contribution_registry.hpp",
+      "sha256": "EB1FBE9C5AA1A0F4CEB968CF34A1697603354C89531A3CDEBC4AA340E619F767"
+    },
+    {
+      "path": "include/simpilot/hotkey_registry.hpp",
+      "sha256": "21504BFF6E7EDCA61A3553B8ED35DBC74589D10DF44116832B4B5C08798334C1"
+    },
+    {
+      "path": "include/simpilot/hotkey_settings_codec.hpp",
+      "sha256": "E2A5E42CD32194D8D918C6C051552A0576EE8A525AE36AFD6A4B36E152C7F6A2"
+    },
+    {
+      "path": "include/simpilot/hotkey.hpp",
+      "sha256": "84E28C63695580A1A8ADD4039AC4E834AB41477152A8864F584D718EE59A95E6"
+    },
+    {
+      "path": "include/simpilot/keyboard_input.hpp",
+      "sha256": "82ECB421D5B4811CD427C8F6A4281F6A4CD614A2984E289714BDB55B1C851227"
+    },
+    {
+      "path": "include/simpilot/language_pack.hpp",
+      "sha256": "69A19CD7A8014064F84914929CCD1095711F5308821E1B21EA1FF1CA641A56D3"
+    },
+    {
+      "path": "include/simpilot/localization.hpp",
+      "sha256": "D163717C5D8ADAE26E4951C582B6CE7F188D4F4F31E00F918C9E51E999AE4BDC"
+    },
+    {
+      "path": "include/simpilot/logger.hpp",
+      "sha256": "342F313EFA3FEC58A1447C0BAE57A0C772B1F6ACD4A99A7D35F052815BAC3AE6"
+    },
+    {
+      "path": "include/simpilot/popup_menu_host.hpp",
+      "sha256": "39409A68143FF17CB76201C642A3F11A0231E5C21374964ADDFF236F00A3D36E"
+    },
+    {
+      "path": "include/simpilot/program_search_registry.hpp",
+      "sha256": "4D6D3404EF5AAEA38CA909C4961B5B39E4427060BC6604C6EF4CA3F1523AB6F6"
+    },
+    {
+      "path": "include/simpilot/program_search.hpp",
+      "sha256": "DC45FA617B869C8284E860AFF6750C5173C05856E372188BA61F9272271721B3"
+    },
+    {
+      "path": "include/simpilot/settings_document.hpp",
+      "sha256": "E5F86A30B7DE4E6BB6DB2C0547330C11426EF7C04E73A6ABB1A73B092A4D99EF"
+    },
+    {
+      "path": "include/simpilot/settings_registry.hpp",
+      "sha256": "114D4794922771E5D488C20FFB37F1F61DA3E8A35D7A8DE6204946B2DCD16E9D"
+    },
+    {
+      "path": "include/simpilot/text_encoding.hpp",
+      "sha256": "77333243B74974D047BBEE86377374167752582383447A35C48D671D7A49D239"
+    },
+    {
+      "path": "include/simpilot/tray_menu_registry.hpp",
+      "sha256": "49B386F3D89C860E0DDCDC37B54E4AEE2A5F260E3D8F7903FB47E6656CD70B29"
+    },
+    {
+      "path": "include/simpilot/ui_dispatcher.hpp",
+      "sha256": "400BD183D94008720D46C7BB813F1F4290546AC36BE9ED3FF28A37E80348E19C"
+    },
+    {
+      "path": "include/simpilot/variable_expander.hpp",
+      "sha256": "B26CE3ACE45EF3B53F1DBAF9594037CA352AA9D85FA74904696CB0D1952917C6"
+    },
+    {
+      "path": "Languages/en-US.json",
+      "sha256": "3C3AAA2DC5C796921EAAD101AF2149CF2077B3E9F3B70E6D12E8354270F0BAF5"
+    },
+    {
+      "path": "Languages/zh-CN.json",
+      "sha256": "AEC3A6F7B1546C7608A1AAD13503678F7FB258E51F9F06F804F4436366A452B7"
+    },
+    {
+      "path": "Languages/zh-TW.json",
+      "sha256": "32C9D469A7B7E9381FC5BBE944FDC8DFC8D170FB1016D6D686E2897E0126453F"
+    },
+    {
+      "path": "resources/BuiltinLanguagePack.rc.in",
+      "sha256": "2E6E6F74D4D05766EAF0F00033934FFDB8893C35F082AE97A83567E4BCB8A361"
+    },
+    {
+      "path": "resources/resource.h",
+      "sha256": "95FDEDFB87FE520BA5766E3297096EFE68E3B0C1D4094FC917CF6C7C1ED96159"
+    },
+    {
+      "path": "resources/Simpilot.rc",
+      "sha256": "F3F0ED5D62B3739EF9344801F85B058A280BF9E5900BA9663B293A34C61EA566"
+    },
+    {
+      "path": "resources/SimpilotVersion.rc.in",
+      "sha256": "D62C1EAE38C4A48428AD248A5A4987DD795E52E6E4AA6861F3A72C7D19BD8C7A"
+    },
+    {
+      "path": "src/app/about_window.cpp",
+      "sha256": "282BB9ECAA516F0D1889198A52E31C052BDBC8D36336A4A6744A3AB00471AD8E"
+    },
+    {
+      "path": "src/app/about_window.hpp",
+      "sha256": "4C49EF2B6D5ADD25F90C565A291D41398FBB1A8C54D6217D696A29FE3909052A"
+    },
+    {
+      "path": "src/app/general_settings_page.cpp",
+      "sha256": "AF2192B76EC7928C31C157DE6E18DFE5D89457D3BF03597540E6A79DEBFC99C6"
+    },
+    {
+      "path": "src/app/general_settings_page.hpp",
+      "sha256": "B087504952ED9D1AF9753963ABEF18D484FA47EA41BA0D94903656273C865949"
+    },
+    {
+      "path": "src/app/main.cpp",
+      "sha256": "AD2962EB7A582F0518BFC539D8CA9727FDC40C7D420614DA2538B7352B11E569"
+    },
+    {
+      "path": "src/app/module_registry.cpp",
+      "sha256": "0EAAC12542FEE96E2BE0851779497E813C035241158199CE8ADD76645BD8BA89"
+    },
+    {
+      "path": "src/app/register_builtin_modules.cpp",
+      "sha256": "054BA44BAD4E0101A1B452D96B3EB8E8206815306FC277EA49D92FED22856BD8"
+    },
+    {
+      "path": "src/app/register_builtin_modules.hpp",
+      "sha256": "86B92EDBF92C2329FB3ECAB9C1ECA9187FE41A6EF7AAF48AC7E80BCA1E3B9322"
+    },
+    {
+      "path": "src/app/settings_session.cpp",
+      "sha256": "D6F681F1F08412C4D42AF7F4DFD30890BE6B6174BE4E8BBBE2E5B76CCBF310AE"
+    },
+    {
+      "path": "src/app/settings_window.cpp",
+      "sha256": "82A1747789D28941493378545B7580657E010CC1B372E50C4C346197FD898244"
+    },
+    {
+      "path": "src/app/settings_window.hpp",
+      "sha256": "95D8A1734002260213797DFF8FE259AF668E4C453D9F65AB5580A6F50B72C4AF"
+    },
+    {
+      "path": "src/app/Simpilot.manifest.in",
+      "sha256": "572FABA5E75E54F05A41B9887AC7BDF1A9026CA50EE23C182EA4EA040C832E2C"
+    },
+    {
+      "path": "src/app/tray_application.cpp",
+      "sha256": "A92434CAFD74D4A99EEC125786F1D4064CFE0F543B4B46D3F11A999E70C0DD1A"
+    },
+    {
+      "path": "src/app/tray_application.hpp",
+      "sha256": "9EE65F880F76008B0680DDDAB1813979653135FFC8F0A5763095622EB9891BBA"
+    },
+    {
+      "path": "src/app/ui_dispatcher.cpp",
+      "sha256": "FF4730643002A6D8EF3A1B2E94D2031C04522233EC5EF68804AA457DEAC6AD56"
+    },
+    {
+      "path": "src/core/app_settings.cpp",
+      "sha256": "6BB3105C9F01A97AAD14A6EFC3BB2257B63AC3E31D6B551AD76228760177D1C3"
+    },
+    {
+      "path": "src/core/atomic_file.cpp",
+      "sha256": "CD3AAF20E20554BC2A166D6399E10609E471A90ED6E51E270862E9052D035FE9"
+    },
+    {
+      "path": "src/core/command.cpp",
+      "sha256": "B188414534350F55ABEC0DC802B01A952B25F1EFC8750AAB477BCFEFDB3275C7"
+    },
+    {
+      "path": "src/core/config_file.cpp",
+      "sha256": "4156F2A5D0E35C31A642E9EEDCF8501FB953BD7038060593ABC8AD6C3CB673CB"
+    },
+    {
+      "path": "src/core/hotkey.cpp",
+      "sha256": "47318481D34F6DEEDE6EE1ACBE01129005E020D0E9CDEEB685BD60F4DD451569"
+    },
+    {
+      "path": "src/core/localization.cpp",
+      "sha256": "60DBDEB0A24E64743285B355FC16E0DE357F7C1CE5AF9C9E0EE839B0C234A657"
+    },
+    {
+      "path": "src/core/logger.cpp",
+      "sha256": "2041F6377290CDCCB9B48566B03E2261347E9B086F9CFAFDA381994D1DCA1525"
+    },
+    {
+      "path": "src/core/settings_document.cpp",
+      "sha256": "E4D71DD147328D9F9B4662C42DE6220FACBB1E1CFA0F4E189AFE1AFFCC9ADE2A"
+    },
+    {
+      "path": "src/core/text_encoding.cpp",
+      "sha256": "0418097CB9B5241E8DA5590F6520E4A8C42231FDFFBB476F74EA938B8E410331"
+    },
+    {
+      "path": "src/core/variable_expander.cpp",
+      "sha256": "0958C57AEA34926483E5E58ADF7C02F4EC009AEF686B839D1F88AE8EC2C32B1B"
+    },
+    {
+      "path": "src/infrastructure/command_executor.cpp",
+      "sha256": "25378ABB02D93D51FDC3AE5D3EA8F4901CAB9A39032DB482E074572174A98DF0"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_capture_state.cpp",
+      "sha256": "9061CC8773CE9E70411F81E311108AF1FA395D3D4D1C1BAB711B9836159562A1"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_capture_state.hpp",
+      "sha256": "234444DFF1907D8C2683F42CE4079B92FCFC805EB322235C8FE56803DA1A26B0"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_input.cpp",
+      "sha256": "45B5B2F8517D2B725D861E3D3417502A6A49C37D523EE6CB3B05111F2CF6F662"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_manager.cpp",
+      "sha256": "0EA958D33BE3AC397A41F1D5EF01C039335D1714226120631EE9608FAC0EF74E"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_manager.hpp",
+      "sha256": "7137BBEEE4BA307A91F499697E7AFA1214E052D5103D3D71581C385550023F77"
+    },
+    {
+      "path": "src/infrastructure/keyboard/keyboard_processing_stage.hpp",
+      "sha256": "0DFE77DC28ACB552499A1FBDCDBDF102F95879E39FD1A06CF7BD22E8A00F4C27"
+    },
+    {
+      "path": "src/infrastructure/ui/hotkey_capture_button.hpp",
+      "sha256": "3833868C8366552E612957D8B838C08DFDCDA4EDD7AE54775F7EEAB594358E28"
+    },
+    {
+      "path": "src/infrastructure/ui/hotkey_settings_page.cpp",
+      "sha256": "075C2AB7D8F6319279526A41532951CB439044AAAD4E0FCBCF874E4D7B531238"
+    },
+    {
+      "path": "src/infrastructure/ui/hotkey_settings_page.hpp",
+      "sha256": "50404E0A13D65F00CD3EF971F492EC21A09A1132DA33944426EFAD6AF07AA078"
+    },
+    {
+      "path": "src/infrastructure/ui/settings_visual_style.cpp",
+      "sha256": "5201F0B6EC06A5228AAB883B7B5930BD1B3C3708F5AB605A45966A90C9C03C58"
+    },
+    {
+      "path": "src/infrastructure/ui/settings_visual_style.hpp",
+      "sha256": "1E6AC5876D7F033D21429153AAE024044B511040EA26262960F57AED9B436BC6"
+    },
+    {
+      "path": "src/infrastructure/ui/toggle_switch.cpp",
+      "sha256": "AC0E6327293EBFA9952F96B777870F362EA487D00E416C62FA58B16E6D82F5BE"
+    },
+    {
+      "path": "src/infrastructure/ui/toggle_switch.hpp",
+      "sha256": "198826BAF5C597B1F2AB534AFA0A2B5BAB71797078B81F118A2D766771D87800"
+    },
+    {
+      "path": "src/modules/custom_hotkey/CMakeLists.txt",
+      "sha256": "9ED19BA7CA2A8A1E736E237D7B4B3F27591C40B69E81D14921F2FFB023E4ED11"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_dialog.cpp",
+      "sha256": "EAC5B28E090D567C43072262D2DA43F4A396AC6CAA3B0A11899E0CDFEE798715"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_dialog.hpp",
+      "sha256": "27161A09F7074533A6EC8E92E559EF21431F2BA273502452BAA6386F1414B421"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_module.cpp",
+      "sha256": "922C20829B226A5FE6EC084CC1A7A48B41D41402FADC19E9DDD17B6522A20F0E"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_module.hpp",
+      "sha256": "76DE0D7D6B445CC6B1896DD61BF70C9C89336B28D4AFABA9E916967A6FC2864E"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_page.cpp",
+      "sha256": "CE46093B116C65A66CCAF1BD33C616FAA0CF4C6275A708D433B321C8FDF30EE4"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_settings.cpp",
+      "sha256": "3846CF59B0A616CC4ACB85F790032FAC4FA624690E7515BB6BB660B1A37290EA"
+    },
+    {
+      "path": "src/modules/custom_hotkey/custom_hotkey_settings.hpp",
+      "sha256": "3FBD4E292C113910444C43923848D0D222F1AE091EA3045A3339BAAFD71B01AB"
+    },
+    {
+      "path": "src/modules/custom_hotkey/Languages/en-US.json",
+      "sha256": "20EC24ACC7BB0F50A4030D72FCD2FB9C55674385BFA603C0CF69FDE54667F568"
+    },
+    {
+      "path": "src/modules/custom_hotkey/Languages/zh-CN.json",
+      "sha256": "D5273AA802B51F4FAB87ACBB90138D6F4B31BFB79CC3ACC00D6F9DEA487DDD50"
+    },
+    {
+      "path": "src/modules/custom_hotkey/Languages/zh-TW.json",
+      "sha256": "178BB4E5D68F083EB71BAFDEA170B5F5E145073709AA124CD372049C0C15ECF6"
+    },
+    {
+      "path": "src/modules/custom_hotkey/tests/custom_hotkey_tests.cpp",
+      "sha256": "F2D3C3D23AA64C37F5CB3F7C6D78227F4D0EAA155A51AF02346FC1FB2C6D0805"
+    },
+    {
+      "path": "src/modules/custom_hotkey/tests/legacy_fixture.inc",
+      "sha256": "C781CE07AA27385DCFA989B7BC498524A862D22B3014430EDDF2D4C4B897BB70"
+    },
+    {
+      "path": "src/modules/everything/CMakeLists.txt",
+      "sha256": "826F12EC622B428E7BFB835743722FB724C2FA899E17BB8757AFA4426993A4BC"
+    },
+    {
+      "path": "src/modules/everything/everything_module.cpp",
+      "sha256": "92CBE661A548C033C4D2CF7DFC2B0B0BDA73992F97B22F76ABF6E1BCAEB208A0"
+    },
+    {
+      "path": "src/modules/everything/everything_module.hpp",
+      "sha256": "4ABDDB21DFEF0D7AAC166FA0CC5024FB8E1C49F4EA9AED3A0FC2C70D2D7D4A9C"
+    },
+    {
+      "path": "src/modules/everything/everything.cpp",
+      "sha256": "8FB550C62E1EEF7B9EF764B014006064360DAF58C9373800E8ED62D35CE68AE9"
+    },
+    {
+      "path": "src/modules/everything/everything.hpp",
+      "sha256": "A9BFA12669A0FDFE0CCFD63FD3D607176EFF229C677F41550FFA8DA06313DF82"
+    },
+    {
+      "path": "src/modules/everything/Languages/en-US.json",
+      "sha256": "6C074C6297D58057E0547E698C007FC82C81FF87680D61A098AD99EB9575C24E"
+    },
+    {
+      "path": "src/modules/everything/Languages/zh-CN.json",
+      "sha256": "1AFE0102FAF1540FF9B2433190A55D7FC638ADA344F7DED7BDA3DE69446BD875"
+    },
+    {
+      "path": "src/modules/everything/Languages/zh-TW.json",
+      "sha256": "23EAE4F0E9C176CCD65D8B67DE105C2378A9AF534A70CF018251674ACE1FE841"
+    },
+    {
+      "path": "src/modules/everything/tests/everything_tests.cpp",
+      "sha256": "8E8726DC910D960686F9C28DB1F97D92A269447247F30ACD636355308ADE9E20"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/CMakeLists.txt",
+      "sha256": "42767FF458DBE11FA9FCBB320F25445554044BCED84607371CC983FDB2E2C88D"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_dialog.cpp",
+      "sha256": "259473BE268CAF14E8E13DBF7683319CE43AC3D132221BF008DFE17636532A1A"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_dialog.hpp",
+      "sha256": "10E3B958080E7F0C6F75F2EF6461948F6E42F866EA52B0318D36A78821DC0E32"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_editor_model.cpp",
+      "sha256": "90E32B46311B38979E4F4A3CE3BE22C1F61243B2D9B943BD52933E2DE97DE122"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_editor_model.hpp",
+      "sha256": "02EB132E5D98460D77B0E72674C4B090103E2A84AB133BCEE07138995E4C3A9C"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_engine.cpp",
+      "sha256": "24A166315A32C23175654B1651602F375C67A3F152333D7032A0EB050C196B5D"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_engine.hpp",
+      "sha256": "1CE41ADC8D5817A442A96D9719A9C143FF1BCBF640333CA4D2497AEB9F52EBC3"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_module.cpp",
+      "sha256": "CCDD7172F52D0F9E2E128291DDE9BE5D9B22E74A17DB8A10E8478C67ADA3DC8A"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_module.hpp",
+      "sha256": "BE3D1494B00442074E9A3EA08238EE8D0669D7FB96739C1F8019ECA415C0733C"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_page.cpp",
+      "sha256": "527D75BF4D1962CD022F4F6BA53003BF23CC201A14B49145A1CBF20B993B8A5E"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping_settings.cpp",
+      "sha256": "B176A2DCFDF3D96412D460B974B8A22D09E0A9B0CBD64EBBC60BFBB98B0A95A9"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping.cpp",
+      "sha256": "93FB0376BE8B18723FD39E7C28ABA71690BE6843546D0E00959734A4EBF5D661"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/keyboard_mapping.hpp",
+      "sha256": "48415AF016858AD21E3ACDDCBF0C31901DAA683321B010F14645BBB6954A1F84"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/Languages/en-US.json",
+      "sha256": "B09191A54886BA652B197D80EF4841B9950CF34C28FE89CE02078C829B4B0711"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/Languages/zh-CN.json",
+      "sha256": "E839850A091375E2334086BD4B3B3334DE6F7A8C6BBD7A2FB5B96B1558D93F72"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/Languages/zh-TW.json",
+      "sha256": "22A7E6459DF8E9C350265CA8954F0840D5314C93A83D882CC57ECBCF383A2E26"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/tests/keyboard_mapping_engine_tests.cpp",
+      "sha256": "7DC4323A75E51AA0B9553C6F6860810CFC665E57729577437D5F7A066DB6D900"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/tests/keyboard_mapping_module_tests.cpp",
+      "sha256": "8AFE8570D6A2BDD596086BAED8DE83F0E8D4211F95D66FE703FDD69A363E0F19"
+    },
+    {
+      "path": "src/modules/keyboard_mapping/tests/keyboard_mapping_settings_tests.cpp",
+      "sha256": "7A8A346DD17D5F7370FDCD15DEE832E25B3CDDE125C7CB057AE33DEC1016C969"
+    },
+    {
+      "path": "src/modules/mouse_locator/CMakeLists.txt",
+      "sha256": "DC0E109D86689932ADF79964DE232B02AA2FA70F29C93BC1835A4A9140158EA7"
+    },
+    {
+      "path": "src/modules/mouse_locator/cursor_locator.cpp",
+      "sha256": "6710C49F80213D62B9884DDEE2BE3339EC07D630E43219E741FBDB69F9E9A02C"
+    },
+    {
+      "path": "src/modules/mouse_locator/cursor_locator.hpp",
+      "sha256": "64B8EF5410D6896B6D7FF241AF7FEC3DF9D0718C720279116E0943E0B0568592"
+    },
+    {
+      "path": "src/modules/mouse_locator/Languages/en-US.json",
+      "sha256": "5AD8B1D7E6A86DF437D7DD95C1DED92D0E4C5A890C679EFBBD21219DFC07494C"
+    },
+    {
+      "path": "src/modules/mouse_locator/Languages/zh-CN.json",
+      "sha256": "546138AD66EBAF74E667C3D372152A553A00EEFD2FEC65058671C7D14C01B779"
+    },
+    {
+      "path": "src/modules/mouse_locator/Languages/zh-TW.json",
+      "sha256": "D959A568410C63889C9F6CDD6863E0EF49CA5E61384EA500662CA4034AE6C981"
+    },
+    {
+      "path": "src/modules/mouse_locator/mouse_locator_module.cpp",
+      "sha256": "AEF95F0077FCA718B205621240FB297259B51F86868F0FC7798ADD946F025B88"
+    },
+    {
+      "path": "src/modules/mouse_locator/mouse_locator_module.hpp",
+      "sha256": "8AA1EB1539F5AC2E03C9CF984A7B5B96A6089D113804928C1AF7A1D14D171870"
+    },
+    {
+      "path": "src/modules/mouse_locator/mouse_shake_detector.cpp",
+      "sha256": "561F222C2A9E8E6BF06550279174ACFEB6239FDB2AEB308AA13F4339D9F63BB7"
+    },
+    {
+      "path": "src/modules/mouse_locator/mouse_shake_detector.hpp",
+      "sha256": "B7781FDE791002D8FE995E89C1FD1EAC631E5ADEBA00B216C66AB474214DA080"
+    },
+    {
+      "path": "src/modules/mouse_locator/tests/mouse_locator_tests.cpp",
+      "sha256": "461E7FA541753D76297306FD3A5E4C367DC97309C612016896EEEEF3BE4D1ECD"
+    },
+    {
+      "path": "src/modules/quick_launch/CMakeLists.txt",
+      "sha256": "B5721FAEC7917CC054C31C2EEDB7A607BFBFD51287DEE15C1CDE62AA74D6E77D"
+    },
+    {
+      "path": "src/modules/quick_launch/config_watcher.cpp",
+      "sha256": "DED79E20F48865B173261C6A5B5BD670AA033A290A25EC59066C4AEC4F02F24F"
+    },
+    {
+      "path": "src/modules/quick_launch/config_watcher.hpp",
+      "sha256": "46B2C8679B011B7670AD84A9D256C1E7C229BAFB7BA4381CAB5BFA86E1569DB9"
+    },
+    {
+      "path": "src/modules/quick_launch/Languages/en-US.json",
+      "sha256": "B6C63A1F473CF200525ACE4A856E8C2F3157F23C2EC948B93CB38AE9D1B07598"
+    },
+    {
+      "path": "src/modules/quick_launch/Languages/zh-CN.json",
+      "sha256": "74E0297584A3E30167A4697BB56E6183BA646341AD3795675C0F6409FB51378C"
+    },
+    {
+      "path": "src/modules/quick_launch/Languages/zh-TW.json",
+      "sha256": "1D9C3D5488BCCF8A96CEB74B29AB894A4DD73CFC2FD1428D0045434678F6E5E9"
+    },
+    {
+      "path": "src/modules/quick_launch/launch_menu_renderer.cpp",
+      "sha256": "B00602B89F9F24B81B1C3D2A46361BCEF2B1F7057AE1BC89A3DEF7824C618F99"
+    },
+    {
+      "path": "src/modules/quick_launch/launch_menu_renderer.hpp",
+      "sha256": "039C50F561D74712A553CC9F2543442883F6C0CEA8D1DC77ECDD83E4ED095D26"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_editor_window.cpp",
+      "sha256": "03D0F25D42F65C02CBB7DC654914D3E0FBD86D0ABFC6F03C745228981D11EB94"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_editor_window.hpp",
+      "sha256": "E061288E14B5B6A4987EE7F86663B32B6996CE2882D9A8697A2A5B0C8E57D8E8"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_icon_cache.cpp",
+      "sha256": "4A906C6099765BA1665D7E0DCBDADBBECC7E7F10FBF238494A0238BA7B966A9C"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_icon_cache.hpp",
+      "sha256": "BF459F7A8E474AC9657153690264DF951ABD156D0F154E58CEE2819F916B641C"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_model.hpp",
+      "sha256": "FC97510533D129A4EE94897F64E0FFCE919DA23F193ECB4DA66783362B65364A"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_parser.cpp",
+      "sha256": "C050C978CD21081C791EC2CDEA8B46ACE052458CEC8821ECEFE907AFA17BE356"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_parser.hpp",
+      "sha256": "AA2845DB6995CC8D7C101E24F6A6D659E9DA55683E7A8B10875CDFF29904DD15"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_theme.cpp",
+      "sha256": "A7C3C63F52FA63B3909E7848E10C372B4BA2BF7752D6FA503A94EDE70394DDE3"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_theme.hpp",
+      "sha256": "E84140BE5C8B13B796C3D7A8865C4A7A60CE4F3C5BA65F1C9B18CC724AF5E371"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_writer.cpp",
+      "sha256": "346003EA9A48F0E23E16E7BA2EB8B4542B80CED1692106CD843E2B0CF0BA8890"
+    },
+    {
+      "path": "src/modules/quick_launch/menu_writer.hpp",
+      "sha256": "CEAAE588BF7CF77170087F5E6144439D253EF896E7D09422635210A23B022523"
+    },
+    {
+      "path": "src/modules/quick_launch/program_cache.cpp",
+      "sha256": "5CC8F345ADA37A94F9969E2BC466267B61247B165ED3CBF7E5F90F3D2B42A86F"
+    },
+    {
+      "path": "src/modules/quick_launch/program_cache.hpp",
+      "sha256": "1BAFF3C94212E88D8A22A80CCEFAB3EF8485E274A619CC63E94F58E9950E7A6B"
+    },
+    {
+      "path": "src/modules/quick_launch/program_resolver.cpp",
+      "sha256": "ECC35D9CB1366EC2E5FF605E519AFA7F257BDCB799E1A7C236A12DC475B661EF"
+    },
+    {
+      "path": "src/modules/quick_launch/program_resolver.hpp",
+      "sha256": "B51B3CC8B2F18E0CE25F68D91F941C9C8B1A80E9C24F1A50102697256A8D833F"
+    },
+    {
+      "path": "src/modules/quick_launch/program_selection_dialog.cpp",
+      "sha256": "20D14000B5B89A0A7601E3DA5622833E24CB94C5795CF72300E347D642DD60E0"
+    },
+    {
+      "path": "src/modules/quick_launch/program_selection_dialog.hpp",
+      "sha256": "5D6AE68FE831F81BDBC73A3EFC80BC1BE9EFC328FB411E6727A59D537C70EF9E"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_module.cpp",
+      "sha256": "D41AC05F9764C2FA17ACBFD3A5634FAA0D870C566C36EBC8DFD44F9ED061A9F9"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_module.hpp",
+      "sha256": "1C442B6D831128B72DCA9ECDAFC1A2651244B5CF4658B51E27A47228BAB5E122"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_settings_ui.cpp",
+      "sha256": "8985187579D55FA22AE65687D7542A8130546A80D6580D086E8390B1B095BC71"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_settings_ui.hpp",
+      "sha256": "1D3A733AF3DE3D88F05280664D8E04562D629F832B69750AA131629394738F29"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_settings.cpp",
+      "sha256": "89377251A145812B96D2FE98024CD6C3DCD3FDD94FFF3B011117B1E3BEF5CDDA"
+    },
+    {
+      "path": "src/modules/quick_launch/quick_launch_settings.hpp",
+      "sha256": "17C4BBB8DCFEAAA5A9B605CFE5EDA81AA342E1ACE95D5D65B333B81527F31CE1"
+    },
+    {
+      "path": "src/modules/quick_launch/tests/menu_presentation_tests.cpp",
+      "sha256": "F5936EE80EC72EBDC0D7A07EC650238113C9C60D9DED9A0CC256BFD9BD6AFD2F"
+    },
+    {
+      "path": "src/modules/quick_launch/tests/program_selection_dialog_test.cpp",
+      "sha256": "A99A572ABE50BD3C13977B9489D656FC859F59757C0C48F5E470CA48568E83B3"
+    },
+    {
+      "path": "src/modules/quick_launch/tests/quick_launch_algorithm_tests.cpp",
+      "sha256": "FD04B059B81C8C420FC27DBDA9085A9630F5E92AEC4DA06CF4E4D2CFE5831B8E"
+    },
+    {
+      "path": "src/modules/quick_launch/tests/quick_launch_module_tests.cpp",
+      "sha256": "43E8141247F7519DE00B65FBEB379644D24359F5719D943DF0CB1F51F304B203"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/CMakeLists.txt",
+      "sha256": "26DD0974B1D4F70A2F8E17C4BF385FC43E1D47DC16CC143E474ACEC15D7896AC"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/Languages/en-US.json",
+      "sha256": "B9BFAA4A83DB726EEC1B61C19F95B15A5AB256D9871D8F8FB054FCB02BCDA925"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/Languages/zh-CN.json",
+      "sha256": "DCEFE52D6F03560BCE84032D343AB11B0747CDFB09A3A494137D6A534667CCA5"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/Languages/zh-TW.json",
+      "sha256": "DC8CF0519C20891A0A1BC7EF28B50B53210D9FC0FA5ADCD7397B263CAB45FD56"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/tests/windows_hotkey_policy_tests.cpp",
+      "sha256": "3C71C3CDDD6F4F5C997CACF70C60264AABD1C8123978FCD39C5EA9D2CCCF94FD"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/windows_hotkey_blocker_module.cpp",
+      "sha256": "3ABAE42EB7DA44B0ECC50925D7322E5F19FDAE317E0AE285F99964084E622E63"
+    },
+    {
+      "path": "src/modules/windows_hotkey_blocker/windows_hotkey_blocker_module.hpp",
+      "sha256": "1A896B9D065EDE414E02E709739F754A3B762608E7C4D5B88473B73F7CB2892B"
+    },
+    {
+      "path": "tests/about_window_test.cpp",
+      "sha256": "48003971229B3625A2F915119B9A3619884CD865040F9BA3D8CB2965B13B010C"
+    },
+    {
+      "path": "tests/core_tests.cpp",
+      "sha256": "B873ADCEF68AB7F55FD1EE9B2F0BA82C5710FB063A5E58564863A7CC0FE5D31A"
+    },
+    {
+      "path": "tests/keyboard_capture_state_tests.cpp",
+      "sha256": "34C0AEA346C05D5CCE2C1AFF1CA29B773FA68F5855BC2C1EE2C51E74D3117952"
+    },
+    {
+      "path": "tests/keyboard_thread_lifecycle_test.cpp",
+      "sha256": "3466A6C3E061C312EF8B10122A64F14DF8144740480F414F35327354678F02A4"
+    },
+    {
+      "path": "tests/localization_resource_tests.cpp",
+      "sha256": "774E07EBD3C231EC8467FEEE47AB5E1772D2D783132CF548B0263BB875866880"
+    },
+    {
+      "path": "tests/module_support_tests.cpp",
+      "sha256": "BB86714728520D59071EEF78E1799A2039DFA19E32345377E1822FA2B0674D3A"
+    },
+    {
+      "path": "tests/settings_module_integration_tests.cpp",
+      "sha256": "6495BB5F3E8CC84669F9517000A920D71B08C078ED46FB60DF0AADDDE8757FE6"
+    },
+    {
+      "path": "tests/settings_page_test_support.hpp",
+      "sha256": "A79C88F1ED0D85BD12E5FDC6699C95144537CD6828BC3869049174351FB8DEF4"
+    },
+    {
+      "path": "tests/windows_hotkey_blocker_tests.cpp",
+      "sha256": "B2E9B7187AA632E15D6C1F349365F14074B9924691BC718F85789965BDA19C6F"
+    }
+  ]
+}

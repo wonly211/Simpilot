@@ -1,0 +1,97 @@
+# Isolated Native Audit Fixture
+
+Build from the repository root (no root CMake changes):
+
+    cmake -S docs/design/fixture -B build/design-audit -G "Visual Studio 17 2022" -A x64
+    cmake --build build/design-audit --config Release --target audit_preview
+
+Executable: build/design-audit/Release/audit_preview.exe
+Nonvisual verification: audit_preview.exe --self-test
+
+This target compiles the real src/app SettingsWindow, General page and About
+window, and links the existing build/ci-vs2022-x64 Release module/UI libraries.
+It embeds the real resource icon, built language pack and application manifest.
+It does not rebuild production libraries. input-provenance.txt in the build
+directory records configure-time SHA-256 fingerprints of these existing inputs;
+reconfigure after the parent changes/rebuilds them. Mixed source/library revisions
+are possible and must be considered when interpreting screenshots.
+
+Surfaces
+--------
+- Eight real settings pages: General, Quick Launch, Menu Icons, Global Hotkeys
+  (including custom hotkeys), Keyboard Mappings, Everything, Cursor Locator,
+  Windows Shortcuts.
+- Separate fresh settings variants: full/default 16, empty 0, few 3, many 40
+  custom-hotkey AND keyboard-mapping rows. Mixed enabled states, long target
+  paths, bilingual labels, action types, mapping purposes and scoped processes.
+  Empty means empty collections, not an empty settings-page registry.
+- Real standalone CustomHotKeyDialog and KeyboardMappingDialog, add/edit.
+  Standalone results are discarded; dialogs inside settings update real drafts.
+- Real ProgramSelectionDialog with four safe mock executable copies. Candidate
+  versions are simulated; paths and file times belong to actual fixture files.
+- Real AboutWindow with explicitly simulated version text; external links denied.
+- Real QuickLaunchModule main/second menus, nested categories, separators,
+  application/document/folder targets, actual menu icon cache and owner-draw
+  renderer. Invoked through real hotkey contribution callbacks, not global keys.
+  System/light/dark theme buttons select fresh module instances.
+- Tray popup uses real module TrayMenuRegistry contributions and native HMENU,
+  including disabled Everything actions and language/group submenus.
+  IMPORTANT GAP: the TrayApplication host is private and starts production
+  infrastructure, so this host assembly is recreated, NOT production tray-host
+  screenshot evidence. Tray selections are observed but not dispatched.
+- Real CursorLocator over a fixture-owned light/dark background. Manually shake
+  the pointer to trigger the actual detector and time-limited animation; closing
+  the background stops sampling. No synthetic movement or frozen fake effect.
+
+Manual Audit
+------------
+Use zh-CN/en-US buttons before opening a surface. They apply to subsequent
+surfaces; the real General language selector also works during settings.
+Select fake commit success/failure before opening settings, change a control,
+then use real Apply/Save. Failure invokes real participant rollback; success
+keeps session state and writes only a candidate INI under that variant's temp
+directory. Quick-launch changes use the real temporary menu/icon transaction.
+Start-with-Windows and shortcut blocking are drafts/simulations, not OS changes.
+Each settings button creates a fresh variant, deliberately discarding prior data.
+Default launcher state is 16 rows; menu/dialog buttons lazily create that fixture.
+
+The read-only launcher panel identifies simulation/gaps, active language, commit
+outcome, row count and launcher DPI. Each run has a GUID-named directory under
+the OS temp directory. metadata.ini updates once per second, including visible
+current-thread window titles/classes/rectangles/client sizes/DPI, executable,
+build configuration and active variant path. Rectangles are pixels, not DIPs.
+This is read-only window inspection, not screenshot capture. Temp files are left
+for the parent to inspect and remove explicitly; no broad temp cleanup is done.
+
+Safety And Evidence Limits
+--------------------------
+- KeyboardManager is constructed but NEVER started or asked to register keys.
+  Mapping stages exist in memory only. Recording and foreground-process capture
+  are unsupported gaps. Do not present unavailable recording as recorded input.
+- Everything.exe/Everything64.dll are absent from the isolated root. The real
+  unavailable/disabled page is shown; search and service installation are gaps.
+- No personal settings are loaded. All settings/menu inputs are created with
+  strongly typed production codecs and MenuWriter; copies of THIS fixture binary
+  serve only as local icon/selection targets. They are never executed.
+- The command_execution library is intentionally omitted. The fixture supplies
+  inert execute_command and temp-only user_profile_directory boundaries.
+- shell32.dll is delay-loaded. The fixture's native delay-import notification
+  hook denies ShellExecuteW/ShellExecuteExW, including About links, without
+  changing production source or rendering. This is NOT a Windows input hook.
+  Blocked About links show the real failure message, not simulated success.
+- No StartupRegistration call, keyboard hook thread, RegisterHotKey call, service
+  install, command dispatch, screenshot API, UI-driving code or personal config.
+  The real quick-launch config watcher watches only fixture files and is joined
+  when its module stops. Cursor locator uses its real timer/GetCursorPos sampling.
+- Native file pickers remain real: defaults/seeded inputs point to fixture data.
+  Manually navigating elsewhere is outside the controlled audit dataset.
+- About layout and module UI are real, but version/installed-program metadata,
+  keyboard availability and commit outcomes are not production-state evidence.
+- No temporary production-source copies or replacement renderers are compiled.
+
+--self-test validates all four typed datasets and menu round trips, eight-page
+registration, module start/stop, real commit-failure rollback and commit success,
+unstarted keyboard state, and both denied shell entry points. It does not create
+settings/dialog windows, drive controls, capture screenshots or certify layout.
+Results are in the run's self-test-results.ini (or failure.ini on failure).
+The parent owns all manual UI/screenshot/design audits.

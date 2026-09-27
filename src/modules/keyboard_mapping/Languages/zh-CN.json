@@ -1,6 +1,7 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "settings.keyboard_mappings.empty": "暂无映射规则",
     "settings.tab.keyboard_mappings": "键盘映射",
     "settings.keyboard_mappings.heading": "键盘映射",
     "settings.keyboard_mappings.scope": "将物理按键、快捷键和一级组合键映射到其他按键，可设置为全局或仅对前台应用生效。",
@@ -10,7 +11,8 @@
     "settings.keyboard_mappings.column.purpose": "用途",
     "settings.keyboard_mappings.column.source": "源按键",
     "settings.keyboard_mappings.column.target": "目标按键",
-    "settings.keyboard_mappings.column.process": "应用",
+    "settings.keyboard_mappings.column.process": "适用应用",
+    "settings.keyboard_mappings.rule_enabled": "启用此规则",
     "settings.keyboard_mappings.dialog.title": "简驭 | Simpilot - 键盘映射",
     "settings.keyboard_mappings.dialog.heading": "添加或编辑键盘映射",
     "settings.keyboard_mappings.source": "源触发",
@@ -20,7 +22,7 @@
     "settings.keyboard_mappings.target_hint": "录制按键，或选择最多四个左右修饰键和一个主键。目标不支持 chord。",
     "settings.keyboard_mappings.purpose": "用途",
     "settings.keyboard_mappings.record_target": "录制目标按键",
-    "settings.keyboard_mappings.process": "应用",
+    "settings.keyboard_mappings.process": "适用应用",
     "settings.keyboard_mappings.use_foreground": "使用前台应用",
     "settings.keyboard_mappings.exact_match": "精确匹配应用",
     "settings.keyboard_mappings.recording": "正在录制...",

@@ -1,6 +1,7 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "settings.menu_icons.empty": "暂无可设置图标的启动项",
     "ui.menu_two": "菜单 2",
     "ui.edit_menus": "编辑菜单...",
     "ui.main_menu": "编辑主菜单",
@@ -16,7 +17,7 @@
     "ui.calculator": "计算器",
     "settings.main_menu": "快捷启动菜单",
     "settings.second_menu": "第二菜单",
-    "settings.menu_theme": "快捷启动菜单主题",
+    "settings.menu_theme": "菜单主题",
     "settings.system_theme": "跟随 Windows",
     "settings.light_theme": "浅色",
     "settings.dark_theme": "深色",

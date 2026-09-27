@@ -1,0 +1,946 @@
+[
+  {
+    "id": "N01",
+    "capturedAt": "2026-09-26T02:09:33.498Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "general",
+    "state": "default",
+    "images": [
+      {
+        "file": "N01.jpg",
+        "sha256": "7a251cc40e8a5085e4aecafb8c08fc735bed03a691f3d063f9e484dcb87f94be",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N02",
+    "capturedAt": "2026-09-26T02:09:49.015Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "global-hotkeys",
+    "state": "two custom rows; mixed enabled",
+    "images": [
+      {
+        "file": "N02.jpg",
+        "sha256": "aca60e13d855614d57f8b6f384b8ea56750f7c30022b4dfed54b8b72d1d71efb",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N03",
+    "capturedAt": "2026-09-26T02:10:06.305Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "everything",
+    "state": "default; actions not invoked",
+    "images": [
+      {
+        "file": "N03.jpg",
+        "sha256": "3a0e93a316f0be9af0e5e6c0057732344f5caf8bf5bce037fe29e5404b09fd3d",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N04",
+    "capturedAt": "2026-09-26T02:10:22.565Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "mouse-locator",
+    "state": "disabled default",
+    "images": [
+      {
+        "file": "N04.jpg",
+        "sha256": "78f38521e35ed17f504d2fb8ea120ef452561c776451c6859eb43b020b080b81",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N05",
+    "capturedAt": "2026-09-26T02:10:42.332Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "windows-hotkey-blocker",
+    "state": "all controls visible; default",
+    "images": [
+      {
+        "file": "N05.jpg",
+        "sha256": "a722f4181bc7f3d40037043752c3f922705f6dc40291c16181d253d6f167e5f5",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N06",
+    "capturedAt": "2026-09-26T02:11:03.102Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "keyboard-mapping",
+    "state": "empty list",
+    "images": [
+      {
+        "file": "N06.jpg",
+        "sha256": "f45ac251562d4bde20ff1f1f8e3ee98359afaa1b8691c010c01774b933b41e36",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N07",
+    "capturedAt": "2026-09-26T02:11:21.501Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "menu-icons",
+    "state": "empty list; controls disabled",
+    "images": [
+      {
+        "file": "N07.jpg",
+        "sha256": "52c225fe262d557da3c4127de0044b0e3f57dafd8b087c5cb2fe20074182d2ad",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N08",
+    "capturedAt": "2026-09-26T02:11:37.759Z",
+    "title": "简驭 | Simpilot - 设置",
+    "build": "spacing-preview / current workspace native",
+    "language": "zh-CN",
+    "theme": "light",
+    "scale": "Native DPI not measured; tool-normalized logical screenshot dimensions",
+    "data": "legacy isolated fixture; no personal configuration",
+    "page": "quick-launch-editor",
+    "state": "empty main menu; no selection",
+    "images": [
+      {
+        "file": "N08.jpg",
+        "sha256": "557911a2c46d8cfe0d13fd89bd3ace008f4680bf82e0fd325a7d5df90a94f0e2",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 0
+      }
+    ],
+    "metadataCorrection": "Removed invalid 100% inference from sidebar width.",
+    "reviewEligible": true
+  },
+  {
+    "id": "N09",
+    "capturedAt": "2026-09-26T04:40:28.110Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "general",
+    "state": "real settings host, full fixture, default",
+    "images": [
+      {
+        "file": "N09.jpg",
+        "sha256": "2df79adbd46874fc45db191c80a3e0d7e7c53c253a18501dfa1d4a4cb64ce71c",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N10",
+    "capturedAt": "2026-09-26T04:43:08.482Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "quick-launch-editor",
+    "state": "populated main menu; selected application",
+    "images": [
+      {
+        "file": "N10.jpg",
+        "sha256": "ecffef1c8110c852f498d1209f40b5abd79b5bb9ca64ad46cd8a6aee547f90b9",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N11",
+    "capturedAt": "2026-09-26T04:43:16.412Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "quick-launch-editor",
+    "state": "selected category",
+    "images": [
+      {
+        "file": "N11.jpg",
+        "sha256": "fd54f5c0bff69e64321f571e617a84329339dceeb8d9b0c16e2c569aff17cc04",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N12",
+    "capturedAt": "2026-09-26T04:43:25.587Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "quick-launch-editor",
+    "state": "selected folder",
+    "images": [
+      {
+        "file": "N12.jpg",
+        "sha256": "9be98b2db5141789b626df0bbea86e01f3d873cfa3788d581b11b1b205527926",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N13",
+    "capturedAt": "2026-09-26T04:43:34.570Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "quick-launch-editor",
+    "state": "selected separator",
+    "images": [
+      {
+        "file": "N13.jpg",
+        "sha256": "cde0edc78373c90b9897c01b61b17e3f9ebaa941fda47f9d25db7643a3cec6bc",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N14",
+    "capturedAt": "2026-09-26T04:43:44.855Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "menu-icons",
+    "state": "16-row synthetic data; missing menu label localization in fixture, not attributed to production",
+    "images": [
+      {
+        "file": "N14.jpg",
+        "sha256": "3874db95bb91310084de9e0285ba5796e77aab64cec5d5158c66a9fe36934532",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": false,
+    "supersededBy": "N29"
+  },
+  {
+    "id": "N15",
+    "capturedAt": "2026-09-26T04:43:56.064Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "global-hotkeys",
+    "state": "16 synthetic rows; long paths; no selection",
+    "images": [
+      {
+        "file": "N15.jpg",
+        "sha256": "b33b53739fbaf24c7e71e8b5e1b3f3e8b30810cd354f9122f89da749bcd34b6f",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N16",
+    "capturedAt": "2026-09-26T04:44:07.357Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "global-hotkeys",
+    "state": "scrolled to last four rows",
+    "images": [
+      {
+        "file": "N16.jpg",
+        "sha256": "0a2a4d2ff56143cb292264cff3552149df8a254aafb323f9e4991cc9abb2ff8b",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N17",
+    "capturedAt": "2026-09-26T04:44:19.386Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "keyboard-mapping",
+    "state": "16 rows; long names; mixed enabled states",
+    "images": [
+      {
+        "file": "N17.jpg",
+        "sha256": "e35ecb6e0bc3c95238dd5cd541188748fba34ce0cefa4c68972f60c0c43abd60",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N18",
+    "capturedAt": "2026-09-26T04:44:55.025Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "custom-hotkey-add",
+    "state": "default empty; save disabled; recording unavailable",
+    "images": [
+      {
+        "file": "N18.jpg",
+        "sha256": "4f2be438355b8e32140c877cc7abd6399abc84491eda6d4b269fc6f5755b1e5b",
+        "width": 968,
+        "height": 694,
+        "originX": 714,
+        "originY": 339,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N19",
+    "capturedAt": "2026-09-26T04:45:22.757Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "custom-hotkey-edit",
+    "state": "existing Ctrl+Alt+F1; long path; fixture calls existing dialog with data, title remains add",
+    "images": [
+      {
+        "file": "N19.jpg",
+        "sha256": "c3d4d2b74e17e68acef9e26047b5cfe005ab7fe359479dceb819784d9ee0be0d",
+        "width": 968,
+        "height": 694,
+        "originX": 714,
+        "originY": 339,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N20",
+    "capturedAt": "2026-09-26T04:45:54.975Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "mapping-add",
+    "state": "empty; all source and target controls",
+    "images": [
+      {
+        "file": "N20.jpg",
+        "sha256": "e3e63a1b82d30a2c34ebee64648d35fe1f1ec8e606e73ddfb3efc08ecb871675",
+        "width": 963,
+        "height": 651,
+        "originX": 718,
+        "originY": 371,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N21",
+    "capturedAt": "2026-09-26T04:46:29.568Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "mapping-edit",
+    "state": "Left Ctrl+A -> Left Alt+F1; long purpose; audittool.exe",
+    "images": [
+      {
+        "file": "N21.jpg",
+        "sha256": "c070820657e2ed07d57be6c32c6a5969b7d16732e3fbdd9afcedcbf84f3811a9",
+        "width": 963,
+        "height": 651,
+        "originX": 718,
+        "originY": 371,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N22",
+    "capturedAt": "2026-09-26T04:49:00.287Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "program-selection",
+    "state": "four synthetic programs; first selected",
+    "images": [
+      {
+        "file": "N22.jpg",
+        "sha256": "47b15ec81380c0b3b21a764b3f6e809243a43be1f0d7396836eab46d23f09335",
+        "width": 888,
+        "height": 514,
+        "originX": 774,
+        "originY": 474,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N23",
+    "capturedAt": "2026-09-26T04:59:46.754Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "about",
+    "state": "real AboutWindow; simulated version; links blocked",
+    "images": [
+      {
+        "file": "N23.jpg",
+        "sha256": "7eb9dad1d79a884a8b72c4b964886d70a1794eaf65833d9fa303645da936164b",
+        "width": 683,
+        "height": 451,
+        "originX": 928,
+        "originY": 521,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N24",
+    "capturedAt": "2026-09-26T05:00:30.380Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "main-menu",
+    "state": "root popup; real owner-draw menu; system theme light",
+    "images": [
+      {
+        "file": "N24.jpg",
+        "sha256": "21b8bc7b36eca673390e421b023add3fe037bb77319c829b0c656612e12f71cd",
+        "width": 226,
+        "height": 127,
+        "originX": 1151,
+        "originY": 434,
+        "zIndex": 2
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N25",
+    "capturedAt": "2026-09-26T05:03:01.259Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "main-menu",
+    "state": "Tools item highlighted; child popup not captured; not submenu coverage",
+    "images": [
+      {
+        "file": "N25.jpg",
+        "sha256": "8738f2b1a488a50b821f9afb85576bc74a4a7ca7580dbde80fabb874bd606335",
+        "width": 226,
+        "height": 127,
+        "originX": 1151,
+        "originY": 434,
+        "zIndex": 2
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N26",
+    "capturedAt": "2026-09-26T05:04:16.815Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "second-menu",
+    "state": "root second menu",
+    "images": [
+      {
+        "file": "N26.jpg",
+        "sha256": "e7b9f6da1a4e81508e80eafda94f9ec0c15e30eb66b516880a2b8a894b8c613c",
+        "width": 280,
+        "height": 83,
+        "originX": 310,
+        "originY": 499,
+        "zIndex": 2
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N27",
+    "capturedAt": "2026-09-26T05:05:17.458Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "second-menu-with-submenu",
+    "state": "complete owner composite plus full parent and child originals",
+    "images": [
+      {
+        "file": "N27.jpg",
+        "sha256": "3aa1e5ba6446a27634f3dc26730d55803583ef1f9e7b8435d7604f4f9a06e4ca",
+        "width": 868,
+        "height": 754,
+        "originX": 85,
+        "originY": 76,
+        "zIndex": 0
+      },
+      {
+        "file": "N27-1.jpg",
+        "sha256": "c0425d076fb9f7a4a781a87db78bc589ecb93e8c3b0324cb57ec8e7d7a7961b0",
+        "width": 280,
+        "height": 83,
+        "originX": 310,
+        "originY": 499,
+        "zIndex": 2
+      },
+      {
+        "file": "N27-2.jpg",
+        "sha256": "cd2ec4c09b65252ba0e4733fbdc29ef305db067800936e435f848974e839f990",
+        "width": 333,
+        "height": 281,
+        "originX": 724,
+        "originY": 565,
+        "zIndex": 4
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N28",
+    "capturedAt": "2026-09-26T05:06:40.858Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "tray-recreated-host",
+    "state": "real contributions; recreated host; NOT production TrayApplication evidence",
+    "images": [
+      {
+        "file": "N28.jpg",
+        "sha256": "ebed2808f856623ad95940b3fd02499041dd3bd3d1eda9763e8a7fa1a64e20cc",
+        "width": 199,
+        "height": 173,
+        "originX": 731,
+        "originY": 239,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N29",
+    "capturedAt": "2026-09-26T05:08:14.432Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "menu-icons",
+    "state": "valid language resource; supersedes N14",
+    "images": [
+      {
+        "file": "N29.jpg",
+        "sha256": "91fe1511051089b134d7cf9fe957725e9a24186da44b1e3c5e8002d0c65fa150",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N30",
+    "capturedAt": "2026-09-26T05:09:21.171Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "general",
+    "state": "pending draft; focused toggle; simulated startup only",
+    "images": [
+      {
+        "file": "N30.jpg",
+        "sha256": "43be99788abc5a4527ed36b6da44af25e7e2f34bb9da4b13b640927cb45da552",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N31",
+    "capturedAt": "2026-09-26T05:09:53.912Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "general",
+    "state": "Apply fake commit succeeded; status applied; application disabled",
+    "images": [
+      {
+        "file": "N31.jpg",
+        "sha256": "90a48831ff2e0e141e64cd29f50259277715b2ffc2da23a1f4a07b639e4f7d43",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N32",
+    "capturedAt": "2026-09-26T05:11:06.724Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "close-confirmation-system",
+    "state": "native Windows MessageBox; unsaved draft; default No; integration evidence only",
+    "images": [
+      {
+        "file": "N32.jpg",
+        "sha256": "0a08c70d925dd7f7e2501eb08c01463d153ae47fd66c0e3039be1aa2145a147b",
+        "width": 328,
+        "height": 167,
+        "originX": 1204,
+        "originY": 779,
+        "zIndex": 2
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N33",
+    "capturedAt": "2026-09-26T05:17:50.661Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "zh-CN",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "general",
+    "state": "Save fake commit failure; draft retained; window remains; failure text",
+    "images": [
+      {
+        "file": "N33.jpg",
+        "sha256": "b8d96e1563dbd8095439d78ebef234e9a191d63714ddee6360b03f1d849d7f81",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N34",
+    "capturedAt": "2026-09-26T05:22:29.433Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "en-US",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "general",
+    "state": "English default size; DPI144",
+    "images": [
+      {
+        "file": "N34.jpg",
+        "sha256": "e394ac4a3a0b657866b0e3e03ce48c85741d694a8d7c34a4ea55cf6d4e409c57",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N35",
+    "capturedAt": "2026-09-26T05:23:15.203Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "en-US",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "global-hotkeys",
+    "state": "English default; 16 rows; DPI144",
+    "images": [
+      {
+        "file": "N35.jpg",
+        "sha256": "86e6a0a70d610374ff7bbf0cc132e607b97c487c0ee1e5cb1b8fdc8794883fb9",
+        "width": 1028,
+        "height": 714,
+        "originX": 669,
+        "originY": 324,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N36",
+    "capturedAt": "2026-09-26T05:25:18.357Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "en-US",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "mapping-edit",
+    "state": "English long purpose; DPI144",
+    "images": [
+      {
+        "file": "N36.jpg",
+        "sha256": "ab67595995f7462facb864d13b18e2bb5736c61d451bd99e2f8bb189454482ac",
+        "width": 963,
+        "height": 651,
+        "originX": 718,
+        "originY": 371,
+        "zIndex": 1
+      }
+    ],
+    "reviewEligible": true
+  },
+  {
+    "id": "N37",
+    "capturedAt": "2026-09-26T05:26:54.447Z",
+    "title": "Simpilot native audit fixture - synthetic data / no execution",
+    "build": "design-audit / current workspace native static libraries",
+    "language": "en-US",
+    "theme": "light",
+    "nativeDpi": 144,
+    "screenshotCoordinates": "tool normalized logical pixels, not physical pixel size",
+    "data": "synthetic fixture; real production surfaces except recreated tray; no command execution",
+    "page": "main-menu",
+    "state": "English UI; user bilingual labels unchanged",
+    "images": [
+      {
+        "file": "N37.jpg",
+        "sha256": "1c39056af89f4242c26417ed3dc05f98d24cf324a358d6bc00623c623542183d",
+        "width": 226,
+        "height": 127,
+        "originX": 1151,
+        "originY": 434,
+        "zIndex": 2
+      }
+    ],
+    "reviewEligible": true
+  }
+]

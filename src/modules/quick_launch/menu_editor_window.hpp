@@ -2,6 +2,7 @@
 
 #include "simpilot/localization.hpp"
 #include "menu_model.hpp"
+#include "scrollable_form.hpp"
 
 #include <Windows.h>
 #include <commctrl.h>
@@ -121,6 +122,7 @@ private:
     ProgramResolutionLookup resolution_lookup_;
     ProgramResolutionReselect resolution_reselect_;
     HWND window_ = nullptr;
+    ScrollableForm form_;
     HWND main_menu_button_ = nullptr;
     HWND second_menu_button_ = nullptr;
     HWND tree_ = nullptr;

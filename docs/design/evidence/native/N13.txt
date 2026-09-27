@@ -1,0 +1,96 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		32 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise
+			33 图像
+			34 文本 Simpilot
+			35 文本 设置
+			36 列表 设置 ID: 250
+				37 列表项目 (selectable) 常规
+				38 列表项目 (selectable) 快捷启动菜单
+				39 列表项目 (selectable) 菜单图标
+				40 列表项目 (selectable) 全局热键
+				41 列表项目 (selectable) 键盘映射
+				42 列表项目 (selectable) Everything 搜索
+				43 列表项目 (selectable) 光标定位
+				44 列表项目 (selectable) Windows 快捷键屏蔽
+			45 文本
+			63 窗格
+				64 文本 快捷启动菜单
+				65 文本 快捷启动菜单主题
+				66 组合框 (settable, string) 快捷启动菜单主题 Value: 跟随 Windows ID: 11
+					67 文本 (settable, string) 快捷启动菜单主题 Value: 跟随 Windows
+					68 按钮 打开 ID: DropDown
+				69 窗格
+					70 单选按钮 (selectable) 主菜单 ID: 100
+					71 单选按钮 (selectable) 第二菜单 ID: 102
+					72 树 ID: 101
+						73 滚动条 (settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+							74 按钮 上一行 ID: UpButton
+							75 缩略图 位置 ID: ScrollbarThumb
+							76 按钮 向下翻页 ID: DownPageButton
+							77 按钮 下一行 ID: DownButton
+						78 树项目 (selectable) Audit Tool / 模拟应用
+						79 树项目 (selectable) ----------------
+						80 树项目 (selectable) Tools / 工具 [T]
+							81 树项目 (selectable) Fixture folder / 测试文件夹
+							82 树项目 (selectable) Review utilities / 审核工具
+								83 树项目 (selectable) Document 2 / 文档 - detailed review
+								84 树项目 (selectable) Document 4 / 文档 - detailed review
+								85 树项目 (selectable) Document 6 / 文档 - detailed review
+								86 树项目 (selectable) Document 8 / 文档 - detailed review
+								87 树项目 (selectable) Document 10 / 文档 - detailed review
+								88 树项目 (selectable) Document 12 / 文档 - detailed review
+								89 树项目 (selectable) Document 14 / 文档 - detailed review
+								90 树项目 (selectable) Document 16 / 文档 - detailed review
+					91 文本 ID: 307
+					92 文本 分隔线
+					107 按钮 添加分类 ID: 201
+					108 按钮 添加启动项 ID: 200
+					109 按钮 添加分隔线 ID: 202
+					110 按钮 删除 ID: 204
+					111 按钮 上移 ID: 205
+					112 按钮 下移 ID: 206
+					113 按钮 (disabled) 升级 ID: 210
+					114 按钮 (disabled) 降级 ID: 209
+			54 按钮 取消 ID: 2
+			55 按钮 (disabled) 应用 ID: 3
+			56 按钮 保存 ID: 1
+			57 标题栏 (settable, string) Value: 简驭 | Simpilot - 设置
+				58 菜单栏 系统 ID: MenuBar
+					59 菜单项 系统
+				60 按钮 最小化
+				61 按钮 最大化
+				62 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | zh-CN | Commit: SUCCESS | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Settings open: change a real control, then Apply/Save to exercise the selected fake commit.
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				28 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise.

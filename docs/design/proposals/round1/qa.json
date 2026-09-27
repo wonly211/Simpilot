@@ -1,0 +1,3322 @@
+{
+  "kind": "Offline HTML/CSS design proposal rendering QA",
+  "generatedAt": "2026-09-26T05:01:16.396Z",
+  "nativeDpiValidation": false,
+  "scope": "Chromium CSS-pixel layout and deviceScaleFactor only. Not native Win32 DPI, native accessibility, key recording, foreground lookup, persistence, or runtime validation.",
+  "sources": [
+    "../reviews/interaction-review.md",
+    "../reviews/visual-review.md",
+    "../evidence/native/N15.txt",
+    "../evidence/native/N21.txt",
+    "../fixture/audit_preview.cpp"
+  ],
+  "cases": [
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "general",
+      "file": "renders/general.png",
+      "png": {
+        "width": 1028,
+        "height": 714,
+        "sha256": "d7acbc6ea63ccfdea02628e8fbe84c1e8bcd366a4532b87f0f89e407f1befe0f"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "hotkeys",
+      "file": "renders/hotkeys.png",
+      "png": {
+        "width": 1028,
+        "height": 714,
+        "sha256": "09e0b387560a022ec4f7713a6e858e77df853eaf11b10c8c23a5dae703a2b5f2"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "mapping",
+      "file": "renders/mapping.png",
+      "png": {
+        "width": 963,
+        "height": 651,
+        "sha256": "cf0c20cbff8591bb872373338285ce0dff656a158da27b27a8bdbc647a9f4114"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "menu",
+      "file": "renders/menu.png",
+      "png": {
+        "width": 868,
+        "height": 752,
+        "sha256": "18cb24c58fb94b5329ea9bb8bf60938662a30561a228689dc7bc60d490132635"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "general-zh-1028-dpr1.5",
+      "file": "renders/general-zh-1028-dpr1.5.png",
+      "png": {
+        "width": 1542,
+        "height": 1071,
+        "sha256": "9b3613637209f7e2980e60d301c3c473199f20b53919c8c58d5e8c423ac317ec"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "general-zh-1028-dpr2",
+      "file": "renders/general-zh-1028-dpr2.png",
+      "png": {
+        "width": 2056,
+        "height": 1428,
+        "sha256": "2073c3d30748c9e3a9c7e979c6a5ff8b57f9400a4036adde72555c368da30734"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1,
+      "name": "general-en-1028-dpr1",
+      "file": "renders/general-en-1028-dpr1.png",
+      "png": {
+        "width": 1028,
+        "height": 714,
+        "sha256": "f880cdefd0d33f18ea237308b71555c9392576d9ab1676f447a67b8f993ee98d"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "general-en-1028-dpr1.5",
+      "file": "renders/general-en-1028-dpr1.5.png",
+      "png": {
+        "width": 1542,
+        "height": 1071,
+        "sha256": "30f1068c9903dcc3602ae875dd3f07b8e82b5b5f4e161fef284a45b3a85bc794"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 2,
+      "name": "general-en-1028-dpr2",
+      "file": "renders/general-en-1028-dpr2.png",
+      "png": {
+        "width": 2056,
+        "height": 1428,
+        "sha256": "2216bf8b16bb14cecdaac7ade4744a4894d76c47bb75f4d482ab8e392ec823b6"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "hotkeys-zh-1028-dpr1.5",
+      "file": "renders/hotkeys-zh-1028-dpr1.5.png",
+      "png": {
+        "width": 1542,
+        "height": 1071,
+        "sha256": "d2901980ba21fd9f832a6a7b95fb26262d85bf0b0142001e109170ba3cca65df"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "hotkeys-zh-1028-dpr2",
+      "file": "renders/hotkeys-zh-1028-dpr2.png",
+      "png": {
+        "width": 2056,
+        "height": 1428,
+        "sha256": "557eb88a5157c7a2dec2cc046280cb13619363236fbf3d5d2a3ca18a9550937a"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1,
+      "name": "hotkeys-en-1028-dpr1",
+      "file": "renders/hotkeys-en-1028-dpr1.png",
+      "png": {
+        "width": 1028,
+        "height": 714,
+        "sha256": "8e24d869966c5657f582e4d8ac04ba5250f461b279d7ac5a0faa86211e2ceb44"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "hotkeys-en-1028-dpr1.5",
+      "file": "renders/hotkeys-en-1028-dpr1.5.png",
+      "png": {
+        "width": 1542,
+        "height": 1071,
+        "sha256": "19213e43800f09ecbbc653ae28c73682dab2a1706e8c30b07a1728052d99d49b"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 1028,
+      "height": 714,
+      "lang": "en",
+      "dpr": 2,
+      "name": "hotkeys-en-1028-dpr2",
+      "file": "renders/hotkeys-en-1028-dpr2.png",
+      "png": {
+        "width": 2056,
+        "height": 1428,
+        "sha256": "c13ce9f2aa02b75eb2978a9633831b2dfa65ae63aa8a4274422b2d8040784dc2"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 1028,
+          "height": 30,
+          "right": 1028,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 1028,
+          "height": 72,
+          "right": 1028,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 812,
+          "height": 612,
+          "right": 1028,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 756,
+          "height": 32,
+          "right": 1000,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 756,
+          "height": 180,
+          "right": 1000,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "mapping-zh-963-dpr1.5",
+      "file": "renders/mapping-zh-963-dpr1.5.png",
+      "png": {
+        "width": 1445,
+        "height": 977,
+        "sha256": "b80a63054a60e109ff8914fbab0dbb2c1f31ada06e1f3b4de8e5bd24feafbf47"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "mapping-zh-963-dpr2",
+      "file": "renders/mapping-zh-963-dpr2.png",
+      "png": {
+        "width": 1926,
+        "height": 1302,
+        "sha256": "9b40909564aa69d937068cf76a8bbac64d383acdb9500617b674f64b30e64ff8"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "en",
+      "dpr": 1,
+      "name": "mapping-en-963-dpr1",
+      "file": "renders/mapping-en-963-dpr1.png",
+      "png": {
+        "width": 963,
+        "height": 651,
+        "sha256": "fbe346f0dbec60d11019f6c09f648111e2ded07b8727163cbbbeef8a9a7f9f6b"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "mapping-en-963-dpr1.5",
+      "file": "renders/mapping-en-963-dpr1.5.png",
+      "png": {
+        "width": 1445,
+        "height": 977,
+        "sha256": "f0bed60489bbad4f480762ffff14866b26e9c49583d513710627c27e7b999498"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 963,
+      "height": 651,
+      "lang": "en",
+      "dpr": 2,
+      "name": "mapping-en-963-dpr2",
+      "file": "renders/mapping-en-963-dpr2.png",
+      "png": {
+        "width": 1926,
+        "height": 1302,
+        "sha256": "cf09ada9643e06f2d12884ab62e4b79c374649e91ed68e54a61592342a05c537"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 963,
+          "height": 30,
+          "right": 963,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 579,
+          "width": 963,
+          "height": 72,
+          "right": 963,
+          "bottom": 651
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "menu-zh-868-dpr1.5",
+      "file": "renders/menu-zh-868-dpr1.5.png",
+      "png": {
+        "width": 1302,
+        "height": 1128,
+        "sha256": "3f773923c5582c5f71f4651b7f49d287036fb100411b1164080645b28f7f36a3"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "menu-zh-868-dpr2",
+      "file": "renders/menu-zh-868-dpr2.png",
+      "png": {
+        "width": 1736,
+        "height": 1504,
+        "sha256": "9fff3c77a0fd1a534267004ddf1da6e2618b8e04b8241564abd251c4d24aac6c"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "en",
+      "dpr": 1,
+      "name": "menu-en-868-dpr1",
+      "file": "renders/menu-en-868-dpr1.png",
+      "png": {
+        "width": 868,
+        "height": 752,
+        "sha256": "18cb24c58fb94b5329ea9bb8bf60938662a30561a228689dc7bc60d490132635"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "menu-en-868-dpr1.5",
+      "file": "renders/menu-en-868-dpr1.5.png",
+      "png": {
+        "width": 1302,
+        "height": 1128,
+        "sha256": "3f773923c5582c5f71f4651b7f49d287036fb100411b1164080645b28f7f36a3"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "menu",
+      "width": 868,
+      "height": 752,
+      "lang": "en",
+      "dpr": 2,
+      "name": "menu-en-868-dpr2",
+      "file": "renders/menu-en-868-dpr2.png",
+      "png": {
+        "width": 1736,
+        "height": 1504,
+        "sha256": "9fff3c77a0fd1a534267004ddf1da6e2618b8e04b8241564abd251c4d24aac6c"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "menu280": true,
+        "row32": true,
+        "separator9": true,
+        "firstLevelOnly": true,
+        "fixtureDocument2Retained": true,
+        "popupInViewport": true,
+        "noPopupOverlap": true,
+        "neutralWorkspace": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": null,
+        "footer": null,
+        "nav": null,
+        "page": null,
+        "textOverflow": [],
+        "popups": [
+          {
+            "x": 144,
+            "y": 180,
+            "width": 280,
+            "height": 83,
+            "right": 424,
+            "bottom": 263
+          },
+          {
+            "x": 426,
+            "y": 225,
+            "width": 280,
+            "height": 74,
+            "right": 706,
+            "bottom": 299
+          }
+        ]
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "general-zh-960-dpr1",
+      "file": "renders/general-zh-960-dpr1.png",
+      "png": {
+        "width": 960,
+        "height": 714,
+        "sha256": "9c8f692b356e6aab05eb49d51698e2a1c8198bd1a1b55a69a13065388441b327"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "general-zh-960-dpr1.5",
+      "file": "renders/general-zh-960-dpr1.5.png",
+      "png": {
+        "width": 1440,
+        "height": 1071,
+        "sha256": "86c67f73c0396efe6d25ae7be1a594adcfbaf93bb2068623e27939fb627c51f4"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "general-zh-960-dpr2",
+      "file": "renders/general-zh-960-dpr2.png",
+      "png": {
+        "width": 1920,
+        "height": 1428,
+        "sha256": "89ffcb16eb961e69fc45a1f1b1a57690a7c691013b53576b2317fc9ec617f7a4"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1,
+      "name": "general-en-960-dpr1",
+      "file": "renders/general-en-960-dpr1.png",
+      "png": {
+        "width": 960,
+        "height": 714,
+        "sha256": "46df3f85f4008bf3071e8fcbd91e5a2f82808d595fd3d5af2dd4f668dccbb993"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "general-en-960-dpr1.5",
+      "file": "renders/general-en-960-dpr1.5.png",
+      "png": {
+        "width": 1440,
+        "height": 1071,
+        "sha256": "fc85c086bc2cbdf0e8a596f61f10a4205dc2e5d6455b211422cbd6c4e6bff65d"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "general",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 2,
+      "name": "general-en-960-dpr2",
+      "file": "renders/general-en-960-dpr2.png",
+      "png": {
+        "width": 1920,
+        "height": 1428,
+        "sha256": "12d66f086f26279edaf1d0f645cc9a45694736e48475e546b5cd121bcc194818"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "simple640": true,
+        "startupOff": true,
+        "language": true,
+        "rowHeights": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "simple": {
+          "x": 244,
+          "y": 114,
+          "width": 640,
+          "height": 136,
+          "right": 884,
+          "bottom": 250
+        }
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "hotkeys-zh-960-dpr1",
+      "file": "renders/hotkeys-zh-960-dpr1.png",
+      "png": {
+        "width": 960,
+        "height": 714,
+        "sha256": "cc1f33db647ff033e5ac85746a738685fc743d84ef02112cf3be84dc249f8490"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "hotkeys-zh-960-dpr1.5",
+      "file": "renders/hotkeys-zh-960-dpr1.5.png",
+      "png": {
+        "width": 1440,
+        "height": 1071,
+        "sha256": "09c349b137aab8376121e8b0efbecd8b5b2759d0f3631ad5cfdfca622e27536f"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "hotkeys-zh-960-dpr2",
+      "file": "renders/hotkeys-zh-960-dpr2.png",
+      "png": {
+        "width": 1920,
+        "height": 1428,
+        "sha256": "70cd6414fb6d3057fc5425770ca51a13d306d835bae8aa4287c93bfc32f8264c"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1,
+      "name": "hotkeys-en-960-dpr1",
+      "file": "renders/hotkeys-en-960-dpr1.png",
+      "png": {
+        "width": 960,
+        "height": 714,
+        "sha256": "81a1f743c3dcda0f8532db4c8e5f47eacce79df4474f3d8b244ba93cc69ab817"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "hotkeys-en-960-dpr1.5",
+      "file": "renders/hotkeys-en-960-dpr1.5.png",
+      "png": {
+        "width": 1440,
+        "height": 1071,
+        "sha256": "f55e3a374632bfaec99755504e44ba7d31d69f28b8c0c0c9033d6b747f5182a9"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "hotkeys",
+      "width": 960,
+      "height": 714,
+      "lang": "en",
+      "dpr": 2,
+      "name": "hotkeys-en-960-dpr2",
+      "file": "renders/hotkeys-en-960-dpr2.png",
+      "png": {
+        "width": 1920,
+        "height": 1428,
+        "sha256": "98cd94475d1ff360aa640a5ebefec87cd700a805a05a6d5afe745fa927152f96"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "nav216": true,
+        "contentPadding28": true,
+        "fixedBuiltinGrid": true,
+        "record228x36": true,
+        "builtinStates": true,
+        "builtinKeys": true,
+        "sixteenRows": true,
+        "firstFiveKeys": true,
+        "everyFourthOff": true,
+        "fiveVisibleRows": true,
+        "header32rows36": true,
+        "toolbar32": true,
+        "longPathsRetained": true,
+        "scrollable": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true,
+        "pathsMatchN15": true,
+        "fullPathOnFocus": true,
+        "lastRowReachable": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 960,
+          "height": 30,
+          "right": 960,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 642,
+          "width": 960,
+          "height": 72,
+          "right": 960,
+          "bottom": 714
+        },
+        "nav": {
+          "x": 0,
+          "y": 30,
+          "width": 216,
+          "height": 612,
+          "right": 216,
+          "bottom": 642
+        },
+        "page": {
+          "x": 216,
+          "y": 30,
+          "width": 744,
+          "height": 612,
+          "right": 960,
+          "bottom": 642
+        },
+        "textOverflow": [],
+        "builtinColumns": "132px 12px 228px 8px 32px 12px 44px",
+        "tableHeader": {
+          "x": 244,
+          "y": 418,
+          "width": 688,
+          "height": 32,
+          "right": 932,
+          "bottom": 450
+        },
+        "tableBody": {
+          "x": 244,
+          "y": 450,
+          "width": 688,
+          "height": 180,
+          "right": 932,
+          "bottom": 630
+        },
+        "visibleRows": 5
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "zh",
+      "dpr": 1,
+      "name": "mapping-zh-900-dpr1",
+      "file": "renders/mapping-zh-900-dpr1.png",
+      "png": {
+        "width": 900,
+        "height": 640,
+        "sha256": "ad9fa81872cd261b5a9ed5aeb0d34da3ecccfcab119cdb98ab16ce94af71f52a"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "zh",
+      "dpr": 1.5,
+      "name": "mapping-zh-900-dpr1.5",
+      "file": "renders/mapping-zh-900-dpr1.5.png",
+      "png": {
+        "width": 1350,
+        "height": 960,
+        "sha256": "965eeed610a0e8bedb8933145c756a1480b3fc733948a3f551bce234f8a3cef2"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "zh",
+      "dpr": 2,
+      "name": "mapping-zh-900-dpr2",
+      "file": "renders/mapping-zh-900-dpr2.png",
+      "png": {
+        "width": 1800,
+        "height": 1280,
+        "sha256": "f9ebc3bc240323039bfa365db3ad9ee4ae87a4e7a04963f79611445c8ecc3379"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "en",
+      "dpr": 1,
+      "name": "mapping-en-900-dpr1",
+      "file": "renders/mapping-en-900-dpr1.png",
+      "png": {
+        "width": 900,
+        "height": 640,
+        "sha256": "a32b659b057f6c9d136f06edc2d7f3972fa24291ca3605ee7133ec24888c8191"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "en",
+      "dpr": 1.5,
+      "name": "mapping-en-900-dpr1.5",
+      "file": "renders/mapping-en-900-dpr1.5.png",
+      "png": {
+        "width": 1350,
+        "height": 960,
+        "sha256": "f7b5bd9adc62fb891a51fecc31e78f5075bf17889e024cc2c6c7c18c865cf847"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    },
+    {
+      "view": "mapping",
+      "width": 900,
+      "height": 640,
+      "lang": "en",
+      "dpr": 2,
+      "name": "mapping-en-900-dpr2",
+      "file": "renders/mapping-en-900-dpr2.png",
+      "png": {
+        "width": 1800,
+        "height": 1280,
+        "sha256": "86958f623497892906e0510fb3e65e7f916e70c261e584460c6650ecd16d34c4"
+      },
+      "checks": {
+        "viewport": true,
+        "noDocumentOverflow": true,
+        "logoLoaded": true,
+        "iconsPresent": true,
+        "noUnexpectedTextOverflow": true,
+        "titlebar30": true,
+        "footer72": true,
+        "footerButtons": true,
+        "controlsAboveFooter": true,
+        "footerOrder": true,
+        "fourModifiersPerSide": true,
+        "allKeyFields": true,
+        "mappingValues": true,
+        "mappingModifiers": true,
+        "checkboxes": true,
+        "purposeComplete": true,
+        "purposeNotClipped": true,
+        "recordAndForeground": true,
+        "noMappingScroll": true,
+        "noScriptErrors": true,
+        "noExternalRequests": true,
+        "physicalPngSize": true
+      },
+      "metrics": {
+        "titlebar": {
+          "x": 0,
+          "y": 0,
+          "width": 900,
+          "height": 30,
+          "right": 900,
+          "bottom": 30
+        },
+        "footer": {
+          "x": 0,
+          "y": 568,
+          "width": 900,
+          "height": 72,
+          "right": 900,
+          "bottom": 640
+        },
+        "nav": null,
+        "page": null,
+        "textOverflow": []
+      },
+      "errors": [],
+      "externalRequests": [],
+      "passed": true
+    }
+  ],
+  "browserExecutable": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+  "browserVersion": "153.0.8010.53",
+  "summary": {
+    "total": 42,
+    "passed": 42,
+    "failed": 0
+  }
+}

@@ -99,11 +99,13 @@ void hotkey_page_layout_tests() {
     simpilot::HotkeyRegistry hotkeys;
     simpilot::KeyboardManager keyboard;
     std::array<simpilot::BuiltInHotKey, 4> bindings;
+    constexpr std::string_view labels[]{"settings.main_menu", "settings.second_menu",
+        "settings.open_settings", "settings.open_everything_search"};
     std::vector<simpilot::Registration> registrations;
     for (std::size_t i = 0; i < bindings.size(); ++i) {
         bindings[i] = {{simpilot::HotKeyGesture{MOD_CONTROL, VK_F20 + static_cast<UINT>(i)}, false}, true};
         registrations.push_back(hotkeys.add("layout." + std::to_string(i), static_cast<int>(i),
-            simpilot::HotkeyContribution{"settings.open_settings", [&, i] { return bindings[i]; },
+            simpilot::HotkeyContribution{std::string(labels[i]), [&, i] { return bindings[i]; },
                 [](HWND) {}, [&, i] { return &bindings[i]; }}));
     }
     bool section_draft = false;
@@ -127,6 +129,21 @@ void hotkey_page_layout_tests() {
         localization.set_language(language);
         page->refresh_language(localization);
         for (UINT dpi : {96U, 144U, 192U}) {
+            LONG capture_left = -1;
+            for (int width : {650, 840, 1100}) {
+                page->layout({0, 0, MulDiv(width, dpi, 96), MulDiv(600, dpi, 96)}, dpi, font);
+                const auto capture = settings_page_test::visible_bounds(window, GetDlgItem(window, 100));
+                require(capture.left <= MulDiv(264, dpi, 96),
+                    "Hotkey capture follows a bounded description column");
+                require(capture_left < 0 || capture.left == capture_left,
+                    "Widening the page must not grow the description-to-capture gap");
+                capture_left = capture.left;
+                const auto label = GetWindow(GetDlgItem(window, 100), GW_HWNDPREV);
+                const auto label_bounds = settings_page_test::visible_bounds(window, label);
+                require(capture.left == MulDiv(144, dpi, 96)
+                    && capture.left - label_bounds.right == MulDiv(12, dpi, 96),
+                    "Description and capture use a consistent compact gutter");
+            }
             for (int height : {600, 400, 600}) {
                 page->layout({0, 0, MulDiv(650, dpi, 96), MulDiv(height, dpi, 96)}, dpi, font);
                 LONG previous_bottom = 0;
@@ -134,9 +151,13 @@ void hotkey_page_layout_tests() {
                     const auto enabled = settings_page_test::visible_bounds(window, GetDlgItem(window, 102 + row * 3));
                     const auto capture = settings_page_test::visible_bounds(window, GetDlgItem(window, 100 + row * 3));
                     const auto clear = settings_page_test::visible_bounds(window, GetDlgItem(window, 101 + row * 3));
-                    require(enabled.right < capture.left && capture.right < clear.left,
-                            "Enable, capture and action columns have separate space");
-                    require(enabled.top == capture.top && capture.top == clear.top
+                    require(capture.right < clear.left && clear.right < enabled.left,
+                            "Compact capture, clear and enable controls do not overlap");
+                    require(capture.right - capture.left <= MulDiv(228, dpi, 96)
+                        && clear.right - clear.left == MulDiv(32, dpi, 96)
+                        && enabled.right - enabled.left == MulDiv(44, dpi, 96),
+                        "Hotkey controls retain compact widths instead of stretching with the window");
+                    require(enabled.top == capture.top + MulDiv(2, dpi, 96) && enabled.top == clear.top
                         && enabled.top > previous_bottom, "Hotkey rows align without overlap");
                     previous_bottom = enabled.bottom;
                 }
@@ -153,6 +174,18 @@ void hotkey_page_layout_tests() {
                     SendMessageW(window, WM_VSCROLL, SB_PAGEUP, 0);
                 }
             }
+        }
+    }
+    for (UINT dpi : {96U, 144U, 192U}) {
+        page->layout({0, 0, MulDiv(460, dpi, 96), MulDiv(720, dpi, 96)}, dpi, font);
+        LONG previous_bottom = 0;
+        for (int row = 0; row < 4; ++row) {
+            const auto capture = settings_page_test::visible_bounds(window, GetDlgItem(window, 100 + row * 3));
+            const auto clear = settings_page_test::visible_bounds(window, GetDlgItem(window, 101 + row * 3));
+            const auto enabled = settings_page_test::visible_bounds(window, GetDlgItem(window, 102 + row * 3));
+            require(capture.top > previous_bottom && capture.right < clear.left
+                && clear.right < enabled.left, "Narrow hotkey page stacks rows without clipping");
+            previous_bottom = capture.bottom;
         }
     }
     const auto toggle = GetDlgItem(window, 102);
@@ -226,6 +259,14 @@ void CALLBACK exercise_window(HWND, UINT, UINT_PTR timer, DWORD) {
                 && !language_document.get(L"FixtureEnabled"),
                 "Language persistence does not write uncommitted module settings");
             require(IsWindowEnabled(GetDlgItem(window, 3)) != FALSE, "Module dirty state enables Apply");
+            const auto save_bounds = settings_page_test::visible_bounds(window, GetDlgItem(window, 1));
+            const auto apply_bounds = settings_page_test::visible_bounds(window, GetDlgItem(window, 3));
+            const auto cancel_bounds = settings_page_test::visible_bounds(window, GetDlgItem(window, 2));
+            require(cancel_bounds.right < apply_bounds.left && apply_bounds.right < save_bounds.left,
+                "Footer presents Cancel, Apply, Save in a stable action hierarchy");
+            require(GetNextDlgTabItem(window, GetDlgItem(window, 2), FALSE) == GetDlgItem(window, 3)
+                && GetNextDlgTabItem(window, GetDlgItem(window, 3), FALSE) == GetDlgItem(window, 1),
+                "Footer keyboard order follows its visual order");
             SendMessageW(window, WM_COMMAND, MAKEWPARAM(3, BN_CLICKED), 0);
             require(!active_module->live && active_module->draft,
                     "Persistence failure restores runtime and retains draft");

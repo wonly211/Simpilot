@@ -1,6 +1,7 @@
 {
   "locale": "en-US",
   "strings": {
+    "settings.windows_shortcuts.block": "Block",
     "settings.tab.windows_shortcuts": "Windows shortcut blocking",
     "settings.windows_shortcuts.heading": "Block Windows shortcuts",
     "settings.windows_shortcuts.scope": "Select the Windows shortcuts to block while 简驭 | Simpilot is running. This intercepts keyboard input only; it does not change system policies or disable Windows features.",

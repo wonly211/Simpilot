@@ -1,0 +1,172 @@
+Window: "Simpilot native audit fixture - synthetic data / no execution", App: audit_preview.exe.
+	0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise
+		32 窗口 简驭 | Simpilot - 设置 Secondary Actions: Raise
+			33 图像
+			34 文本 Simpilot
+			35 文本 设置
+			36 列表 设置 ID: 250
+				37 列表项目 (selectable) 常规
+				38 列表项目 (selectable) 快捷启动菜单
+				39 列表项目 (selectable) 菜单图标
+				40 列表项目 (selectable) 全局热键
+				41 列表项目 (selectable) 键盘映射
+				42 列表项目 (selectable) Everything 搜索
+				43 列表项目 (selectable) 光标定位
+				44 列表项目 (selectable) Windows 快捷键屏蔽
+			45 文本
+			338 窗格
+				339 文本 键盘映射
+				340 复选框 启用键盘映射 ID: 604
+				341 列表 ID: 600
+					342 标头 标头控件 ID: Header
+						343 标头项目 启用 ID: HeaderItem 0
+						344 标头项目 用途 ID: HeaderItem 1
+						345 标头项目 源按键 ID: HeaderItem 2
+						346 标头项目 目标按键 ID: HeaderItem 3
+						347 标头项目 应用 ID: HeaderItem 4
+					348 滚动条 (settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+						349 按钮 上一行 ID: UpButton
+						350 缩略图 位置 ID: ScrollbarThumb
+						351 按钮 向下翻页 ID: DownPageButton
+						352 按钮 下一行 ID: DownButton
+					353 列表项目 (selectable)
+						354 文本
+						355 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						356 文本 左 Ctrl + A
+						357 文本 左 Alt + F1
+						358 文本 audittool.exe
+					359 列表项目 (selectable)
+						360 文本
+						361 文本 Fixture mapping 2 / 映射
+						362 文本 左 Ctrl + B
+						363 文本 左 Alt + F2
+						364 文本 所有应用
+					365 列表项目 (selectable)
+						366 文本
+						367 文本 Fixture mapping 3 / 映射
+						368 文本 左 Ctrl + C
+						369 文本 左 Alt + F3
+						370 文本 audittool.exe
+					371 列表项目 (selectable)
+						372 文本
+						373 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						374 文本 左 Ctrl + D
+						375 文本 左 Alt + F4
+						376 文本 所有应用
+					377 列表项目 (selectable)
+						378 文本
+						379 文本 Fixture mapping 5 / 映射
+						380 文本 左 Ctrl + E
+						381 文本 左 Alt + F5
+						382 文本 audittool.exe
+					383 列表项目 (selectable)
+						384 文本
+						385 文本 Fixture mapping 6 / 映射
+						386 文本 左 Ctrl + F
+						387 文本 左 Alt + F6
+						388 文本 所有应用
+					389 列表项目 (selectable)
+						390 文本
+						391 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						392 文本 左 Ctrl + G
+						393 文本 左 Alt + F7
+						394 文本 audittool.exe
+					395 列表项目 (selectable)
+						396 文本
+						397 文本 Fixture mapping 8 / 映射
+						398 文本 左 Ctrl + H
+						399 文本 左 Alt + F8
+						400 文本 所有应用
+					401 列表项目 (selectable)
+						402 文本
+						403 文本 Fixture mapping 9 / 映射
+						404 文本 左 Ctrl + I
+						405 文本 左 Alt + F9
+						406 文本 audittool.exe
+					407 列表项目 (selectable)
+						408 文本
+						409 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						410 文本 左 Ctrl + J
+						411 文本 左 Alt + F10
+						412 文本 所有应用
+					413 列表项目 (selectable)
+						414 文本
+						415 文本 Fixture mapping 11 / 映射
+						416 文本 左 Ctrl + K
+						417 文本 左 Alt + F11
+						418 文本 audittool.exe
+					419 列表项目 (selectable)
+						420 文本
+						421 文本 Fixture mapping 12 / 映射
+						422 文本 左 Ctrl + L
+						423 文本 左 Alt + F12
+						424 文本 所有应用
+					425 列表项目 (selectable)
+						426 文本
+						427 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						428 文本 左 Ctrl + M
+						429 文本 左 Alt + F1
+						430 文本 audittool.exe
+					431 列表项目 (selectable)
+						432 文本
+						433 文本 Fixture mapping 14 / 映射
+						434 文本 左 Ctrl + N
+						435 文本 左 Alt + F2
+						436 文本 所有应用
+					437 列表项目 (selectable)
+						438 文本
+						439 文本 Fixture mapping 15 / 映射
+						440 文本 左 Ctrl + O
+						441 文本 左 Alt + F3
+						442 文本 audittool.exe
+					443 列表项目 (selectable)
+						444 文本
+						445 文本 Long mapping purpose: review selection across multiple workspace panels / 选择切换
+						446 文本 左 Ctrl + P
+						447 文本 左 Alt + F4
+						448 文本 所有应用
+				449 按钮 添加 ID: 601
+				450 按钮 (disabled) 编辑 ID: 603
+				451 按钮 (disabled) 删除 ID: 602
+			54 按钮 取消 ID: 2
+			55 按钮 (disabled) 应用 ID: 3
+			56 按钮 保存 ID: 1
+			57 标题栏 (settable, string) Value: 简驭 | Simpilot - 设置
+				58 菜单栏 系统 ID: MenuBar
+					59 菜单项 系统
+				60 按钮 最小化
+				61 按钮 最大化
+				62 按钮 关闭
+		1 按钮 zh-CN ID: 100
+		2 按钮 en-US ID: 101
+		3 按钮 Commit: SUCCESS (fake) ID: 102
+		4 按钮 Commit: FAILURE (fake) ID: 103
+		5 按钮 Settings: full (16 rows) ID: 104
+		6 按钮 Settings: empty (0 rows) ID: 105
+		7 按钮 Settings: few (3 rows) ID: 106
+		8 按钮 Settings: many (40 rows) ID: 107
+		9 按钮 Custom hotkey: add ID: 108
+		10 按钮 Custom hotkey: edit ID: 109
+		11 按钮 Keyboard mapping: add ID: 110
+		12 按钮 Keyboard mapping: edit ID: 111
+		13 按钮 Program selection (4 mock apps) ID: 112
+		14 按钮 About (links blocked) ID: 113
+		15 按钮 Main launch menu ID: 114
+		16 按钮 Second launch menu ID: 115
+		17 按钮 Tray popup (RECREATED host) ID: 116
+		18 按钮 Cursor locator background ID: 117
+		19 按钮 Menu theme: system ID: 118
+		20 按钮 Menu theme: light ID: 119
+		21 按钮 Menu theme: dark ID: 120
+		22 编辑 Value: SIMULATED DATA | zh-CN | Commit: SUCCESS | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\Users\WoNly\AppData\Local\Temp\Simpilot-native-audit-{9D8AF4D3-8530-4855-8C00-9A2DFB87A6A8} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. Settings open: change a real control, then Apply/Save to exercise the selected fake commit.
+			23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar
+				24 按钮 (disabled) 上一行 ID: UpButton
+				25 按钮 (disabled) 下一行 ID: DownButton
+		26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution
+			27 菜单栏 系统 ID: MenuBar
+				28 菜单项 系统
+			29 按钮 最小化
+			30 按钮 最大化
+			31 按钮 关闭
+
+The focused UI element is 0 窗口 (disabled) Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise.

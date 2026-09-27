@@ -1,6 +1,7 @@
 #pragma once
 
 #include "keyboard_mapping_editor_model.hpp"
+#include "scrollable_form.hpp"
 
 #include "simpilot/localization.hpp"
 
@@ -104,6 +105,7 @@ private:
     std::vector<KeyOption> source_action_options_;
     std::vector<KeyOption> action_options_;
     HWND window_ = nullptr;
+    ScrollableForm form_;
     std::optional<KeyboardMappingRule> result_;
     bool capturing_ = false;
     UINT dpi_ = 96;
