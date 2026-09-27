@@ -1,0 +1,95 @@
+{
+  "sourceBase": "971389faf6a57628d1c7444b150ba19699c03c56",
+  "status": "local-unreleased",
+  "productionVersionUnchanged": true,
+  "fixture": {
+    "language": "zh-CN",
+    "dpi": 144,
+    "rows": 16,
+    "defaultScreenshotSize": [
+      868,
+      754
+    ],
+    "historicalMode": "Historical renderer source linked into the same current isolated fixture; not the full historical release"
+  },
+  "tests": {
+    "ctest": {
+      "passed": 21,
+      "failed": 0,
+      "log": "ctest.log"
+    },
+    "fixtureSelfTestExitCode": 0,
+    "geometryDpi": [
+      96,
+      144,
+      192
+    ]
+  },
+  "gaps": [
+    "Actual 96/192 DPI screenshots and high contrast",
+    "Bottom edge and multi-monitor UI interaction",
+    "Right-edge child popup: capture invalidated by automation restoring the maximized owner",
+    "All nested menu paths and extreme-name native screenshots"
+  ],
+  "residualIssues": [
+    "Native unselected dark submenu arrow contrast",
+    "Existing owner-draw separator is keyboard-selectable"
+  ],
+  "files": [
+    {
+      "path": "src/modules/quick_launch/launch_menu_renderer.cpp",
+      "bytes": 9542,
+      "sha256": "362ca5e1deb76bcf72e34563ffa3dda27482cc8499129b8ce3cb4669e14f846a"
+    },
+    {
+      "path": "src/modules/quick_launch/launch_menu_renderer.hpp",
+      "bytes": 1430,
+      "sha256": "039c50f561d74712a553cc9f2543442883f6c0cea8d1dc77ecdd83e4ed095d26"
+    },
+    {
+      "path": "src/modules/quick_launch/tests/menu_presentation_tests.cpp",
+      "bytes": 17151,
+      "sha256": "fa5da36dfec487d375637ca4c56cc0ea3d6e75757ab6e53674df9b957fe93f9a"
+    },
+    {
+      "path": "docs/design/fixture/audit_preview.cpp",
+      "bytes": 37594,
+      "sha256": "23d0e649a9f9a7b1772d4e9b52051f11a999be8d92fd6daf5f24becd81f53d38"
+    },
+    {
+      "path": "docs/design/fixture/CMakeLists.txt",
+      "bytes": 3444,
+      "sha256": "a953c56ca8ba15d0212210ce9e8a728b095c1bf584b3e8fe5036d00624dabd45"
+    },
+    {
+      "path": "build/ci-vs2022-x64/Release/Simpilot.exe",
+      "bytes": 1273856,
+      "sha256": "33e60579a71f7c34e0f89cdc800b8051407a1b6948b9b7f657c35aa36c1a883a"
+    },
+    {
+      "path": "build/menu-refinement/current/Release/audit_preview.exe",
+      "bytes": 1273856,
+      "sha256": "5a99c3bf0495c84b43cba68294e2e098cd33810ee5f24e40e3c55b58039a9187"
+    },
+    {
+      "path": "build/menu-refinement/v1.0.0/Release/audit_preview.exe",
+      "bytes": 1274880,
+      "sha256": "cfc5838a3e97089fa7a88ba23a9e59494c87a842e809062b203ac014ee98fb5f"
+    },
+    {
+      "path": "build/menu-refinement/v1.0.1/Release/audit_preview.exe",
+      "bytes": 1274880,
+      "sha256": "b6afe871ad2bf2f81b46b425e53b2f6f2d8e08e59205723ac8aba6eed975c150"
+    },
+    {
+      "path": "build/menu-refinement/baselines/v1.0.0/src/modules/quick_launch/launch_menu_renderer.cpp",
+      "bytes": 9098,
+      "sha256": "c74eb1d16207eba3d7c8def70d428f1e6629abae7e36dfbf1b797887908f8226"
+    },
+    {
+      "path": "build/menu-refinement/baselines/v1.0.1/src/modules/quick_launch/launch_menu_renderer.cpp",
+      "bytes": 9010,
+      "sha256": "119d2bb6a7a599e17450647ffd1a173ac1e2835c86db0d72d47d88a84a6303d8"
+    }
+  ]
+}

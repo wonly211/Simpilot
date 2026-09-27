@@ -1,0 +1,17 @@
+Configured UTC: 2026-09-27T20:54:13Z
+Source: E:/SynologyDrive/github/Simpilot/docs/design/fixture
+525a2c312a17ba63e6ff5c368be81c104a0155acbc48f18713448c7fcd211985  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/BuiltinLanguagePack.rc
+0009e8386137d2465cb80ce60e7917b06471bbd12414ea4c0cb9680aae504be8  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/builtin-languages.lng
+267c599c25e9c4fd1aa45326a6400ee4a24c23ac2ade84e6ef2f9a548028eb67  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Simpilot.manifest
+119d2bb6a7a599e17450647ffd1a173ac1e2835c86db0d72d47d88a84a6303d8  E:/SynologyDrive/github/Simpilot/build/menu-refinement/baselines/v1.0.1/src/modules/quick_launch/launch_menu_renderer.cpp
+891ba5fb93bf36b75a5fc130f0ed6f5615dbbfe447541a18261fbee30d2b9f36  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/everything/Release/simpilot_module_everything.lib
+0ec1999ea4abcaff1360318449b572986c9d42cd630a56cf406d0b487c2da08f  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/mouse_locator/Release/simpilot_module_mouse_locator.lib
+f658bd1513dcdd67db1f9b0e17a2029caf521c40969e6b6cd1edb2d04aa12b80  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/windows_hotkey_blocker/Release/simpilot_module_windows_hotkey_blocker.lib
+048d4913d4a3ead3578afb640a935f07f8dababdc1b6ca44ae98770924372dc9  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/custom_hotkey/Release/simpilot_module_custom_hotkey.lib
+d9a4e0d3f63d1f9939ef9e17d76ac27b949c3c12bba32b4e2d040f1d1a61d326  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/keyboard_mapping/Release/simpilot_module_keyboard_mapping.lib
+7ed56ffd188524bdbacc1ae070428056a0b332ddc39c4fde289e6fed33c11520  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/src/modules/quick_launch/Release/simpilot_module_quick_launch.lib
+7a54e12163b9107ed2140780aa2c35190fe3344c6542435f27e5bac046459825  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_core.lib
+1d684cc6d72b0f7183688174334a481dd5c20deb1aa8779a3355812fbc75343b  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_keyboard.lib
+450b747977a7e2972e8920dd3799fa76913f41fdedc328d8ba00355eb3e4ddee  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_module_support.lib
+caa45a3ae23b3a60c80a0bfeb03506e1cf7ab1c4ac450a015c326825aaaf9248  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_win32_ui.lib
+e7942aad560f065684b9cc8f43f7c60a40a0ff25f20403f04ef196306a3be9df  E:/SynologyDrive/github/Simpilot/build/ci-vs2022-x64/Release/simpilot_hotkey_ui.lib

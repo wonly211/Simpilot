@@ -27,6 +27,16 @@ target_compile_options(audit_preview PRIVATE /utf-8 /EHsc /W4)
 # Existing artifacts only: do not add_subdirectory() or rebuild production.
 set(audit_inputs "${built}/BuiltinLanguagePack.rc" "${built}/builtin-languages.lng"
     "${built}/Simpilot.manifest")
+set(SIMPILOT_AUDIT_MENU_RENDERER "" CACHE FILEPATH
+    "Optional historical launch_menu_renderer.cpp for isolated visual comparison only")
+if(SIMPILOT_AUDIT_MENU_RENDERER)
+    if(NOT EXISTS "${SIMPILOT_AUDIT_MENU_RENDERER}")
+        message(FATAL_ERROR "Historical renderer source does not exist")
+    endif()
+    # Executable definitions satisfy the references before the static library is searched.
+    target_sources(audit_preview PRIVATE "${SIMPILOT_AUDIT_MENU_RENDERER}")
+    list(APPEND audit_inputs "${SIMPILOT_AUDIT_MENU_RENDERER}")
+endif()
 foreach(module everything mouse_locator windows_hotkey_blocker custom_hotkey keyboard_mapping quick_launch)
     target_include_directories(audit_preview PRIVATE "${root}/src/modules/${module}")
     set(library "${built}/src/modules/${module}/Release/simpilot_module_${module}.lib")

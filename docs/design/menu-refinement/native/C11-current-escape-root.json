@@ -1,0 +1,23 @@
+{
+  "id": "C11-current-escape-root",
+  "capturedUtc": "2026-09-27T21:05:59.428Z",
+  "window": {
+    "app": "process:E:\\SynologyDrive\\github\\Simpilot\\build\\menu-refinement\\current\\Release\\audit_preview.exe",
+    "id": 10947704,
+    "title": "Simpilot native audit fixture - synthetic data / no execution"
+  },
+  "screenshots": [
+    {
+      "height": 754,
+      "id": "screenshot-0",
+      "originX": 313,
+      "originY": 304,
+      "width": 868,
+      "zIndex": 0
+    }
+  ],
+  "accessibility": {
+    "focused_element": "0 窗口 Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise",
+    "tree": "Window: \"Simpilot native audit fixture - synthetic data / no execution\", App: audit_preview.exe.\n\t0 窗口 Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise\n\t\t1 按钮 zh-CN ID: 100\n\t\t2 按钮 en-US ID: 101\n\t\t3 按钮 Commit: SUCCESS (fake) ID: 102\n\t\t4 按钮 Commit: FAILURE (fake) ID: 103\n\t\t5 按钮 Settings: full (16 rows) ID: 104\n\t\t6 按钮 Settings: empty (0 rows) ID: 105\n\t\t7 按钮 Settings: few (3 rows) ID: 106\n\t\t8 按钮 Settings: many (40 rows) ID: 107\n\t\t9 按钮 Custom hotkey: add ID: 108\n\t\t10 按钮 Custom hotkey: edit ID: 109\n\t\t11 按钮 Keyboard mapping: add ID: 110\n\t\t12 按钮 Keyboard mapping: edit ID: 111\n\t\t13 按钮 Program selection (4 mock apps) ID: 112\n\t\t14 按钮 About (links blocked) ID: 113\n\t\t15 按钮 Main launch menu ID: 114\n\t\t16 按钮 Second launch menu ID: 115\n\t\t17 按钮 Tray popup (RECREATED host) ID: 116\n\t\t18 按钮 Cursor locator background ID: 117\n\t\t19 按钮 Menu theme: system ID: 118\n\t\t20 按钮 Menu theme: light ID: 119\n\t\t21 按钮 Menu theme: dark ID: 120\n\t\t22 编辑 Value: SIMULATED DATA | zh-CN | Commit: SUCCESS | Rows: 16 | Launcher DPI: 144 Build: MSVC x64 Release, real app sources + existing static libs Temp data / live window metadata: C:\\Users\\WoNly\\AppData\\Local\\Temp\\Simpilot-native-audit-{26789418-C10C-40DC-8284-649C3300A43D} GAPS: tray host recreated; keyboard recording unavailable; Everything absent; About version simulated; external actions blocked. config watcher ready\n\t\t\t23 滚动条 (disabled, settable, float) 垂直滚动条 Value: 0 ID: NonClientVerticalScrollBar\n\t\t\t\t24 按钮 (disabled) 上一行 ID: UpButton\n\t\t\t\t25 按钮 (disabled) 下一行 ID: DownButton\n\t\t26 标题栏 (settable, string) Value: Simpilot native audit fixture - synthetic data / no execution\n\t\t\t27 菜单栏 系统 ID: MenuBar\n\t\t\t\t28 菜单项 系统\n\t\t\t29 按钮 最小化\n\t\t\t30 按钮 最大化\n\t\t\t31 按钮 关闭\n\nThe focused UI element is 0 窗口 Simpilot native audit fixture - synthetic data / no execution Secondary Actions: Raise."
+  }
+}
