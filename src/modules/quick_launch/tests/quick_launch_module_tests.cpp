@@ -257,6 +257,19 @@ void editor_scrolling(const std::filesystem::path& root) {
             require(!has_style(window, WS_VSCROLL | WS_HSCROLL)
                 && has_style(viewport, WS_VSCROLL) && !has_style(viewport, WS_HSCROLL),
                 "Only long right-hand details scroll, with no redundant horizontal scrollbar");
+            const auto segment = bounds(control(window, 100), window);
+            const auto title = bounds(control(window, 310), window);
+            require(title.top == segment.top && title.bottom == segment.bottom,
+                "The detail heading aligns with the menu selector instead of the lower toolbar");
+            require(bounds(pane, window).top == segment.top + scale(48)
+                && bounds(pane, window).bottom == scale(398),
+                "The detail viewport uses the full column height below its aligned heading");
+            SCROLLBARINFO bar{sizeof(bar)};
+            require(GetScrollBarInfo(viewport, OBJID_VSCROLL, &bar) != FALSE
+                && SendMessageW(viewport, WM_NCHITTEST, 0, MAKELPARAM(
+                    (bar.rcScrollBar.left + bar.rcScrollBar.right) / 2,
+                    (bar.rcScrollBar.top + bar.rcScrollBar.bottom) / 2)) == HTVSCROLL,
+                "The real editor's detail scrollbar is a native mouse hit target");
             const auto resolution = bounds(control(window, 308), content);
             require(resolution.bottom - resolution.top == scale(32)
                 && bounds(arguments, content).top > resolution.bottom,

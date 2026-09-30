@@ -12,7 +12,7 @@ void require(bool value, const char* message) {
 void form_test() {
     const auto instance = GetModuleHandleW(nullptr);
     const auto host = CreateWindowW(L"STATIC", L"Isolated form test", WS_OVERLAPPEDWINDOW,
-        0, 0, 900, 650, nullptr, nullptr, instance, nullptr);
+        -30000, -30000, 900, 650, nullptr, nullptr, instance, nullptr);
     const auto field = CreateWindowW(L"EDIT", L"Field", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
         400, 800, 160, 32, host, reinterpret_cast<HMENU>(10), instance, nullptr);
     const auto footer = CreateWindowW(L"BUTTON", L"Save", WS_CHILD | WS_VISIBLE | WS_TABSTOP,
@@ -30,6 +30,35 @@ void form_test() {
             && GetNextDlgTabItem(host, second_field, FALSE) == footer,
             "Reparenting preserves body Tab order before the fixed footer");
         const auto viewport = GetParent(GetParent(field));
+        ShowWindow(host, SW_SHOWNOACTIVATE);
+        for (const auto object : {OBJID_VSCROLL, OBJID_HSCROLL}) {
+            SCROLLBARINFO bar{sizeof(bar)};
+            require(GetScrollBarInfo(viewport, object, &bar) != FALSE,
+                "Read the native scrollbar bounds");
+            const auto point = MAKELPARAM((bar.rcScrollBar.left + bar.rcScrollBar.right) / 2,
+                (bar.rcScrollBar.top + bar.rcScrollBar.bottom) / 2);
+            require(SendMessageW(viewport, WM_NCHITTEST, 0, point)
+                == (object == OBJID_VSCROLL ? HTVSCROLL : HTHSCROLL),
+                "Native scrollbar hit testing must not pass mouse input through the form");
+            const auto vertical = object == OBJID_VSCROLL;
+            const auto arrow = vertical
+                ? MAKELPARAM((bar.rcScrollBar.left + bar.rcScrollBar.right) / 2,
+                    bar.rcScrollBar.bottom - bar.dxyLineButton / 2)
+                : MAKELPARAM(bar.rcScrollBar.right - bar.dxyLineButton / 2,
+                    (bar.rcScrollBar.top + bar.rcScrollBar.bottom) / 2);
+            // End Windows' native tracking loop without injecting desktop input.
+            require(PostMessageW(viewport, WM_LBUTTONUP, 0, 0) != FALSE,
+                "Queue the end of the isolated scrollbar click");
+            SendMessageW(viewport, WM_NCLBUTTONDOWN, vertical ? HTVSCROLL : HTHSCROLL, arrow);
+            require(GetScrollPos(viewport, vertical ? SB_VERT : SB_HORZ) > 0,
+                "Native arrow clicks scroll the form without bypassing mouse handling");
+            SendMessageW(viewport, vertical ? WM_VSCROLL : WM_HSCROLL, SB_TOP, 0);
+        }
+        POINT background{10, 10};
+        ClientToScreen(GetParent(field), &background);
+        require(SendMessageW(GetParent(field), WM_NCHITTEST, 0,
+            MAKELPARAM(background.x, background.y)) == HTCLIENT,
+            "The form background receives mouse input rather than passing it to the owner");
         form.reveal(field);
         require(GetScrollPos(viewport, SB_VERT) > 0, "Keyboard focus reveals lower fields");
         RECT bounds{}, visible{};

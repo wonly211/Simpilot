@@ -44,6 +44,7 @@ constexpr int administrator_identifier = 306;
 constexpr int splitter_identifier = 307;
 constexpr int reselect_program_identifier = 308;
 constexpr int detail_pane_identifier = 309;
+constexpr int detail_title_identifier = 310;
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -252,8 +253,9 @@ void MenuEditorWindow::create_controls() {
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(splitter_identifier)), instance_, nullptr);
     SetWindowSubclass(splitter_, &MenuEditorWindow::splitter_procedure, 1,
                       reinterpret_cast<DWORD_PTR>(this));
-    detail_title_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
-        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    detail_title_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE,
+        0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(detail_title_identifier)), instance_, nullptr);
     detail_pane_ = CreateWindowExW(WS_EX_CONTROLPARENT, L"STATIC", L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
         0, 0, 0, 0, window_,
@@ -456,11 +458,11 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
                content_bottom - content_top, TRUE);
 
     const auto delete_width = scale(32);
-    MoveWindow(detail_title_, right_x, content_top,
-               std::max(1, right_width - delete_width - gap), scale(30), TRUE);
-    MoveWindow(delete_button_, right_x + right_width - delete_width, content_top,
+    MoveWindow(detail_title_, right_x, margin,
+               std::max(1, right_width - delete_width - gap), segment_height, TRUE);
+    MoveWindow(delete_button_, right_x + right_width - delete_width, margin,
                delete_width, button_height, TRUE);
-    const auto detail_top = content_top + scale(40);
+    const auto detail_top = content_top;
     const auto detail_height = std::max(1, content_bottom - detail_top);
     MoveWindow(detail_pane_, right_x, detail_top, std::max(1, right_width), detail_height, TRUE);
     // Check the control's own visibility: settings pages are laid out while their host is hidden.
@@ -1189,6 +1191,7 @@ LRESULT CALLBACK MenuEditorWindow::detail_pane_procedure(
     const HWND window, const UINT message, const WPARAM wparam, const LPARAM lparam,
     const UINT_PTR subclass_identifier, const DWORD_PTR reference_data) {
     const auto* editor = reinterpret_cast<MenuEditorWindow*>(reference_data);
+    if (message == WM_NCHITTEST) return DefWindowProcW(window, message, wparam, lparam);
     if (message == WM_COMMAND || message == WM_NOTIFY
         || settings_visual_style::is_color_message(message)) {
         return SendMessageW(editor->window_, message, wparam, lparam);

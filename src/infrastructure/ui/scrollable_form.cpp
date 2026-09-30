@@ -6,7 +6,10 @@
 #include <vector>
 
 namespace simpilot {
-namespace { constexpr UINT_PTR form_subclass = 0x5351; }
+namespace {
+constexpr UINT_PTR form_subclass = 0x5351;
+constexpr auto form_class_name = L"Simpilot.ScrollableForm";
+}
 
 ScrollableForm::~ScrollableForm() {
     if (viewport_) DestroyWindow(viewport_);
@@ -19,10 +22,19 @@ void ScrollableForm::attach(HWND owner, std::initializer_list<HWND> fixed) {
     for (auto child = GetWindow(owner, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT))
         if (std::find(fixed.begin(), fixed.end(), child) == fixed.end()) children.push_back(child);
     const auto instance = reinterpret_cast<HINSTANCE>(GetWindowLongPtrW(owner, GWLP_HINSTANCE));
-    viewport_ = CreateWindowExW(WS_EX_CONTROLPARENT, L"STATIC", L"",
+    // STATIC suppresses native mouse handling, including non-client scrollbars.
+    const WNDCLASSW window_class{
+        .lpfnWndProc = DefWindowProcW,
+        .hInstance = instance,
+        .hCursor = LoadCursorW(nullptr, IDC_ARROW),
+        .lpszClassName = form_class_name,
+    };
+    if (!RegisterClassW(&window_class) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+        throw std::runtime_error("Cannot register scrollable form");
+    viewport_ = CreateWindowExW(WS_EX_CONTROLPARENT, form_class_name, L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_VSCROLL | WS_HSCROLL,
         0, 0, 0, 0, owner, nullptr, instance, nullptr);
-    content_ = CreateWindowExW(WS_EX_CONTROLPARENT, L"STATIC", L"",
+    content_ = CreateWindowExW(WS_EX_CONTROLPARENT, form_class_name, L"",
         WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN, 0, 0, 0, 0, viewport_, nullptr, instance, nullptr);
     if (!viewport_ || !content_) throw std::runtime_error("Cannot create scrollable form");
     for (auto window : {viewport_, content_})
