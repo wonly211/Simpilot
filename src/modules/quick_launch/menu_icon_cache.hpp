@@ -6,6 +6,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 
@@ -29,14 +30,17 @@ public:
                                        const std::filesystem::path& source,
                                        int source_index);
     [[nodiscard]] bool remove_custom_icon(const std::wstring& custom_key) noexcept;
+    [[nodiscard]] bool migrate_legacy_custom_icons(
+        std::span<const MenuEntry* const> entries) noexcept;
     void clear() noexcept;
 
     [[nodiscard]] static std::wstring custom_key_for(const MenuEntry& entry);
+    [[nodiscard]] static std::wstring label_for(const MenuEntry& entry);
     [[nodiscard]] static std::optional<std::wstring> target_for(
         const MenuEntry& entry);
 
 private:
-    [[nodiscard]] HICON load_icon(const std::wstring& memory_key,
+    [[nodiscard]] HICON load_icon(const std::wstring& custom_key,
                                   const std::wstring& cache_key,
                                   const std::wstring& shell_path,
                                   DWORD attributes,

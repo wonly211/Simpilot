@@ -104,6 +104,9 @@ private:
     static LRESULT CALLBACK tree_procedure(HWND window, UINT message,
         WPARAM wparam, LPARAM lparam, UINT_PTR subclass_identifier,
         DWORD_PTR reference_data);
+    static LRESULT CALLBACK detail_pane_procedure(HWND window, UINT message,
+        WPARAM wparam, LPARAM lparam, UINT_PTR subclass_identifier,
+        DWORD_PTR reference_data);
     LRESULT handle_message(UINT message, WPARAM wparam, LPARAM lparam);
     LRESULT draw_tree_item(NMTVCUSTOMDRAW& drawing) const;
 
@@ -122,7 +125,8 @@ private:
     ProgramResolutionLookup resolution_lookup_;
     ProgramResolutionReselect resolution_reselect_;
     HWND window_ = nullptr;
-    ScrollableForm form_;
+    HWND detail_pane_ = nullptr;
+    ScrollableForm detail_form_;
     HWND main_menu_button_ = nullptr;
     HWND second_menu_button_ = nullptr;
     HWND tree_ = nullptr;
