@@ -43,6 +43,7 @@ constexpr int arguments_identifier = 305;
 constexpr int administrator_identifier = 306;
 constexpr int splitter_identifier = 307;
 constexpr int reselect_program_identifier = 308;
+constexpr int detail_pane_identifier = 309;
 
 void set_font(const HWND control, const HFONT font) {
     if (control) SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(font), TRUE);
@@ -253,25 +254,31 @@ void MenuEditorWindow::create_controls() {
                       reinterpret_cast<DWORD_PTR>(this));
     detail_title_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    detail_pane_ = CreateWindowExW(WS_EX_CONTROLPARENT, L"STATIC", L"",
+        WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
+        0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(detail_pane_identifier)), instance_, nullptr);
+    SetWindowSubclass(detail_pane_, &MenuEditorWindow::detail_pane_procedure, 1,
+        reinterpret_cast<DWORD_PTR>(this));
     const auto create_label = [&](const wchar_t* text) {
         return CreateWindowW(L"STATIC", text, WS_CHILD | WS_VISIBLE,
-            0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+            0, 0, 0, 0, detail_pane_, nullptr, instance_, nullptr);
     };
     name_label_ = create_label(text("menu_editor.name"));
     name_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(name_identifier)), instance_, nullptr);
     access_key_label_ = create_label(text("menu_editor.access_key"));
     access_key_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(access_key_identifier)), instance_, nullptr);
     SendMessageW(access_key_edit_, EM_SETLIMITTEXT, 1, 0);
     type_label_ = create_label(text("menu_editor.action_type"));
     type_combo_ = CreateWindowW(WC_COMBOBOXW, L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(type_identifier)), instance_, nullptr);
     const std::array<const wchar_t*, 4> types{
         text("menu_editor.open_application"),
@@ -285,31 +292,31 @@ void MenuEditorWindow::create_controls() {
     target_label_ = create_label(text("menu_editor.target"));
     target_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(target_identifier)), instance_, nullptr);
     browse_button_ = CreateWindowW(L"BUTTON", text("menu_editor.browse"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(browse_identifier)), instance_, nullptr);
     resolved_path_label_ = create_label(text("menu_editor.resolved_path"));
     resolved_path_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | ES_AUTOHSCROLL | ES_READONLY,
-        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+        0, 0, 0, 0, detail_pane_, nullptr, instance_, nullptr);
     reselect_program_button_ = CreateWindowW(L"BUTTON",
         text("menu_editor.reselect_program"),
         WS_CHILD | WS_TABSTOP | BS_PUSHBUTTON,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(reselect_program_identifier)),
         instance_, nullptr);
     arguments_label_ = create_label(text("menu_editor.arguments"));
     arguments_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(arguments_identifier)), instance_, nullptr);
     administrator_checkbox_ = CreateWindowW(L"BUTTON",
         text("menu_editor.run_as_administrator"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX,
-        0, 0, 0, 0, window_,
+        0, 0, 0, 0, detail_pane_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(administrator_identifier)), instance_, nullptr);
     const auto create_button = [&](const wchar_t* text, const int identifier) {
         return CreateWindowW(L"BUTTON", text, WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
@@ -324,6 +331,7 @@ void MenuEditorWindow::create_controls() {
     move_down_button_ = create_button(text("menu_editor.move_down"), move_down_identifier);
     increase_level_button_ = create_button(text("menu_editor.promote"), increase_level_identifier);
     decrease_level_button_ = create_button(text("menu_editor.demote"), decrease_level_identifier);
+    detail_form_.attach(detail_pane_);
     update_fonts();
     rebuild_tree();
 }
@@ -400,10 +408,6 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
     const auto scale = [this](const int value) {
         return MulDiv(value, dpi_, 96);
     };
-    form_.attach(window_);
-    const int body_width = std::max(scale(664), width - GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_));
-    const int body_height = std::max(scale(620), height);
-    form_.layout(width, height, body_width, body_height);
     const auto margin = scale(2);
     TreeView_SetItemHeight(tree_, scale(30));
     const auto segment_width = scale(112);
@@ -413,12 +417,13 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
                segment_width, segment_height, TRUE);
 
     const auto content_top = margin + segment_height + scale(16);
-    const auto content_bottom = body_height - margin;
+    const auto content_bottom = height - margin;
     const auto left_x = margin;
-    const auto content_right = body_width - margin;
+    const auto content_right = width - margin;
     const auto splitter_width = scale(4);
-    const auto minimum_left = scale(280);
-    const auto minimum_right = scale(360);
+    const auto column_width = std::max(2, content_right - left_x - splitter_width - scale(16));
+    const auto minimum_left = std::min(scale(280), column_width / 2);
+    const auto minimum_right = std::min(scale(360), column_width - minimum_left);
     if (splitter_x_ == 0) {
         splitter_x_ = left_x + scale(316);
     }
@@ -439,7 +444,7 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
     const auto structure_top = content_bottom - button_height;
     const auto structure_width = scale(32);
     MoveWindow(tree_, left_x, content_top + button_height + scale(12), left_width,
-               structure_top - content_top - button_height - scale(24), TRUE);
+               std::max(1, structure_top - content_top - button_height - scale(24)), TRUE);
     MoveWindow(move_up_button_, left_x, structure_top, structure_width, button_height, TRUE);
     MoveWindow(move_down_button_, left_x + structure_width + scale(4), structure_top,
                structure_width, button_height, TRUE);
@@ -455,33 +460,54 @@ void MenuEditorWindow::layout_controls(const int width, const int height) {
                std::max(1, right_width - delete_width - gap), scale(30), TRUE);
     MoveWindow(delete_button_, right_x + right_width - delete_width, content_top,
                delete_width, button_height, TRUE);
-    const auto field_height = scale(32);
-    const auto browse_width = scale(112);
-    auto row_y = content_top + scale(40);
-    const auto place_field = [&](const HWND label, const HWND control, const HWND browse) {
-        MoveWindow(label, right_x, row_y, right_width, scale(20), TRUE);
-        row_y += scale(28);
-        MoveWindow(control, right_x, row_y,
-            right_width - (browse ? browse_width + scale(8) : 0), field_height, TRUE);
-        if (browse) {
-            MoveWindow(browse, right_x + right_width - browse_width, row_y,
-                       browse_width, field_height, TRUE);
-        }
-        row_y += field_height + scale(16);
+    const auto detail_top = content_top + scale(40);
+    const auto detail_height = std::max(1, content_bottom - detail_top);
+    MoveWindow(detail_pane_, right_x, detail_top, std::max(1, right_width), detail_height, TRUE);
+    // Check the control's own visibility: settings pages are laid out while their host is hidden.
+    const auto visible = [](HWND control) {
+        return (GetWindowLongPtrW(control, GWL_STYLE) & WS_VISIBLE) != 0;
     };
-    place_field(name_label_, name_edit_, nullptr);
-    place_field(access_key_label_, access_key_edit_, nullptr);
-    MoveWindow(type_label_, right_x, row_y, right_width, scale(18), TRUE);
-    row_y += scale(20);
-    MoveWindow(type_combo_, right_x, row_y, right_width, scale(180), TRUE);
-    row_y += field_height + scale(6);
-    place_field(target_label_, target_edit_, browse_button_);
-    if (IsWindowVisible(resolved_path_label_)) {
-        place_field(resolved_path_label_, resolved_path_edit_,
-            IsWindowVisible(reselect_program_button_) ? reselect_program_button_ : nullptr);
-    }
-    place_field(arguments_label_, arguments_edit_, nullptr);
-    MoveWindow(administrator_checkbox_, right_x, row_y, right_width, scale(30), TRUE);
+    const auto layout_fields = [&](const int field_width) {
+        const auto field_height = scale(32);
+        const auto browse_width = scale(112);
+        auto row_y = 0;
+        const auto place_field = [&](const HWND label, const HWND control, const HWND browse) {
+            if (!visible(control)) return;
+            const auto action = browse && visible(browse) ? browse : nullptr;
+            MoveWindow(label, 0, row_y, field_width, scale(20), TRUE);
+            row_y += scale(28);
+            MoveWindow(control, 0, row_y,
+                field_width - (action ? browse_width + scale(8) : 0),
+                control == type_combo_ ? scale(180) : field_height, TRUE);
+            if (action) {
+                MoveWindow(action, field_width - browse_width, row_y,
+                    browse_width, field_height, TRUE);
+            }
+            row_y += field_height + scale(16);
+        };
+        place_field(name_label_, name_edit_, nullptr);
+        place_field(access_key_label_, access_key_edit_, nullptr);
+        place_field(type_label_, type_combo_, nullptr);
+        place_field(target_label_, target_edit_, browse_button_);
+        place_field(resolved_path_label_, resolved_path_edit_, reselect_program_button_);
+        place_field(arguments_label_, arguments_edit_, nullptr);
+        if (visible(administrator_checkbox_)) {
+            MoveWindow(administrator_checkbox_, 0, row_y, field_width, scale(30), TRUE);
+            row_y += scale(30);
+        } else if (row_y > 0) {
+            row_y -= scale(16);
+        }
+        return row_y;
+    };
+    const auto content_height = layout_fields(std::max(scale(240), right_width));
+    const auto scrollbar_dpi = GetDpiForWindow(detail_pane_);
+    const auto horizontal_height = right_width < scale(240)
+        ? GetSystemMetricsForDpi(SM_CYHSCROLL, scrollbar_dpi) : 0;
+    const auto scrollbar_width = content_height > detail_height - horizontal_height
+        ? GetSystemMetricsForDpi(SM_CXVSCROLL, scrollbar_dpi) : 0;
+    const auto field_width = std::max(scale(240), right_width - scrollbar_width);
+    (void)layout_fields(field_width);
+    detail_form_.layout(right_width, detail_height, field_width, content_height);
 }
 
 void MenuEditorWindow::rebuild_tree(MenuElement* selection) {
@@ -679,6 +705,7 @@ void MenuEditorWindow::update_selection() {
     }
     updating_details_ = false;
     update_type_controls();
+    detail_form_.reveal(name_label_);
 
     EnableWindow(delete_button_, selected && !root ? TRUE : FALSE);
     EnableWindow(move_up_button_, location && location->index > 0 ? TRUE : FALSE);
@@ -1154,6 +1181,21 @@ LRESULT CALLBACK MenuEditorWindow::tree_procedure(
     if (message == WM_NCDESTROY) {
         RemoveWindowSubclass(window, &MenuEditorWindow::tree_procedure,
                              subclass_identifier);
+    }
+    return DefSubclassProc(window, message, wparam, lparam);
+}
+
+LRESULT CALLBACK MenuEditorWindow::detail_pane_procedure(
+    const HWND window, const UINT message, const WPARAM wparam, const LPARAM lparam,
+    const UINT_PTR subclass_identifier, const DWORD_PTR reference_data) {
+    const auto* editor = reinterpret_cast<MenuEditorWindow*>(reference_data);
+    if (message == WM_COMMAND || message == WM_NOTIFY
+        || settings_visual_style::is_color_message(message)) {
+        return SendMessageW(editor->window_, message, wparam, lparam);
+    }
+    if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window, wparam);
+    if (message == WM_NCDESTROY) {
+        RemoveWindowSubclass(window, &MenuEditorWindow::detail_pane_procedure, subclass_identifier);
     }
     return DefSubclassProc(window, message, wparam, lparam);
 }

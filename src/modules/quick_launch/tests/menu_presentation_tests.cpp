@@ -1,14 +1,17 @@
 #include "launch_menu_renderer.hpp"
 #include "menu_icon_cache.hpp"
+#include "menu_parser.hpp"
 #include "menu_theme.hpp"
 
 #include <Windows.h>
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -111,6 +114,76 @@ void check_menu_geometry(const HICON icon) {
     }
 }
 
+void check_access_key_icon_identity(const std::filesystem::path& root) {
+    auto document = simpilot::MenuParser::parse(
+        L"Google Chrome(&H)|chrome.exe\nGoogle Chrome(&O)|chrome.exe --incognito\n"
+        L"Google Chrome|chrome.exe\nGoogle Chrome(H)|chrome.exe\n");
+    const auto entries = document.entries();
+    const auto normal_key = simpilot::MenuIconCache::custom_key_for(*entries[0]);
+    const auto private_key = simpilot::MenuIconCache::custom_key_for(*entries[1]);
+    const auto plain_key = simpilot::MenuIconCache::custom_key_for(*entries[2]);
+    require(entries[0]->display_name == entries[1]->display_name
+        && entries[0]->access_key == L'H' && entries[1]->access_key == L'O',
+        "Reproduce the user's two Chrome labels with separately parsed access keys");
+    require(normal_key != private_key && normal_key != plain_key
+        && normal_key != simpilot::MenuIconCache::custom_key_for(*entries[3]),
+        "Full menu labels, including access keys, distinguish custom icon identities");
+    require(simpilot::MenuIconCache::label_for(*entries[0]) == L"Google Chrome(H)"
+        && simpilot::MenuIconCache::label_for(*entries[1]) == L"Google Chrome(O)",
+        "Icon list names display the access key without the Win32 ampersand marker");
+    entries[0]->value = L"other.exe --another-profile";
+    entries[0]->resolved_value = executable_path().wstring();
+    entries[0]->run_as_administrator = true;
+    require(simpilot::MenuIconCache::custom_key_for(*entries[0]) == normal_key,
+        "Target, arguments, resolution and administrator policy do not change a full menu-label identity");
+
+    simpilot::MenuIconCache icons(root);
+    require(icons.set_custom_icon(normal_key, system_directory() / L"shell32.dll", 0)
+        && !icons.has_custom_icon(private_key), "Chrome(H) can have a custom icon independently of Chrome(O)");
+    {
+        simpilot::MenuIconCache reloaded(root);
+        require(reloaded.has_custom_icon(normal_key) && !reloaded.has_custom_icon(private_key)
+            && reloaded.icon_for(*entries[0]) != nullptr, "The full-label override is used by runtime menus after reload");
+    }
+    require(icons.remove_custom_icon(normal_key), "Clear independent override before migration");
+
+    const auto shared_key = L"menu-name:" + entries[0]->display_name;
+    const std::array<const simpilot::MenuEntry*, 3> migration_entries{
+        entries[0], entries[1], entries[2]};
+    require(icons.set_custom_icon(shared_key, system_directory() / L"shell32.dll", 0)
+        && icons.set_custom_icon(private_key, system_directory() / L"shell32.dll", 1),
+        "Seed the previous shared name-only icon and an explicit Chrome(O) choice");
+    const auto custom_bytes = [&] {
+        std::map<std::filesystem::path, std::string> result;
+        for (const auto& file : std::filesystem::directory_iterator(root)) {
+            if (!file.path().filename().wstring().ends_with(L".custom.ico")) continue;
+            std::ifstream stream(file.path(), std::ios::binary);
+            result.emplace(file.path(), std::string(
+                std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()));
+        }
+        return result;
+    };
+    const auto original = custom_bytes();
+    require(icons.migrate_legacy_custom_icons(migration_entries)
+        && icons.has_custom_icon(normal_key) && icons.has_custom_icon(private_key)
+        && icons.has_custom_icon(plain_key) && !icons.has_custom_icon(shared_key),
+        "Migrate shared name-only data to keyed and unkeyed menu labels without retiring a live override");
+    const auto migrated = custom_bytes();
+    std::size_t preserved = 0;
+    for (const auto& [path, bytes] : original) {
+        if (const auto found = migrated.find(path); found != migrated.end()) {
+            require(found->second == bytes, "Migration preserves the explicit Chrome(O) choice");
+            ++preserved;
+        }
+    }
+    require(preserved == 1, "Only the old shared identity is archived");
+    require(icons.remove_custom_icon(normal_key)
+        && icons.migrate_legacy_custom_icons(migration_entries)
+        && !icons.has_custom_icon(normal_key) && icons.has_custom_icon(private_key)
+        && icons.has_custom_icon(plain_key),
+        "Restoring Chrome(H) remains automatic after reload and leaves Chrome(O) and the unkeyed label intact");
+}
+
 } // namespace
 
 int wmain() {
@@ -119,6 +192,7 @@ int wmain() {
             / (L"simpilot-menu-presentation-" + std::to_wstring(GetCurrentProcessId()));
         const auto cache_directory = root / L"Cache" / L"RunIcon";
         std::filesystem::remove_all(root);
+        check_access_key_icon_identity(root / L"AccessKeyIcons");
         {
             simpilot::MenuIconCache icons(cache_directory);
             require(icons.folder_icon() != nullptr, "Load the Windows folder icon");
@@ -163,17 +237,26 @@ int wmain() {
                 L"Chrome profile", L"chrome.exe --profile-directory=Profile1",
                 simpilot::MenuEntryKind::command, 2};
             simpilot::MenuEntry chrome_app{
-                L"Chrome app", L"chrome.exe --app-id=example",
+                L"Chrome app", chrome_profile.value,
                 simpilot::MenuEntryKind::command, 3};
             const auto profile_key = simpilot::MenuIconCache::custom_key_for(chrome_profile);
             const auto app_key = simpilot::MenuIconCache::custom_key_for(chrome_app);
             require(profile_key != app_key,
-                    "Keep different actions for the same executable independent");
+                    "Different menu names have independent icons even with identical commands");
             simpilot::MenuEntry case_sensitive_argument{
-                L"Chrome app uppercase", L"chrome.exe --app-id=EXAMPLE",
-                simpilot::MenuEntryKind::command, 4};
+                L"Chrome app", L"another.exe --app-id=EXAMPLE",
+                simpilot::MenuEntryKind::command, 4, true};
+            require(simpilot::MenuIconCache::custom_key_for(case_sensitive_argument) == app_key,
+                    "Changing target, arguments or privilege preserves menu-label identity");
+            case_sensitive_argument.kind = simpilot::MenuEntryKind::web;
+            require(simpilot::MenuIconCache::custom_key_for(case_sensitive_argument) == app_key,
+                    "Changing action type does not reindex a named custom icon");
+            case_sensitive_argument.access_key = L'C';
             require(simpilot::MenuIconCache::custom_key_for(case_sensitive_argument) != app_key,
-                    "Preserve argument case in the configured action identity");
+                "An access key is part of the visible menu label and its icon identity");
+            case_sensitive_argument.display_name = L"Renamed menu";
+            require(simpilot::MenuIconCache::custom_key_for(case_sensitive_argument) != app_key,
+                    "Menu name, not application name, defines the custom icon index");
             chrome_profile.resolved_value = L"C:\\Resolved\\chrome.exe --profile-directory=Profile1";
             require(simpilot::MenuIconCache::custom_key_for(chrome_profile) == profile_key,
                     "Keep custom icons stable when program resolution changes");
@@ -181,9 +264,76 @@ int wmain() {
                                           system_directory() / L"shell32.dll", 0),
                     "Set a custom icon for one executable action");
             require(icons.has_custom_icon(profile_key) && !icons.has_custom_icon(app_key),
-                    "Do not apply a custom icon to another action using the same executable");
+                    "Do not share custom icons across differently named menu items");
+            {
+                simpilot::MenuIconCache reloaded(cache_directory);
+                require(reloaded.has_custom_icon(profile_key) && !reloaded.has_custom_icon(app_key),
+                    "Name-based custom icon overrides persist independently");
+                require(reloaded.icon_for(chrome_profile) == reloaded.icon_for_customization(
+                    profile_key, *simpilot::MenuIconCache::target_for(chrome_profile),
+                    chrome_profile.kind), "Runtime menus and settings previews use the same identity");
+            }
             require(icons.remove_custom_icon(profile_key),
-                    "Remove the action-specific custom icon");
+                    "Remove the name-specific custom icon");
+
+            const auto legacy_key = L"command:normal:" + chrome_app.value;
+            const std::array<const simpilot::MenuEntry*, 2> migration_entries{
+                &chrome_profile, &chrome_app};
+            require(icons.set_custom_icon(legacy_key, system_directory() / L"shell32.dll", 0),
+                "Seed the pre-upgrade command-indexed custom icon");
+            require(icons.set_custom_icon(app_key, system_directory() / L"shell32.dll", 1),
+                "Seed an existing name-specific choice");
+            const auto custom_files = [&] {
+                std::map<std::filesystem::path, std::string> result;
+                for (const auto& file : std::filesystem::directory_iterator(cache_directory)) {
+                    if (!file.path().filename().wstring().ends_with(L".custom.ico")) continue;
+                    std::ifstream stream(file.path(), std::ios::binary);
+                    result.emplace(file.path(), std::string(
+                        std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()));
+                }
+                return result;
+            };
+            const auto existing_choices = custom_files();
+            require(icons.migrate_legacy_custom_icons(migration_entries),
+                "Migrate every menu alias before retiring the old command identity");
+            require(icons.has_custom_icon(profile_key) && icons.has_custom_icon(app_key)
+                && !icons.has_custom_icon(legacy_key), "Migration preserves both named overrides");
+            for (const auto& [path, expected] : existing_choices) {
+                if (!std::filesystem::exists(path)) continue;
+                std::ifstream stream(path, std::ios::binary);
+                require(std::string(std::istreambuf_iterator<char>(stream),
+                    std::istreambuf_iterator<char>()) == expected,
+                    "Migration does not overwrite an already selected name-specific icon");
+            }
+            require(icons.remove_custom_icon(profile_key)
+                && icons.migrate_legacy_custom_icons(migration_entries)
+                && !icons.has_custom_icon(profile_key) && icons.has_custom_icon(app_key),
+                "Restore automatic remains automatic after reload without changing another menu name");
+            require(icons.remove_custom_icon(app_key), "Clean up the other named override");
+
+            require(icons.set_custom_icon(legacy_key, system_directory() / L"shell32.dll", 0),
+                "Seed another legacy migration");
+            std::filesystem::path legacy_path;
+            for (const auto& file : std::filesystem::directory_iterator(cache_directory)) {
+                if (file.path().filename().wstring().ends_with(L".custom.ico"))
+                    legacy_path = file.path();
+            }
+            require(!legacy_path.empty(), "Locate legacy data for a sharing-violation test");
+            const auto locked = CreateFileW(legacy_path.c_str(), GENERIC_READ, FILE_SHARE_READ,
+                nullptr, OPEN_EXISTING, 0, nullptr);
+            require(locked != INVALID_HANDLE_VALUE, "Lock migration source");
+            require(!icons.migrate_legacy_custom_icons(migration_entries)
+                && icons.has_custom_icon(legacy_key) && !icons.has_custom_icon(profile_key)
+                && !icons.has_custom_icon(app_key), "Failed migration leaves legacy data and no partial name overrides");
+            CloseHandle(locked);
+            require(icons.remove_custom_icon(legacy_key), "Remove test migration source");
+
+            simpilot::MenuEntry same_name_application{
+                L"Shared name", executable_path().wstring(), simpilot::MenuEntryKind::command, 5};
+            simpilot::MenuEntry same_name_website{
+                L"Shared name", L"https://example.test", simpilot::MenuEntryKind::web, 6};
+            require(icons.icon_for(same_name_application) != icons.icon_for(same_name_website),
+                "Automatic icons with identical labels still follow their own target sources");
 
             simpilot::MenuEntry website{
                 L"Website", L"https://example.test", simpilot::MenuEntryKind::web, 2};

@@ -1,12 +1,28 @@
 #include "quick_launch_module.hpp"
 #include "quick_launch_settings_ui.hpp"
 #include "simpilot/config_file.hpp"
+#include "simpilot/command.hpp"
 #include <commctrl.h>
 #include <fstream>
 #include <iostream>
 
 namespace {
 void require(bool value, const char* message) { if (!value) throw std::runtime_error(message); }
+HWND control(HWND parent, int identifier) {
+    if (const auto child = GetDlgItem(parent, identifier)) return child;
+    for (auto child = GetWindow(parent, GW_CHILD); child; child = GetWindow(child, GW_HWNDNEXT))
+        if (const auto found = control(child, identifier)) return found;
+    return nullptr;
+}
+RECT bounds(HWND window, HWND parent) {
+    RECT rectangle{};
+    GetWindowRect(window, &rectangle);
+    MapWindowPoints(HWND_DESKTOP, parent, reinterpret_cast<POINT*>(&rectangle), 2);
+    return rectangle;
+}
+bool has_style(HWND window, LONG_PTR style) {
+    return (GetWindowLongPtrW(window, GWL_STYLE) & style) != 0;
+}
 std::string bytes(const std::filesystem::path& path) {
     std::ifstream input(path, std::ios::binary);
     return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
@@ -112,10 +128,9 @@ void transaction(const std::filesystem::path& root, int failure) {
             && button.right - button.left == MulDiv(120, dpi, 96),
             "Icon action uses a compact 32dip toolbar button");
     }
-    const auto editor_body = GetWindow(GetWindow(editor, GW_CHILD), GW_CHILD);
-    const auto tree = GetDlgItem(editor_body, 101);
+    const auto tree = control(editor, 101);
     TreeView_SelectItem(tree, TreeView_GetRoot(tree));
-    SetWindowTextW(GetDlgItem(editor_body, 300), L"Edited");
+    SetWindowTextW(control(editor, 300), L"Edited");
     const auto list = GetDlgItem(icon_parent, 500);
     require(ListView_GetItemCount(list) == 1, "Icon page enumerates real menu target");
     ListView_SetItemState(list, 0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -181,10 +196,10 @@ void ini_and_icon_failures(const std::filesystem::path& root) {
     page->layout({0, 0, 900, 600}, 96, static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
     const auto child = FindWindowExW(parent, nullptr, L"Simpilot.QuickLaunchSettingsPage", nullptr);
     const auto editor = FindWindowExW(child, nullptr, L"Simpilot.MenuEditorWindow", nullptr);
-    const auto editor_body = GetWindow(GetWindow(editor, GW_CHILD), GW_CHILD);
-    require(GetDlgItem(editor_body, 101) && GetDlgItem(editor_body, 300), "Locate scrollable editor fields");
-    TreeView_SelectItem(GetDlgItem(editor_body, 101), TreeView_GetRoot(GetDlgItem(editor_body, 101)));
-    SetWindowTextW(GetDlgItem(editor_body, 300), L"Draft");
+    const auto tree = control(editor, 101), name = control(editor, 300);
+    require(tree && name, "Locate editor fields independently of scroll container depth");
+    TreeView_SelectItem(tree, TreeView_GetRoot(tree));
+    SetWindowTextW(name, L"Draft");
     const auto baseline = bytes(config / L"Simpilot.ini");
     simpilot::SettingsParticipantRegistry registry;
     auto registration = registry.add("quick_launch", 0, {
@@ -200,6 +215,158 @@ void ini_and_icon_failures(const std::filesystem::path& root) {
     require(bytes(config / L"Simpilot.ini").find("Draft") != std::string::npos && !session.dirty(),
         "Successful apply establishes new UI baseline");
     page.reset(); DestroyWindow(parent); session.cancel(); ui.reset();
+}
+
+void editor_scrolling(const std::filesystem::path& root) {
+    std::filesystem::create_directories(root);
+    std::wstring source = L"-Tools\nPrimary|notepad.exe\nAlias|notepad.exe\n-\n"
+        L"Website|https://example.test\n";
+    for (int index = 0; index < 30; ++index)
+        source += L"Other " + std::to_wstring(index) + L"|notepad.exe\n";
+    simpilot::write_configuration_text(root / L"Simpilot.ini", source);
+    const auto instance = GetModuleHandleW(nullptr);
+    const auto parent = CreateWindowW(L"STATIC", L"Editor scrolling test", WS_OVERLAPPEDWINDOW,
+        -30000, -30000, 1100, 900, nullptr, nullptr, instance, nullptr);
+    {
+        simpilot::MenuEditorWindow editor(instance, parent, "en-US",
+            root / L"Simpilot.ini", root / L"Simpilot2.ini", {}, {},
+            [](auto) { return simpilot::MenuEditorWindow::ProgramResolutionInfo{
+                std::filesystem::path(L"C:\\Windows\\notepad.exe"), true}; },
+            [](HWND, auto) { return std::optional<std::filesystem::path>(
+                L"C:\\Windows\\notepad.exe"); });
+        require(editor.create(), "Create the real editor for scroll regression tests");
+        const auto window = FindWindowExW(parent, nullptr, L"Simpilot.MenuEditorWindow", nullptr);
+        const auto tree = control(window, 101), pane = control(window, 309);
+        const auto viewport = GetWindow(pane, GW_CHILD);
+        const auto content = GetWindow(viewport, GW_CHILD);
+        const auto name = control(window, 300), access = control(window, 301);
+        const auto arguments = control(window, 305), administrator = control(window, 306);
+        require(GetParent(tree) == window && GetParent(control(window, 100)) == window
+            && GetParent(control(window, 205)) == window && IsChild(content, name),
+            "Menu navigation, tree and structure toolbar remain outside the one detail viewport");
+        const auto category = TreeView_GetRoot(tree);
+        const auto application = TreeView_GetChild(tree, category);
+        const auto alias = TreeView_GetNextSibling(tree, application);
+        const auto separator = TreeView_GetNextSibling(tree, alias);
+        const auto website = TreeView_GetNextSibling(tree, separator);
+        for (const auto dpi : {96u, 144u, 192u}) {
+            const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
+            editor.set_dpi(dpi);
+            editor.set_bounds(0, 0, scale(780), scale(400));
+            TreeView_SelectItem(tree, application);
+            require(!has_style(window, WS_VSCROLL | WS_HSCROLL)
+                && has_style(viewport, WS_VSCROLL) && !has_style(viewport, WS_HSCROLL),
+                "Only long right-hand details scroll, with no redundant horizontal scrollbar");
+            const auto resolution = bounds(control(window, 308), content);
+            require(resolution.bottom - resolution.top == scale(32)
+                && bounds(arguments, content).top > resolution.bottom,
+                "Resolved-path row is laid out even while the settings host is hidden");
+            const auto tree_before = bounds(tree, window);
+            const auto segment_before = bounds(control(window, 100), window);
+            const auto toolbar_before = bounds(control(window, 205), window);
+            SendMessageW(viewport, WM_VSCROLL, SB_BOTTOM, 0);
+            require(GetScrollPos(viewport, SB_VERT) > 0, "Details can be scrolled to the last field");
+            const auto tree_after = bounds(tree, window);
+            const auto segment_after = bounds(control(window, 100), window);
+            const auto toolbar_after = bounds(control(window, 205), window);
+            require(EqualRect(&tree_before, &tree_after) && EqualRect(&segment_before, &segment_after)
+                && EqualRect(&toolbar_before, &toolbar_after), "Scrolling details never moves the menu tree or toolbar");
+            TreeView_SelectItem(tree, alias);
+            require(GetScrollPos(viewport, SB_VERT) == 0, "Selecting another menu item resets details to the top");
+            SendMessageW(viewport, WM_MOUSEWHEEL, MAKEWPARAM(0, -WHEEL_DELTA), 0);
+            require(GetScrollPos(viewport, SB_VERT) > 0, "Mouse wheel scrolls the detail viewport");
+            TreeView_SelectItem(tree, category);
+            require(!has_style(viewport, WS_VSCROLL | WS_HSCROLL)
+                && GetScrollPos(viewport, SB_VERT) == 0,
+                "Category fields shrink to their actual extent and remove stale scrollbars");
+            TreeView_SelectItem(tree, separator);
+            require(!has_style(viewport, WS_VSCROLL | WS_HSCROLL) && !has_style(name, WS_VISIBLE),
+                "Separators have no hidden field extent or scrollbars");
+            TreeView_SelectItem(tree, website);
+            require(!has_style(viewport, WS_VSCROLL | WS_HSCROLL)
+                && !has_style(arguments, WS_VISIBLE) && !has_style(administrator, WS_VISIBLE),
+                "Web items do not reserve space for application-only details");
+            editor.set_bounds(0, 0, scale(780), scale(700));
+            TreeView_SelectItem(tree, application);
+            require(!has_style(viewport, WS_VSCROLL | WS_HSCROLL),
+                "Growing the editor removes unneeded detail scrollbars");
+            editor.set_bounds(0, 0, scale(664), scale(400));
+            require(!has_style(viewport, WS_HSCROLL)
+                && bounds(pane, window).right <= scale(664), "Minimum supported width keeps details inside the editor");
+        }
+        ShowWindow(parent, SW_SHOWNOACTIVATE);
+        editor.set_visible(true);
+        editor.set_dpi(96);
+        editor.set_bounds(0, 0, 780, 400);
+        TreeView_SelectItem(tree, application);
+        SetFocus(administrator);
+        const auto checkbox_bounds = bounds(administrator, viewport);
+        RECT viewport_bounds{};
+        GetClientRect(viewport, &viewport_bounds);
+        require(checkbox_bounds.top >= 0 && checkbox_bounds.bottom <= viewport_bounds.bottom,
+            "Keyboard focus reveals a clipped bottom field inside the right viewport");
+        SetFocus(name);
+        require(GetNextDlgTabItem(window, name, FALSE) == access,
+            "Reparenting preserves the detail fields' Tab order");
+        require(GetScrollPos(viewport, SB_VERT) <= 28, "Focusing the first field scrolls back to its label");
+    }
+    DestroyWindow(parent);
+}
+
+void icon_target_names(const std::filesystem::path& root) {
+    const auto instance = GetModuleHandleW(nullptr);
+    const auto config = root / L"Config";
+    std::filesystem::create_directories(config);
+    wchar_t executable[32768]{};
+    GetModuleFileNameW(nullptr, executable, 32768);
+    const auto target = L"\"" + std::wstring(executable) + L"\"";
+    simpilot::write_configuration_text(config / L"Simpilot.ini",
+        L"Primary|" + target + L"\nAlternate|" + target + L"\n"
+        L"Google Chrome(&H)|" + target + L"\nGoogle Chrome(&O)|" + target + L" --incognito\n");
+    simpilot::write_configuration_text(config / L"Simpilot2.ini", L"Secondary|" + target + L"\n");
+    simpilot::Localization language("en-US");
+    simpilot::ProgramSearchRegistry search;
+    simpilot::TrayMenuRegistry tray;
+    simpilot::UiDispatcher dispatcher(instance);
+    simpilot::SettingsRegistry pages;
+    simpilot::SettingsParticipantRegistry participants;
+    simpilot::HotkeyRegistry hotkeys;
+    simpilot::PopupMenuHost menus;
+    auto module = simpilot::make_quick_launch_module(instance, root, {}, language,
+        search, tray, dispatcher, pages, participants, hotkeys, menus, [] { return false; }, {}, {});
+    module->start();
+    simpilot::SettingsSession session(participants, {});
+    std::unique_ptr<simpilot::ISettingsPage> page;
+    pages.visit([&](const auto& id, const auto& contribution) {
+        if (id == "quick_launch.icons") page = contribution.create();
+    });
+    const auto parent = CreateWindowW(L"STATIC", L"Icon names test", WS_OVERLAPPEDWINDOW,
+        0, 0, 1000, 700, nullptr, nullptr, instance, nullptr);
+    const auto font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    page->create({instance, parent, 96, font, language, [] {}});
+    page->layout({0, 0, 780, 600}, 96, font);
+    const auto list = control(parent, 500);
+    require(ListView_GetItemCount(list) == 5,
+        "Keep separate rows for Chrome(H) and Chrome(O) despite the same parsed name and application target");
+    const std::array names{L"Primary", L"Alternate", L"Google Chrome(H)", L"Google Chrome(O)", L"Secondary"};
+    for (int index = 0; index < static_cast<int>(names.size()); ++index) {
+        wchar_t value[256]{};
+        ListView_GetItemText(list, index, 1, value, 256);
+        require(std::wstring_view(value) == names[index], "Icon index displays the configured menu name");
+    }
+    wchar_t normal_target[32768]{}, private_target[32768]{};
+    ListView_GetItemText(list, 2, 2, normal_target, 32768);
+    ListView_GetItemText(list, 3, 2, private_target, 32768);
+    const auto normal_command = simpilot::ParsedCommand::try_parse(normal_target);
+    const auto private_command = simpilot::ParsedCommand::try_parse(private_target);
+    require(normal_command && private_command
+        && normal_command->executable == executable && private_command->executable == executable
+        && normal_command->arguments.empty() && private_command->arguments == L"--incognito",
+        "Separately indexed Chrome labels retain their corresponding launch arguments");
+    page.reset();
+    DestroyWindow(parent);
+    session.cancel();
+    module->stop();
 }
 
 void module_lifecycle(const std::filesystem::path& root) {
@@ -252,6 +419,8 @@ int main() {
         transaction(root / L"rollback_failure", 1);
         transaction(root / L"icon_failure", 2);
         ini_and_icon_failures(root / L"ini_failure");
+        editor_scrolling(root / L"editor_scrolling");
+        icon_target_names(root / L"icon_names");
         module_lifecycle(root / L"module");
         KillTimer(nullptr, dialogs);
         std::filesystem::remove_all(root);

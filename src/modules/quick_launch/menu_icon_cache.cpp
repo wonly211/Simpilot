@@ -14,6 +14,8 @@
 #include <cwctype>
 #include <fstream>
 #include <format>
+#include <map>
+#include <stdexcept>
 #include <vector>
 
 namespace simpilot {
@@ -186,6 +188,11 @@ std::uint64_t stable_hash(const std::wstring_view value) noexcept {
     return result;
 }
 
+std::wstring legacy_custom_key(const MenuEntry& entry) {
+    return std::format(L"{}:{}:{}", entry.kind == MenuEntryKind::web ? L"web" : L"command",
+        entry.run_as_administrator ? L"admin" : L"normal", entry.value);
+}
+
 bool cache_is_current(const std::filesystem::path& cache,
                       const std::wstring& source,
                       const bool synthetic) noexcept {
@@ -347,9 +354,66 @@ bool MenuIconCache::remove_custom_icon(const std::wstring& custom_key) noexcept 
 }
 
 std::wstring MenuIconCache::custom_key_for(const MenuEntry& entry) {
-    return std::format(L"{}:{}:{}", entry.kind == MenuEntryKind::web ? L"web" : L"command",
-                       entry.run_as_administrator ? L"admin" : L"normal",
-                       entry.value);
+    return std::format(L"menu-label:{}:{}:{}", entry.display_name.size(), entry.display_name,
+        entry.access_key ? static_cast<unsigned>(*entry.access_key) : 0U);
+}
+
+std::wstring MenuIconCache::label_for(const MenuEntry& entry) {
+    return entry.access_key
+        ? std::format(L"{}({})", entry.display_name, *entry.access_key) : entry.display_name;
+}
+
+bool MenuIconCache::migrate_legacy_custom_icons(
+    const std::span<const MenuEntry* const> entries) noexcept {
+    try {
+        // Prefer the recent name-only choice over older command-based overrides.
+        std::array<std::map<std::filesystem::path, std::vector<std::filesystem::path>>, 2> migrations;
+        for (const auto* entry : entries) {
+            if (!entry) continue;
+            const std::array legacy_keys{
+                L"menu-name:" + entry->display_name, legacy_custom_key(*entry)};
+            for (std::size_t index = 0; index < legacy_keys.size(); ++index) {
+                const auto legacy = custom_icon_path_for(legacy_keys[index]);
+                if (std::filesystem::is_regular_file(legacy)) {
+                    migrations[index][legacy].push_back(custom_icon_path_for(custom_key_for(*entry)));
+                }
+            }
+        }
+        for (const auto& generation : migrations) {
+            for (const auto& [legacy, destinations] : generation) {
+                std::vector<std::filesystem::path> created;
+                try {
+                    for (const auto& destination : destinations) {
+                        if (std::filesystem::exists(destination)) continue;
+                        AtomicFileReplacement replacement(destination);
+                        std::filesystem::copy_file(legacy, replacement.temporary_path(),
+                            std::filesystem::copy_options::overwrite_existing);
+                        if (!replacement.commit()) throw std::runtime_error("Cannot migrate custom icon");
+                        created.push_back(destination);
+                    }
+                    // Archive the old identity so restoring automatic icons cannot import it again.
+                    auto archive = legacy;
+                    archive.replace_extension(L".legacy.ico");
+                    for (unsigned index = 1; std::filesystem::exists(archive); ++index) {
+                        archive = legacy;
+                        archive.replace_extension(std::format(L".legacy-{}.ico", index));
+                    }
+                    std::filesystem::rename(legacy, archive);
+                } catch (...) {
+                    for (const auto& destination : created) {
+                        std::error_code error;
+                        std::filesystem::remove(destination, error);
+                    }
+                    clear();
+                    return false;
+                }
+            }
+        }
+        if (!migrations[0].empty() || !migrations[1].empty()) clear();
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 std::optional<std::wstring> MenuIconCache::target_for(const MenuEntry& entry) {
@@ -359,15 +423,16 @@ std::optional<std::wstring> MenuIconCache::target_for(const MenuEntry& entry) {
     return command->executable;
 }
 
-HICON MenuIconCache::load_icon(const std::wstring& memory_key,
+HICON MenuIconCache::load_icon(const std::wstring& custom_key,
                                const std::wstring& cache_key,
                                const std::wstring& shell_path,
                                const DWORD attributes,
                                const bool use_file_attributes) {
+    const auto memory_key = std::format(L"{}:{}{}", custom_key.size(), custom_key, cache_key);
     if (const auto found = icons_.find(memory_key); found != icons_.end()) {
         return found->second;
     }
-    const auto custom_path = custom_icon_path_for(memory_key);
+    const auto custom_path = custom_icon_path_for(custom_key);
     if (const auto custom = static_cast<HICON>(LoadImageW(
             nullptr, custom_path.c_str(), IMAGE_ICON, cached_icon_size, cached_icon_size,
             LR_LOADFROMFILE))) {

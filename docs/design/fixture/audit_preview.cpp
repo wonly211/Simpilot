@@ -186,6 +186,13 @@ Samples seed(const fs::path& root, int count, const std::string& language) {
         main.root->children.push_back(std::make_unique<MenuEntry>(
             L"Audit Tool / \u6a21\u62df\u5e94\u7528", L"\"" + mock_exe.wstring() + L"\"",
             MenuEntryKind::command, 0));
+        for (const auto access_key : {L'H', L'O'}) {
+            auto chrome = std::make_unique<MenuEntry>(L"Google Chrome",
+                L"\"" + mock_exe.wstring() + L"\"" + (access_key == L'O' ? L" --incognito" : L""),
+                MenuEntryKind::command, 0);
+            chrome->access_key = access_key;
+            main.root->children.push_back(std::move(chrome));
+        }
         main.root->children.push_back(std::make_unique<MenuSeparator>());
         tools->children.push_back(std::make_unique<MenuEntry>(
             L"Fixture folder / \u6d4b\u8bd5\u6587\u4ef6\u5939", L"\"" + files.wstring() + L"\"",

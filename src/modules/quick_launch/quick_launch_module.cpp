@@ -347,6 +347,15 @@ bool QuickLaunchModule::reload_menu(const bool notify_on_failure) noexcept {
         const auto hidden = document->entries().size() - static_cast<std::size_t>(available);
         document_ = std::move(document);
         secondary_document_ = std::move(secondary_document);
+        const auto main_entries = document_->entries();
+        std::vector<const MenuEntry*> icon_entries(main_entries.begin(), main_entries.end());
+        if (secondary_document_) {
+            const auto secondary_entries = secondary_document_->entries();
+            icon_entries.insert(icon_entries.end(), secondary_entries.begin(), secondary_entries.end());
+        }
+        if (!menu_icons_.migrate_legacy_custom_icons(icon_entries)) {
+            logger_.write(L"custom icon name-index migration failed; legacy icons retained");
+        }
         logger_.write(std::format(L"menu reload complete available={} hidden={} cacheEntries={}",
                                  available, hidden, program_cache_.size()));
         for (const auto* entry : document_->entries()) {
@@ -505,7 +514,7 @@ std::vector<MenuIconTarget> QuickLaunchModule::collect_menu_icon_targets() const
                     return item.custom_key == custom_key;
                 });
             if (existing == targets.end()) {
-                targets.push_back({std::wstring(menu_name), entry->display_name,
+                targets.push_back({std::wstring(menu_name), MenuIconCache::label_for(*entry),
                     entry->effective_value(), custom_key, *icon_source, entry->kind});
             } else if (existing->menu_name != menu_name) {
                 existing->menu_name.append(L" / ").append(menu_name);
