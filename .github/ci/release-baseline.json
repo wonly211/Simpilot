@@ -3,7 +3,5 @@
   "recordedAt": "2026-09-27",
   "exeBytes": 1240576,
   "zipBytes": 2564323,
-  "zipSha256": "c699eaa4188359cec1aa3768c9b326f7e3a1f74452a98eeaee20bdb587f55213",
-  "maximumGrowthPercent": 5.0,
-  "approvedGrowth": null
+  "zipSha256": "c699eaa4188359cec1aa3768c9b326f7e3a1f74452a98eeaee20bdb587f55213"
 }

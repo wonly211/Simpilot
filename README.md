@@ -31,6 +31,7 @@
 | 分层快捷启动菜单 | 把应用、文件夹、文件和网址按自己的工作方式分类整理 |
 | 全局热键 | 从任何普通桌面应用中直接触发常用操作 |
 | 物理键盘映射 | 将单键、快捷键或双动作键 chord 映射为新的单键或快捷键，并可限定前台应用 |
+| 应用输入法 | 按应用完整 EXE 路径指定输入法及中文/英文模式，或自动记忆上次状态；默认关闭 |
 | Windows 快捷键接管 | 在简驭运行期间屏蔽选定的 `Win+字母`，并优先执行自定义动作 |
 | Everything 集成 | 一键打开或恢复搜索窗口，并帮助定位没有填写完整路径的程序 |
 | 菜单图标与主题 | 自动提取清晰图标，也可人工指定；支持跟随系统、浅色和深色主题 |
@@ -69,6 +70,7 @@
 - Windows 资源管理器重启后自动恢复托盘图标。
 - 自动生成透明的 128x128 图标缓存，支持导入 ICO、PNG、JPG/JPEG、BMP、GIF、TIFF，或从 EXE、DLL 中人工选择图标。
 - 使用 Everything 默认实例与官方 SDK；Everything 不可用时不影响简驭本身启动，并可在菜单编辑器中查看或重新选择无路径程序的解析结果。
+- 在“设置 > 应用输入法”启用后，可指定、自动记忆或不干预各应用的输入法状态；记忆跨重启保存。第一版重点验证微软拼音，部分输入法或高权限窗口可能拒绝切换。
 - 支持 Per-Monitor V2 DPI，菜单在不同缩放比例的显示器上保持清晰。
 - 日志统一保存在 `Log/Simpilot.log`，启动时清理超过 90 天的记录。
 
@@ -100,6 +102,7 @@ Config/
   Simpilot.ini
   Simpilot2.ini
   Setting.ini
+  InputMethodHistory.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -107,7 +110,7 @@ Log/
   Simpilot.log
 ```
 
-`Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源；`Setting.ini` 保存界面语言和应用设置。配置统一使用 UTF-8 原子保存，普通用户无需手工修改。
+`Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源；`Setting.ini` 保存界面语言和应用设置。启用应用输入法后，`InputMethodHistory.ini` 按需保存自动记忆状态。配置统一使用 UTF-8 原子保存，普通用户无需手工修改。
 
 </details>
 

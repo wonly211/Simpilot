@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 1.0.5 LANGUAGES CXX)
+project(Simpilot VERSION 1.0.6 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -95,6 +95,10 @@ endif()
 option(SIMPILOT_MODULE_QUICK_LAUNCH "Build quick launch menus and editor" ON)
 if(SIMPILOT_MODULE_QUICK_LAUNCH)
     add_subdirectory(src/modules/quick_launch)
+endif()
+option(SIMPILOT_MODULE_INPUT_METHOD "Build application input method rules" ON)
+if(SIMPILOT_MODULE_INPUT_METHOD)
+    add_subdirectory(src/modules/input_method)
 endif()
 
 add_executable(simpilot_language_pack_builder EXCLUDE_FROM_ALL
@@ -192,6 +196,7 @@ target_compile_definitions(simpilot PRIVATE
     SIMPILOT_MODULE_KEYBOARD_MAPPING=$<BOOL:${SIMPILOT_MODULE_KEYBOARD_MAPPING}>
     SIMPILOT_MODULE_CUSTOM_HOTKEY=$<BOOL:${SIMPILOT_MODULE_CUSTOM_HOTKEY}>
     SIMPILOT_MODULE_QUICK_LAUNCH=$<BOOL:${SIMPILOT_MODULE_QUICK_LAUNCH}>
+    SIMPILOT_MODULE_INPUT_METHOD=$<BOOL:${SIMPILOT_MODULE_INPUT_METHOD}>
 )
 target_compile_options(simpilot PRIVATE /W4 /permissive- /utf-8 /EHsc)
 target_link_libraries(simpilot PRIVATE
@@ -216,6 +221,9 @@ endif()
 if(SIMPILOT_MODULE_QUICK_LAUNCH)
     target_link_libraries(simpilot PRIVATE simpilot_module_quick_launch)
 endif()
+if(SIMPILOT_MODULE_INPUT_METHOD)
+    target_link_libraries(simpilot PRIVATE simpilot_module_input_method)
+endif()
 set_target_properties(simpilot PROPERTIES OUTPUT_NAME "Simpilot")
 
 set(SIMPILOT_LANGUAGE_RESOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Languages")
@@ -234,6 +242,9 @@ if(BUILD_TESTING)
     add_test(NAME simpilot_module_boundaries
         COMMAND "${SIMPILOT_POWERSHELL}" -NoProfile -File
             "${PROJECT_SOURCE_DIR}/tools/check-module-boundaries.ps1")
+    add_test(NAME simpilot_release_size_policy_tests
+        COMMAND "${SIMPILOT_POWERSHELL}" -NoProfile -File
+            "${PROJECT_SOURCE_DIR}/tests/release_size_policy_tests.ps1")
     add_executable(simpilot_module_support_tests tests/module_support_tests.cpp)
     target_compile_definitions(simpilot_module_support_tests PRIVATE
         UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
