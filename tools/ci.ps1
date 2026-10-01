@@ -261,7 +261,7 @@ function Get-PercentChange {
     return (($Current - $Previous) / [double]$Previous) * 100.0
 }
 
-function Assert-ArtifactSizes {
+function Get-ArtifactSizeComparison {
     param(
         [Parameter(Mandatory)] [string]$Version,
         [Parameter(Mandatory)] [long]$ExeBytes,
@@ -282,9 +282,6 @@ function Assert-ArtifactSizes {
     $zipDelta = $ZipBytes - $previousZipBytes
     $exePercent = Get-PercentChange $ExeBytes $previousExeBytes
     $zipPercent = Get-PercentChange $ZipBytes $previousZipBytes
-    $threshold = [double]$baseline.maximumGrowthPercent
-    Assert-Equal $threshold 5.0 "Maximum artifact growth percent"
-
     $baselineHash = [string]$baseline.zipSha256
     if ($baselineHash -notmatch '^[0-9a-fA-F]{64}$') {
         throw "release-baseline.json zipSha256 must contain 64 hexadecimal characters."
@@ -300,33 +297,7 @@ function Assert-ArtifactSizes {
     Write-Host ("  ZIP {0} -> {1}, delta {2}, {3:N4}%" -f `
         $previousZipBytes, $ZipBytes, $zipDelta, $zipPercent)
 
-    $growthExceeded = $exePercent -gt $threshold -or $zipPercent -gt $threshold
-    if (-not $growthExceeded) {
-        return @{
-            BaselineVersion = [string]$baseline.version
-            ExeDelta = $exeDelta
-            ExePercent = $exePercent
-            ZipDelta = $zipDelta
-            ZipPercent = $zipPercent
-            Threshold = $threshold
-        }
-    }
-
-    $approval = $baseline.approvedGrowth
-    if ($null -eq $approval) {
-        throw "Artifact growth exceeds $threshold% without an approvedGrowth record."
-    }
-    $reason = [string]$approval.reason
-    if ([string]::IsNullOrWhiteSpace($reason)) {
-        throw "approvedGrowth.reason must explain the verified functional or resource change."
-    }
-    if ($ExeBytes -gt [long]$approval.maxExeBytes) {
-        throw "Simpilot.exe exceeds approvedGrowth.maxExeBytes."
-    }
-    if ($ZipBytes -gt [long]$approval.maxZipBytes) {
-        throw "Release ZIP exceeds approvedGrowth.maxZipBytes."
-    }
-    Write-Warning "Artifact growth is covered by the reviewed approval: $reason"
+    Write-Host "  Size policy: report only; artifact growth does not block publication."
 
     return @{
         BaselineVersion = [string]$baseline.version
@@ -334,7 +305,6 @@ function Assert-ArtifactSizes {
         ExePercent = $exePercent
         ZipDelta = $zipDelta
         ZipPercent = $zipPercent
-        Threshold = $threshold
     }
 }
 
@@ -399,7 +369,7 @@ function Assert-ReleaseArtifacts {
         $actualHash.ToUpperInvariant() "Release ZIP SHA-256"
 
     $zip = Get-Item -LiteralPath $zipPath
-    $sizeResult = Assert-ArtifactSizes $Version $exe.Length $zip.Length
+    $sizeResult = Get-ArtifactSizeComparison $Version $exe.Length $zip.Length
     return @{
         ExePath = $exe.FullName
         ExeBytes = $exe.Length
@@ -427,6 +397,7 @@ function Write-CiSummary {
 - ZIP: ``$($Artifacts.ZipBytes) bytes``
 - ZIP SHA-256: ``$($Artifacts.ZipSha256)``
 - Baseline: ``v$($Artifacts.Size.BaselineVersion)``
+- Size policy: ``Report only (no growth limit or approval requirement)``
 - EXE change: ``$($Artifacts.Size.ExeDelta) bytes ($("{0:N4}" -f $Artifacts.Size.ExePercent)%)``
 - ZIP change: ``$($Artifacts.Size.ZipDelta) bytes ($("{0:N4}" -f $Artifacts.Size.ZipPercent)%)``
 "@

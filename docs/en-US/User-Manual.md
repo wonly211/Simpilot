@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.5
+Applies to version: 1.0.6
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -81,14 +81,17 @@ If Windows Explorer restarts, Simpilot automatically restores its tray icon.
 
 ## 3. Settings window
 
-The Settings window contains six pages:
+The full release includes nine Settings pages. Reduced builds show only pages contributed by compiled modules:
 
 1. General
 2. Quick Launch Menu
 3. Menu Icons
 4. Global Hotkeys
-5. Keyboard Mappings
-6. Windows Hotkey Blocking
+5. Input methods
+6. Keyboard Mappings
+7. Everything Search
+8. Pointer location
+9. Windows Hotkey Blocking
 
 The buttons at the bottom behave as follows:
 
@@ -110,7 +113,7 @@ If the whole Simpilot directory is moved, open Settings and apply this option ag
 
 ### 4.2 Pointer location
 
-Enable **Highlight the pointer when the mouse is shaken** and select **Apply** or **Save**. Quickly moving the mouse back and forth then shows a prominent fading ring around the current pointer. Ordinary movement, small jitter, and slow reversals do not trigger it. The ring neither takes focus nor intercepts mouse clicks. Disabling the switch stops detection immediately.
+This switch is under **Settings > Pointer location**. Enable **Highlight the pointer when the mouse is shaken** and select **Apply** or **Save**. Quickly moving the mouse back and forth then shows a prominent fading ring around the current pointer. Ordinary movement, small jitter, and slow reversals do not trigger it. The ring neither takes focus nor intercepts mouse clicks. Disabling the switch stops detection immediately.
 
 The option is stored as `MouseShakeLocatorEnabled=...` in `Config/Setting.ini` and is disabled by default.
 
@@ -131,6 +134,8 @@ The selected language is stored as `Language=...` in `Config/Setting.ini`. If an
 The **User Manual** link in About follows the current Simpilot display language. Simplified Chinese and Traditional Chinese open the Simplified Chinese manual. English and languages loaded from `Language.lng` open this English manual.
 
 ### 4.4 Quick-launch menu theme
+
+Theme options are under **Settings > Quick Launch Menu**.
 
 - **Use Windows setting** selects the current Windows application theme whenever a menu opens.
 - **Light** always uses a light menu.
@@ -280,6 +285,29 @@ and distinguishes main/numpad Enter and physically distinct OEM keys.
 
 Mappings are active only while Simpilot runs, and active target keys are released on shutdown. Windows UIPI, elevation boundaries, or the secure desktop may block injection; a normally running Simpilot process cannot guarantee input delivery to a higher-privilege window.
 
+### 6.6 Application input methods
+
+Open **Settings > Input methods**. The feature is disabled by default. Enable its switch and select **Apply** or **Save** to begin monitoring application changes.
+
+1. Select **Add application** and choose the complete EXE path.
+2. Choose **Remember last state**, **Fixed input method**, or **Leave unchanged**.
+3. A fixed rule also requires an installed input method and Chinese or English mode. English-only keyboard layouts support English mode only.
+4. Save the rule, then apply or save the Settings window.
+
+| Behavior | When the application becomes active |
+|---|---|
+| Remember last state | Restore its last observed input method and mode; leave its current state alone on the first visit |
+| Fixed input method | Use the configured input method and mode, regardless of history |
+| Leave unchanged | Neither switch nor record its state |
+
+Applications without explicit rules also use remembered state. Matching uses the full EXE path, case-insensitively, not window titles, documents, or websites. Moving between windows of the same EXE does not reapply the rule. Switching is attempted once per application entry; manual changes remain possible afterward. Sampling occurs approximately every 200 ms, so shorter visits or changes between samples may be missed.
+
+Rules are stored in `Config/Setting.ini`. Observed history is stored independently in `Config/InputMethodHistory.ini`, survives restarts, and does not make Settings dirty. **Cancel** discards unapplied rules, not history already observed by the runtime.
+
+Use **Refresh input methods** to enumerate installed profiles again. Uninstalled profiles remain in saved rules and are shown as unavailable. Failures update inline status and `Log/Simpilot.log`, without repeated popups or continuous enforcement.
+
+Microsoft Pinyin is the initial validation target. Some third-party IMEs, elevated windows, TSF-only applications, or applications that reject switching may not support control. No target-process injection or service is used. Full/half width, punctuation, and simplified/traditional conversion are not controlled. A normally running Simpilot cannot guarantee control of higher-integrity windows.
+
 ## 7. Windows hotkey blocking
 
 Open **Settings > Windows Hotkey Blocking** to select supported combinations from `Win+A` through `Win+Z`. `Win+L` is intentionally not provided.
@@ -373,6 +401,7 @@ Config/
   Simpilot.ini
   Simpilot2.ini
   Setting.ini
+  InputMethodHistory.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -384,7 +413,8 @@ Log/
 |---|---|
 | `Config/Simpilot.ini` | Main quick-launch menu |
 | `Config/Simpilot2.ini` | Optional second menu |
-| `Config/Setting.ini` | Interface language, general settings, hotkeys, keyboard mappings, and Windows hotkey blocking |
+| `Config/Setting.ini` | Interface language, general settings, and rules/options owned by feature modules |
+| `Config/InputMethodHistory.ini` | Remembered application input-method states, created as needed after enabling the feature |
 | `Cache/program-cache.tsv` | Confirmed resolutions for programs configured without a path |
 | `Cache/RunIcon/` | Automatic and manually selected menu icons |
 | `Log/Simpilot.log` | Startup, menu, Everything, hotkey, and error diagnostics |
@@ -458,6 +488,14 @@ Open the quick-launch menu again. If the icon is still stale, exit Simpilot, rem
 2. Check whether another program is modifying the configuration.
 3. Correct any invalid name, empty target, or malformed website reported by the editor.
 4. Review `Log/Simpilot.log`.
+
+### 11.8 An application's input method does not change
+
+1. Confirm that the feature is enabled and applied, and that the rule matches the actual full EXE path.
+2. Check that the rule is not **Leave unchanged**. Remembered state does not switch on a first visit without history.
+3. Refresh input methods and check profile availability and supported modes.
+4. Leave the application and return; another window of the same EXE does not reapply the rule.
+5. Check inline status and `Log/Simpilot.log`. Elevated windows or incompatible IMEs may reject control.
 
 ## 12. Frequently asked questions
 

@@ -31,6 +31,7 @@ It is designed for office users, developers, content creators, and productivity 
 | Hierarchical quick-launch menus | Organize apps, folders, files, and websites around the way you work |
 | Global hotkeys | Trigger frequent actions directly from any standard desktop application |
 | Physical keyboard mappings | Remap a key, shortcut, or two-action chord to a key or shortcut, globally or for selected applications |
+| Application input methods | Choose an input method and Chinese/English mode per executable path, or remember its last state; disabled by default |
 | Windows shortcut takeover | Block selected `Win+letter` combinations while Simpilot is running and give custom actions priority |
 | Everything integration | Open or restore the search window with one action and locate programs whose full paths were not specified |
 | Menu icons and themes | Extract clear icons automatically or select them manually; follow the system theme or choose light or dark mode |
@@ -69,6 +70,7 @@ Simpilot is a tray application and does not show a conventional main window afte
 - The tray icon is restored automatically when Windows Explorer restarts.
 - Transparent 128x128 icon caches are generated automatically. Import ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF images, or select icons from EXE or DLL files.
 - Simpilot uses the default Everything instance and the official SDK. If Everything is unavailable, Simpilot still starts normally. The menu editor can show or reselect resolved paths for programs configured without a full path.
+- Enable **Settings > Input methods** to use fixed, remembered, or unmanaged input-method states per application. History survives restarts. Microsoft Pinyin is the initial validation target; some input methods and elevated windows may reject switching.
 - Per-Monitor V2 DPI keeps menus clear across displays with different scaling settings.
 - Logs are stored in `Log/Simpilot.log`; entries older than 90 days are removed at startup.
 
@@ -100,6 +102,7 @@ Config/
   Simpilot.ini
   Simpilot2.ini
   Setting.ini
+  InputMethodHistory.ini
 Cache/
   program-cache.tsv
   RunIcon/
@@ -107,7 +110,7 @@ Log/
   Simpilot.log
 ```
 
-`Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources; `Setting.ini` stores the display language and application settings. Configuration is saved atomically in UTF-8, so most users do not need to edit it manually.
+`Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources; `Setting.ini` stores the display language and application settings. When application input methods are enabled, `InputMethodHistory.ini` stores remembered states as needed. Configuration is saved atomically in UTF-8, so most users do not need to edit it manually.
 
 </details>
 

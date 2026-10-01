@@ -3,7 +3,7 @@
 ## Status
 
 Simpilot is a statically linked modular monolith. Features are internal modules,
-not runtime-installable plugins. All six feature implementations have moved out
+not runtime-installable plugins. All feature implementations have moved out
 of the application and shared infrastructure.
 
 | Area | Current state |
@@ -16,6 +16,7 @@ of the application and shared infrastructure.
 | Custom hotkeys | Module owns launch actions, codec, drafts, dialog and contributed editing section |
 | Keyboard mapping | Module owns rules, engine, editor, page, configuration, translations and tests |
 | Windows hotkey blocking | Module owns user policy, page, configuration and translations; shared override mechanism remains independent |
+| Application input methods | Module owns per-application profiles, Chinese/English mode, remembered state, settings page and translations |
 | Settings host | Registry-driven navigation, child pages, DPI/language forwarding and transactions |
 | AppSettings | Shell language, external language code, startup and open-settings hotkey only |
 
@@ -83,7 +84,8 @@ Unreadable or invalid UTF-8 documents are not overwritten.
 Settings page factories create module-owned child windows. The host forwards
 layout, font, DPI, visibility and language changes. Pages do not save themselves.
 The default navigation order is General, Quick launch, Menu icons, Global hotkeys,
-Keyboard mapping, Everything, Mouse locator and Windows hotkey blocking. Omitted
+application input methods, Keyboard mapping, Everything, Mouse locator and
+Windows hotkey blocking. Omitted
 modules do not contribute their pages.
 
 Hotkey contributions with a draft accessor appear in the common hotkey page;
@@ -109,7 +111,7 @@ pack behavior are preserved.
 
 ## Build and Verification
 
-The six default-on options are:
+The default-on feature options are:
 
 - `SIMPILOT_MODULE_EVERYTHING`
 - `SIMPILOT_MODULE_MOUSE_LOCATOR`
@@ -117,6 +119,7 @@ The six default-on options are:
 - `SIMPILOT_MODULE_KEYBOARD_MAPPING`
 - `SIMPILOT_MODULE_CUSTOM_HOTKEY`
 - `SIMPILOT_MODULE_QUICK_LAUNCH`
+- `SIMPILOT_MODULE_INPUT_METHOD`
 
 Module CMake files own their sources, tests, language fragments and runtime
 files. Disabled Everything builds do not require or install its vendor files.
@@ -165,7 +168,10 @@ The local MSVC x64 Release verification completed with the following results:
 The complete build used the repository's CI configure preset. Workflow, vendor,
 version, Release configuration, artifact whitelist and SHA-256 checks passed.
 The executable grew by 3.4586% and the ZIP by 0.4704% against the unchanged
-release baseline, within the existing 5% gate. Release builds use cross-library
+release baseline, within the 5% gate used at that time. As of v1.0.6, artifact
+growth is reported without a limit or approval requirement; the historical
+baseline, version, package whitelist and SHA-256 checks remain.
+Release builds use cross-library
 optimization; CI also accepts CMake's IPO-specific empty `LinkIncremental`
 property only when whole-program optimization is enabled.
 
@@ -186,6 +192,12 @@ DPI/visual or physical-keyboard acceptance pass was performed.
 5. Add the default-on CMake option, static target, link and compile definition.
    The module's CMake file owns sources, language fragments, tests and install
    contributions. Add string translation keys to its language fragments.
+
+The input method module stores explicit application rules in `Setting.ini` and
+automatic per-application state in `Config/InputMethodHistory.ini`. It uses
+the normalized foreground executable path as its identity, confirms requested
+profiles through readback verification, and does not manage applications
+explicitly marked as `ignore`.
 
 No changes to `TrayApplication`, `SettingsWindow` or Core are needed.
 The fixture in `tests/settings_module_integration_tests.cpp` demonstrates page,

@@ -20,6 +20,9 @@
 #if SIMPILOT_MODULE_KEYBOARD_MAPPING
 #include "keyboard_mapping_module.hpp"
 #endif
+#if SIMPILOT_MODULE_INPUT_METHOD
+#include "input_method_module.hpp"
+#endif
 
 namespace simpilot {
 
@@ -78,6 +81,11 @@ void register_builtin_modules(
     modules.add("quick_launch", make_quick_launch_module(instance, executable_directory, document,
         localization, search, tray, dispatcher, pages, participants, hotkeys,
         menus, std::move(can_open), std::move(refresh_hotkeys), diagnose));
+#endif
+#if SIMPILOT_MODULE_INPUT_METHOD
+    modules.add("input_method", make_input_method_module(
+        instance, executable_directory / L"Config", localization, dispatcher,
+        pages, participants, diagnose));
 #endif
 }
 
