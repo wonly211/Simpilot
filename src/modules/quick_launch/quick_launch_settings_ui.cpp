@@ -2,8 +2,10 @@
 #include "settings_visual_style.hpp"
 #include "simpilot/atomic_file.hpp"
 #include <commctrl.h>
+#include <commdlg.h>
 #include <shlobj_core.h>
 #include <algorithm>
+#include <cwctype>
 #include <format>
 
 namespace simpilot {
@@ -420,12 +422,35 @@ void UiState::choose_selected_menu_icon() {
     if (!selection) return;
 
     std::array<wchar_t, 32768> source{};
-    wcsncpy_s(source.data(), source.size(),
-              menu_icon_targets_[*selection].icon_source.c_str(), _TRUNCATE);
+    std::wstring filter;
+    const std::array<std::pair<std::string_view, std::wstring_view>, 4> filters{{
+        {"settings.menu_icons.filter.supported", L"*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff;*.exe;*.dll"},
+        {"settings.menu_icons.filter.images", L"*.ico;*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"},
+        {"settings.menu_icons.filter.resources", L"*.exe;*.dll"},
+        {"settings.menu_icons.filter.all", L"*.*"}
+    }};
+    for (const auto& [key, pattern] : filters) {
+        filter.append(text(key));
+        filter.push_back(L'\0');
+        filter.append(pattern);
+        filter.push_back(L'\0');
+    }
+    filter.push_back(L'\0');
+    OPENFILENAMEW dialog{sizeof(dialog)};
+    dialog.hwndOwner = window_;
+    dialog.lpstrFilter = filter.c_str();
+    dialog.lpstrFile = source.data();
+    dialog.nMaxFile = static_cast<DWORD>(source.size());
+    dialog.lpstrTitle = text("settings.menu_icons.select");
+    dialog.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+    if (!GetOpenFileNameW(&dialog) || source.front() == L'\0') return;
+
     int source_index = 0;
-    if (PickIconDlg(window_, source.data(), static_cast<UINT>(source.size()),
-                    &source_index) == -1 || source.front() == L'\0') {
-        return;
+    auto extension = std::filesystem::path(source.data()).extension().wstring();
+    std::transform(extension.begin(), extension.end(), extension.begin(), towlower);
+    if (extension == L".exe" || extension == L".dll") {
+        if (PickIconDlg(window_, source.data(), static_cast<UINT>(source.size()),
+                        &source_index) != 1 || source.front() == L'\0') return;
     }
     if (!menu_icon_cache_.set_custom_icon(menu_icon_targets_[*selection].custom_key,
                                           source.data(), source_index)) {

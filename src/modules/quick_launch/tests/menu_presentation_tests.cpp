@@ -4,6 +4,8 @@
 #include "menu_theme.hpp"
 
 #include <Windows.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <array>
@@ -37,6 +39,146 @@ std::filesystem::path system_directory() {
     require(length > 0 && length < value.size(), "Resolve the Windows system directory");
     value.resize(length);
     return value;
+}
+
+std::string file_bytes(const std::filesystem::path& path) {
+    std::ifstream stream(path, std::ios::binary);
+    return {std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>()};
+}
+
+void write_test_image(const std::filesystem::path& path, REFGUID format,
+                      UINT width, UINT height, bool transparent) {
+    using Microsoft::WRL::ComPtr;
+    ComPtr<IWICImagingFactory> factory;
+    require(SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(factory.GetAddressOf()))), "Create image fixture factory");
+    ComPtr<IWICStream> stream;
+    require(SUCCEEDED(factory->CreateStream(stream.GetAddressOf()))
+        && SUCCEEDED(stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE)), "Open image fixture");
+    ComPtr<IWICBitmapEncoder> encoder;
+    require(SUCCEEDED(factory->CreateEncoder(format, nullptr, encoder.GetAddressOf()))
+        && SUCCEEDED(encoder->Initialize(stream.Get(), WICBitmapEncoderNoCache)), "Initialize image encoder");
+    ComPtr<IWICBitmapFrameEncode> frame;
+    require(SUCCEEDED(encoder->CreateNewFrame(frame.GetAddressOf(), nullptr))
+        && SUCCEEDED(frame->Initialize(nullptr)) && SUCCEEDED(frame->SetSize(width, height)),
+        "Initialize image frame");
+    WICPixelFormatGUID pixels_format = GUID_WICPixelFormat32bppBGRA;
+    require(SUCCEEDED(frame->SetPixelFormat(&pixels_format)), "Select encoder pixel format");
+    std::vector<std::uint32_t> pixels(static_cast<std::size_t>(width) * height,
+        transparent ? 0x802A80E0U : 0xFF2A80E0U);
+    ComPtr<IWICBitmap> bitmap;
+    require(SUCCEEDED(factory->CreateBitmapFromMemory(width, height, GUID_WICPixelFormat32bppBGRA,
+        width * 4, static_cast<UINT>(pixels.size() * 4),
+        reinterpret_cast<BYTE*>(pixels.data()), bitmap.GetAddressOf())), "Create sample image pixels");
+    ComPtr<IWICFormatConverter> converter;
+    require(SUCCEEDED(factory->CreateFormatConverter(converter.GetAddressOf()))
+        && SUCCEEDED(converter->Initialize(bitmap.Get(), pixels_format, WICBitmapDitherTypeNone,
+            nullptr, 0, WICBitmapPaletteTypeMedianCut)), "Convert fixture to encoder format");
+    require(SUCCEEDED(frame->WriteSource(converter.Get(), nullptr)) && SUCCEEDED(frame->Commit())
+        && SUCCEEDED(encoder->Commit()), "Encode image fixture");
+}
+
+std::filesystem::path only_custom_icon(const std::filesystem::path& directory) {
+    std::filesystem::path result;
+    for (const auto& file : std::filesystem::directory_iterator(directory)) {
+        if (!file.path().filename().wstring().ends_with(L".custom.ico")) continue;
+        require(result.empty(), "Only one custom icon in isolated image fixture");
+        result = file.path();
+    }
+    require(!result.empty(), "Image import writes a custom ICO");
+    return result;
+}
+
+void check_image_imports(const std::filesystem::path& root) {
+    const auto com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    require(SUCCEEDED(com), "Initialize COM for image fixtures");
+    struct Uninitialize { ~Uninitialize() { CoUninitialize(); } } uninitialize;
+    std::filesystem::create_directories(root);
+    const std::array formats{
+        std::pair{L"sample.png", &GUID_ContainerFormatPng},
+        std::pair{L"sample.PNG", &GUID_ContainerFormatPng},
+        std::pair{L"sample.jpg", &GUID_ContainerFormatJpeg},
+        std::pair{L"sample.jpeg", &GUID_ContainerFormatJpeg},
+        std::pair{L"sample.bmp", &GUID_ContainerFormatBmp},
+        std::pair{L"sample.gif", &GUID_ContainerFormatGif},
+        std::pair{L"sample.tif", &GUID_ContainerFormatTiff},
+        std::pair{L"sample.tiff", &GUID_ContainerFormatTiff}};
+    for (const auto& [name, format] : formats) {
+        const auto source = root / name;
+        write_test_image(source, *format, 4, 2, false);
+        const auto directory = root / (std::wstring(name) + L"-cache");
+        simpilot::MenuIconCache icons(directory);
+        require(icons.set_custom_icon(L"image", source, 0), "Import each supported raster image format");
+        const auto custom = only_custom_icon(directory);
+        const auto data = file_bytes(custom);
+        constexpr std::size_t pixel_offset = 6 + 16 + 40;
+        require(data.size() > pixel_offset + 128 * 128 * 4
+            && static_cast<unsigned char>(data[6]) == 128
+            && static_cast<unsigned char>(data[7]) == 128, "Store raster imports in the existing 128px ICO format");
+        for (int y = 0; y < 128; ++y) {
+            for (int x = 0; x < 128; ++x) {
+                const auto alpha = static_cast<unsigned char>(
+                    data[pixel_offset + (static_cast<std::size_t>(127 - y) * 128 + x) * 4 + 3]);
+                require(alpha == (y >= 32 && y < 96 ? 255 : 0),
+                    "Center wide artwork without stretching and leave transparent letterboxing");
+            }
+        }
+        require(icons.icon_for_customization(L"image", source.wstring(),
+            simpilot::MenuEntryKind::command) != nullptr, "Reload imported artwork as a Windows icon");
+        std::filesystem::remove(source);
+        simpilot::MenuIconCache reloaded(directory);
+        require(reloaded.icon_for_customization(L"image", source.wstring(),
+            simpilot::MenuEntryKind::command) != nullptr, "Imported icons do not depend on original image files");
+        const auto original = file_bytes(custom);
+        const auto corrupt = root / L"corrupt.png";
+        { std::ofstream stream(corrupt, std::ios::binary); stream << "not an image"; }
+        require(!icons.set_custom_icon(L"image", corrupt, 0) && file_bytes(custom) == original,
+            "Malformed imports preserve the existing custom icon");
+        const auto locked = CreateFileW(custom.c_str(), GENERIC_READ, FILE_SHARE_READ,
+            nullptr, OPEN_EXISTING, 0, nullptr);
+        require(locked != INVALID_HANDLE_VALUE, "Lock ICO to test failed atomic replacement");
+        write_test_image(source, *format, 2, 4, false);
+        require(!icons.set_custom_icon(L"image", source, 0) && file_bytes(custom) == original,
+            "Save failure preserves the previous custom icon");
+        CloseHandle(locked);
+        require(icons.set_custom_icon(L"image", source, 0), "Retry image import after unlocking");
+    }
+    const auto source = root / L"alpha.png", directory = root / L"alpha-cache";
+    write_test_image(source, GUID_ContainerFormatPng, 2, 4, true);
+    simpilot::MenuIconCache icons(directory);
+    require(icons.set_custom_icon(L"alpha", source, 0), "Import semitransparent PNG");
+    const auto data = file_bytes(only_custom_icon(directory));
+    constexpr std::size_t pixel_offset = 6 + 16 + 40;
+    for (int y = 0; y < 128; ++y) {
+        for (int x = 0; x < 128; ++x) {
+            const auto offset = pixel_offset + (static_cast<std::size_t>(127 - y) * 128 + x) * 4;
+            const auto alpha = static_cast<unsigned char>(data[offset + 3]);
+            require(alpha == (x >= 32 && x < 96 ? 128 : 0),
+                "Portrait images retain partial alpha and transparent side margins");
+            if (!alpha) continue;
+            for (const auto& [component, expected] : std::array{
+                std::pair{0, 224}, std::pair{1, 128}, std::pair{2, 42}}) {
+                require(std::abs(static_cast<int>(static_cast<unsigned char>(
+                    data[offset + component])) - expected) <= 2, "Alpha conversion does not darken source colors");
+            }
+        }
+    }
+    require(!icons.set_custom_icon(L"absent", root / L"missing.png", 0)
+        && !icons.has_custom_icon(L"absent"), "Missing images do not create overrides");
+}
+
+void check_image_com_lifetime(const std::filesystem::path& root) {
+    simpilot::MenuIconCache icons(root / L"com-cache");
+    require(icons.set_custom_icon(L"uninitialized", root / L"alpha.png", 0),
+        "Image import initializes COM when the caller has not done so");
+    const auto com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    require(com == S_OK, "Image import balances its own COM initialization");
+    struct Uninitialize { ~Uninitialize() { CoUninitialize(); } } uninitialize;
+    require(icons.set_custom_icon(L"multithreaded", root / L"alpha.png", 0),
+        "Image import respects the caller's existing multithreaded apartment");
+    const auto existing = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    if (SUCCEEDED(existing)) CoUninitialize();
+    require(existing == S_FALSE, "Image import leaves the caller's apartment initialized");
 }
 
 MEASUREITEMSTRUCT measure_item(const simpilot::LaunchMenuRenderer& renderer,
@@ -192,6 +334,8 @@ int wmain() {
             / (L"simpilot-menu-presentation-" + std::to_wstring(GetCurrentProcessId()));
         const auto cache_directory = root / L"Cache" / L"RunIcon";
         std::filesystem::remove_all(root);
+        check_image_imports(root / L"Images");
+        check_image_com_lifetime(root / L"Images");
         check_access_key_icon_identity(root / L"AccessKeyIcons");
         {
             simpilot::MenuIconCache icons(cache_directory);

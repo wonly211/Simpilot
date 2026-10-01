@@ -47,7 +47,7 @@ Everything is optional. Its absence does not prevent the menu from working, but 
 
 ## Icons and appearance
 
-Simpilot automatically extracts an icon for local items it can resolve and caches it under `Cache/RunIcon/`. You can also set a custom icon from an ICO file or from an EXE or DLL in **Settings > Menu Icons**. The custom icon is stored per complete launch action, so distinct arguments for the same executable can use different icons.
+Simpilot automatically extracts an icon for local items it can resolve and caches it under `Cache/RunIcon/`. In **Settings > Menu Icons**, import an ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF image, or select an icon from an EXE or DLL. Custom icons are indexed by the complete menu label, including its access key, so different menu labels for the same application can have separate icons.
 
 Choose **Follow Windows**, **Light**, or **Dark** under **Settings > General** to control the quick-launch and tray context menu theme. This does not change the Windows system theme. See [Menu Icons and Themes](Menu-Icons-and-Themes) for details.
 

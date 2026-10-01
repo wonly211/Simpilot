@@ -552,6 +552,15 @@ private:
 
     void metadata() {
         if (!metadata_) return;
+        const auto single_line = [](std::wstring_view value) {
+            std::wstring result;
+            for (const auto character : value) {
+                if (character == L'\r') result.append(L"\\r");
+                else if (character == L'\n') result.append(L"\\n");
+                else result.push_back(character);
+            }
+            return result;
+        };
         SettingsDocument data;
         data.set(L"Audit", L"Simulation", L"Synthetic data; real production UI except recreated tray host");
         data.set(L"Audit", L"TempRoot", audit_root.wstring());
@@ -566,8 +575,12 @@ private:
         data.set(L"Audit", L"ConfiguredUTC", std::wstring(built.begin(), built.end()));
         data.set(L"Audit", L"Executable", executable_path().wstring());
         data.set(L"Audit", L"VariantRoot", context_ ? context_->root.wstring() : L"(not created yet)");
-        data.set(L"Audit", L"LastAction", last_action);
-        struct Windows { SettingsDocument* data; int index = 0; } windows{&data};
+        data.set(L"Audit", L"LastAction", single_line(last_action));
+        struct Windows {
+            SettingsDocument* data;
+            decltype(single_line)* encode;
+            int index = 0;
+        } windows{&data, &single_line};
         EnumThreadWindows(GetCurrentThreadId(), [](HWND window, LPARAM parameter) -> BOOL {
             if (!IsWindowVisible(window)) return TRUE;
             auto& state = *reinterpret_cast<Windows*>(parameter);
@@ -578,7 +591,7 @@ private:
             GetWindowRect(window, &rect);
             GetClientRect(window, &client);
             const auto prefix = L"Window" + std::to_wstring(++state.index);
-            state.data->set(L"Windows", prefix + L"Title", title);
+            state.data->set(L"Windows", prefix + L"Title", (*state.encode)(title));
             state.data->set(L"Windows", prefix + L"Class", type);
             state.data->set(L"Windows", prefix + L"DPI", std::to_wstring(GetDpiForWindow(window)));
             state.data->set(L"Windows", prefix + L"Rect", std::to_wstring(rect.left) + L","

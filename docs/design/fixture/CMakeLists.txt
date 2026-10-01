@@ -51,7 +51,7 @@ endforeach()
 
 # The fixture supplies execute_command/user_profile_directory. In addition, the
 # delay-import hook denies ShellExecute[Ex]W used by About and menu-config links.
-target_link_libraries(audit_preview PRIVATE comctl32 comdlg32 gdi32 shcore user32
+target_link_libraries(audit_preview PRIVATE comctl32 comdlg32 gdi32 shcore user32 windowscodecs
     advapi32 Cabinet shell32 ole32 version delayimp)
 target_link_options(audit_preview PRIVATE /DELAYLOAD:shell32.dll)
 string(TIMESTAMP audit_configured "%Y-%m-%dT%H:%M:%SZ" UTC)

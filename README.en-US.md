@@ -67,7 +67,7 @@ Simpilot is a tray application and does not show a conventional main window afte
 - Supported `Win+A` through `Win+Z` combinations can be blocked in real time. `Win+L` cannot be overridden because of Windows security restrictions.
 - Menu configuration changes are monitored automatically. If a reload fails, the last valid menu remains active.
 - The tray icon is restored automatically when Windows Explorer restarts.
-- Transparent 128x128 icon caches are generated automatically, and icons can also be selected manually from ICO, EXE, or DLL files.
+- Transparent 128x128 icon caches are generated automatically. Import ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF images, or select icons from EXE or DLL files.
 - Simpilot uses the default Everything instance and the official SDK. If Everything is unavailable, Simpilot still starts normally. The menu editor can show or reselect resolved paths for programs configured without a full path.
 - Per-Monitor V2 DPI keeps menus clear across displays with different scaling settings.
 - Logs are stored in `Log/Simpilot.log`; entries older than 90 days are removed at startup.

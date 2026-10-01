@@ -3,6 +3,8 @@
 #include "simpilot/config_file.hpp"
 #include "simpilot/command.hpp"
 #include <commctrl.h>
+#include <commdlg.h>
+#include <dlgs.h>
 #include <fstream>
 #include <iostream>
 
@@ -58,7 +60,9 @@ void codec() {
     for (const auto locale : {"en-US", "zh-CN", "zh-TW"}) {
         simpilot::Localization localization(locale);
         for (const auto key : {"ui.edit_menus", "ui.reload_menu", "settings.menu_theme",
-            "settings.tab.quick_launch", "settings.tab.menu_icons", "menu_editor.save_failed"}) {
+            "settings.tab.quick_launch", "settings.tab.menu_icons", "menu_editor.save_failed",
+            "settings.menu_icons.filter.supported", "settings.menu_icons.filter.images",
+            "settings.menu_icons.filter.resources", "settings.menu_icons.filter.all"}) {
             require(localization.text(key) != L"[missing translation]", "Module translations available");
         }
     }
@@ -382,6 +386,100 @@ void icon_target_names(const std::filesystem::path& root) {
     module->stop();
 }
 
+struct IconDialogResponse {
+    std::filesystem::path file;
+    bool close = false;
+    int dialogs = 0;
+};
+IconDialogResponse* icon_dialog_response = nullptr;
+BOOL CALLBACK respond_to_icon_dialog(HWND window, LPARAM) {
+    wchar_t name[40]{};
+    GetClassNameW(window, name, 40);
+    if (std::wstring_view(name) != L"#32770" || !IsWindowVisible(window)) return TRUE;
+    auto& response = *icon_dialog_response;
+    ++response.dialogs;
+    if (response.dialogs == 1 && !response.file.empty()) {
+        SendMessageW(window, CDM_SETCONTROLTEXT, edt1,
+            reinterpret_cast<LPARAM>(response.file.c_str()));
+        SendMessageW(window, WM_COMMAND, MAKEWPARAM(IDOK, BN_CLICKED), 0);
+    } else {
+        SendMessageW(window, response.close ? WM_CLOSE : WM_COMMAND,
+            response.close ? 0 : MAKEWPARAM(IDCANCEL, BN_CLICKED), 0);
+    }
+    return TRUE;
+}
+void CALLBACK icon_dialog_timer(HWND, UINT, UINT_PTR, DWORD) {
+    if (icon_dialog_response)
+        EnumThreadWindows(GetCurrentThreadId(), respond_to_icon_dialog, 0);
+}
+
+void icon_picker_cancellation(const std::filesystem::path& root) {
+    const auto instance = GetModuleHandleW(nullptr);
+    wchar_t executable[32768]{};
+    GetModuleFileNameW(nullptr, executable, 32768);
+    wchar_t system[32768]{};
+    GetSystemDirectoryW(system, 32768);
+    const auto resource = std::filesystem::path(system) / L"shell32.dll";
+    const auto font = static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT));
+    simpilot::Localization language("en-US");
+    for (const bool custom : {false, true}) {
+        const auto directory = root / (custom ? L"custom" : L"automatic");
+        const auto config = directory / L"Config", icons = directory / L"Cache" / L"RunIcon";
+        std::filesystem::create_directories(config);
+        simpilot::MenuIconCache original(icons);
+        if (custom) require(original.set_custom_icon(L"item", resource, 0), "Seed a custom icon for cancellation");
+        std::filesystem::path original_file;
+        if (custom) for (const auto& file : std::filesystem::directory_iterator(icons)) original_file = file.path();
+        const auto original_bytes = custom ? bytes(original_file) : std::string{};
+        simpilot::QuickLaunchSettings draft;
+        auto ui = simpilot::make_quick_launch_settings_ui(draft, config, icons,
+            [&] { return std::vector<simpilot::MenuIconTarget>{
+                {L"Main", L"Item", executable, L"item", executable, simpilot::MenuEntryKind::command}}; },
+            {}, {}, {});
+        const auto parent = CreateWindowW(L"STATIC", L"Isolated icon cancellation test", WS_OVERLAPPEDWINDOW,
+            0, 0, 1000, 700, nullptr, nullptr, instance, nullptr);
+        int changes = 0;
+        auto page = ui->page(true);
+        page->create({instance, parent, 96, font, language, [&] { ++changes; }});
+        page->layout({0, 0, 780, 600}, 96, font);
+        const auto list = control(parent, 500), owner = GetParent(list);
+        ListView_SetItemState(list, 0, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+        const auto timer = SetTimer(nullptr, 0, 100, icon_dialog_timer);
+        require(timer != 0, "Schedule isolated modal responses");
+        for (const auto scenario : {0, 1, 2, 3}) {
+            IconDialogResponse response{
+                scenario >= 2 ? resource : std::filesystem::path{}, scenario % 2 != 0};
+            icon_dialog_response = &response;
+            if (scenario == 0) {
+                NMITEMACTIVATE notification{};
+                notification.hdr = {list, 500, NM_DBLCLK};
+                notification.iItem = 0;
+                SendMessageW(owner, WM_NOTIFY, 500, reinterpret_cast<LPARAM>(&notification));
+            } else SendMessageW(owner, WM_COMMAND, MAKEWPARAM(501, BN_CLICKED), 0);
+            icon_dialog_response = nullptr;
+            require(response.dialogs == (scenario >= 2 ? 2 : 1),
+                "Exercise file picker and embedded-icon picker cancellation and close");
+            require(!ui->dirty() && changes == 0, "Opening or cancelling icon selection never changes the draft");
+            wchar_t source[64]{};
+            ListView_GetItemText(list, 0, 3, source, 64);
+            require(std::wstring_view(source) == (custom ? L"Custom" : L"Automatic"),
+                "Cancellation preserves the displayed automatic/custom source");
+            const auto snapshots = matching(directory / L"Cache", L"SettingsDraft-");
+            require(snapshots.size() == 1, "Find the isolated icon draft");
+            std::size_t custom_icons = 0;
+            for (const auto& file : std::filesystem::directory_iterator(snapshots.front()))
+                if (file.path().filename().wstring().ends_with(L".custom.ico")) ++custom_icons;
+            require(custom_icons == (custom ? 1U : 0U),
+                "Cancellation does not create a custom icon in the settings draft");
+            if (custom) require(bytes(original_file) == original_bytes,
+                "Cancelling never modifies a previously customized live icon");
+        }
+        KillTimer(nullptr, timer);
+        page.reset();
+        DestroyWindow(parent);
+    }
+}
+
 void module_lifecycle(const std::filesystem::path& root) {
     const auto instance = GetModuleHandleW(nullptr);
     simpilot::Localization language("en-US");
@@ -424,10 +522,11 @@ int main() {
     try {
         INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_LISTVIEW_CLASSES | ICC_TREEVIEW_CLASSES | ICC_STANDARD_CLASSES};
         InitCommonControlsEx(&controls);
-        const auto dialogs = SetTimer(nullptr, 0, 20, dismiss_timer);
         codec();
         const auto root = std::filesystem::temp_directory_path()
             / (L"simpilot-quick-launch-module-" + std::to_wstring(GetCurrentProcessId()));
+        icon_picker_cancellation(root / L"icon_cancellation");
+        const auto dialogs = SetTimer(nullptr, 0, 20, dismiss_timer);
         transaction(root / L"menu_failure", 0);
         transaction(root / L"rollback_failure", 1);
         transaction(root / L"icon_failure", 2);

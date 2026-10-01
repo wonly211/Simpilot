@@ -7,6 +7,8 @@
 #include <commctrl.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
+#include <wincodec.h>
+#include <wrl/client.h>
 
 #include <algorithm>
 #include <array>
@@ -96,30 +98,9 @@ int recovered_alpha(const std::uint32_t black_pixel,
     return 255 - transparency;
 }
 
-bool save_icon(const std::filesystem::path& path, const HICON icon) {
-    const auto black = render_icon(icon, 0);
-    const auto white = render_icon(icon, 255);
-    if (black.empty() || white.size() != black.size()) return false;
-
-    std::vector<std::uint32_t> pixels(black.size());
-    for (std::size_t index = 0; index < pixels.size(); ++index) {
-        const auto black_pixel = black[index];
-        const auto white_pixel = white[index];
-        const auto blue_black = static_cast<int>(black_pixel & 0xFFU);
-        const auto green_black = static_cast<int>((black_pixel >> 8U) & 0xFFU);
-        const auto red_black = static_cast<int>((black_pixel >> 16U) & 0xFFU);
-        const auto alpha = recovered_alpha(black_pixel, white_pixel);
-        const auto unpremultiply = [alpha](const int component) {
-            return alpha == 0 ? 0 : std::clamp(component * 255 / alpha, 0, 255);
-        };
-        const auto blue = unpremultiply(blue_black);
-        const auto green = unpremultiply(green_black);
-        const auto red = unpremultiply(red_black);
-        pixels[index] = static_cast<std::uint32_t>(blue)
-            | (static_cast<std::uint32_t>(green) << 8U)
-            | (static_cast<std::uint32_t>(red) << 16U)
-            | (static_cast<std::uint32_t>(alpha) << 24U);
-    }
+bool save_icon_pixels(const std::filesystem::path& path,
+                      const std::vector<std::uint32_t>& pixels) {
+    if (pixels.size() != cached_icon_size * cached_icon_size) return false;
 
     constexpr auto mask_stride = ((cached_icon_size + 31) / 32) * 4;
     std::array<std::uint8_t, mask_stride * cached_icon_size> mask{};
@@ -173,10 +154,97 @@ bool save_icon(const std::filesystem::path& path, const HICON icon) {
     stream.write(reinterpret_cast<const char*>(mask.data()),
                  static_cast<std::streamsize>(mask.size()));
     stream.close();
-    if (!stream || !replacement.commit()) {
-        return false;
+    return stream && replacement.commit();
+}
+
+bool save_icon(const std::filesystem::path& path, const HICON icon) {
+    const auto black = render_icon(icon, 0);
+    const auto white = render_icon(icon, 255);
+    if (black.empty() || white.size() != black.size()) return false;
+
+    std::vector<std::uint32_t> pixels(black.size());
+    for (std::size_t index = 0; index < pixels.size(); ++index) {
+        const auto black_pixel = black[index];
+        const auto white_pixel = white[index];
+        const auto blue_black = static_cast<int>(black_pixel & 0xFFU);
+        const auto green_black = static_cast<int>((black_pixel >> 8U) & 0xFFU);
+        const auto red_black = static_cast<int>((black_pixel >> 16U) & 0xFFU);
+        const auto alpha = recovered_alpha(black_pixel, white_pixel);
+        const auto unpremultiply = [alpha](const int component) {
+            return alpha == 0 ? 0 : std::clamp(component * 255 / alpha, 0, 255);
+        };
+        const auto blue = unpremultiply(blue_black);
+        const auto green = unpremultiply(green_black);
+        const auto red = unpremultiply(red_black);
+        pixels[index] = static_cast<std::uint32_t>(blue)
+            | (static_cast<std::uint32_t>(green) << 8U)
+            | (static_cast<std::uint32_t>(red) << 16U)
+            | (static_cast<std::uint32_t>(alpha) << 24U);
     }
-    return true;
+
+    return save_icon_pixels(path, pixels);
+}
+
+class ImageApartment final {
+public:
+    ImageApartment() : result_(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)) {}
+    ~ImageApartment() { if (SUCCEEDED(result_)) CoUninitialize(); }
+    bool available() const { return SUCCEEDED(result_) || result_ == RPC_E_CHANGED_MODE; }
+private:
+    HRESULT result_;
+};
+
+bool save_image_icon(const std::filesystem::path& path,
+                     const std::filesystem::path& source) {
+    const ImageApartment apartment;
+    if (!apartment.available()) return false;
+    using Microsoft::WRL::ComPtr;
+    ComPtr<IWICImagingFactory> factory;
+    if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(factory.GetAddressOf())))) return false;
+    ComPtr<IWICBitmapDecoder> decoder;
+    if (FAILED(factory->CreateDecoderFromFilename(source.c_str(), nullptr, GENERIC_READ,
+        WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf()))) return false;
+    ComPtr<IWICBitmapFrameDecode> frame;
+    if (FAILED(decoder->GetFrame(0, frame.GetAddressOf()))) return false;
+    UINT width = 0, height = 0;
+    if (FAILED(frame->GetSize(&width, &height)) || !width || !height) return false;
+
+    const auto longest = std::max(width, height);
+    const auto scaled = [longest](UINT dimension) {
+        return std::max(1U, static_cast<UINT>(
+            (static_cast<std::uint64_t>(dimension) * cached_icon_size + longest / 2) / longest));
+    };
+    const auto scaled_width = scaled(width), scaled_height = scaled(height);
+    // Scale premultiplied pixels to avoid dark edges around transparent artwork.
+    ComPtr<IWICFormatConverter> converter;
+    if (FAILED(factory->CreateFormatConverter(converter.GetAddressOf()))
+        || FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom))) return false;
+    ComPtr<IWICBitmapScaler> scaler;
+    if (FAILED(factory->CreateBitmapScaler(scaler.GetAddressOf()))
+        || FAILED(scaler->Initialize(converter.Get(), scaled_width, scaled_height,
+            WICBitmapInterpolationModeFant))) return false;
+    std::vector<std::uint32_t> image(static_cast<std::size_t>(scaled_width) * scaled_height);
+    if (FAILED(scaler->CopyPixels(nullptr, scaled_width * static_cast<UINT>(sizeof(std::uint32_t)),
+        static_cast<UINT>(image.size() * sizeof(std::uint32_t)),
+        reinterpret_cast<BYTE*>(image.data())))) return false;
+
+    std::vector<std::uint32_t> pixels(cached_icon_size * cached_icon_size, 0);
+    const auto left = (cached_icon_size - scaled_width) / 2;
+    const auto top = (cached_icon_size - scaled_height) / 2;
+    for (UINT y = 0; y < scaled_height; ++y) {
+        for (UINT x = 0; x < scaled_width; ++x) {
+            const auto pixel = image[static_cast<std::size_t>(y) * scaled_width + x];
+            const auto alpha = pixel >> 24U;
+            const auto component = [pixel, alpha](unsigned shift) {
+                return alpha ? std::min(255U, ((pixel >> shift) & 0xFFU) * 255U / alpha) : 0U;
+            };
+            pixels[static_cast<std::size_t>(y + top) * cached_icon_size + x + left]
+                = component(0) | (component(8) << 8U) | (component(16) << 16U) | (alpha << 24U);
+        }
+    }
+    return save_icon_pixels(path, pixels);
 }
 
 std::uint64_t stable_hash(const std::wstring_view value) noexcept {
@@ -332,15 +400,25 @@ bool MenuIconCache::set_custom_icon(const std::wstring& custom_key,
                                     const std::filesystem::path& source,
                                     const int source_index) {
     if (custom_key.empty() || source.empty()) return false;
+    const auto extension = lowercase(source.extension().wstring());
+    const bool resource = extension == L".ico" || extension == L".exe"
+        || extension == L".dll" || extension == L".icl" || extension == L".cpl"
+        || extension == L".scr" || extension == L".ocx";
+    if (!resource) {
+        const auto saved = save_image_icon(custom_icon_path_for(custom_key), source);
+        if (saved) clear();
+        return saved;
+    }
     HICON icon = nullptr;
     UINT icon_identifier = 0;
     const auto count = PrivateExtractIconsW(source.c_str(), source_index,
                                             cached_icon_size, cached_icon_size,
                                             &icon, &icon_identifier, 1,
                                             LR_DEFAULTCOLOR);
-    if (count == 0 || !icon) return false;
-    const auto saved = save_icon(custom_icon_path_for(custom_key), icon);
-    DestroyIcon(icon);
+    const auto saved = count == 1 && icon
+        ? save_icon(custom_icon_path_for(custom_key), icon)
+        : save_image_icon(custom_icon_path_for(custom_key), source);
+    if (icon) DestroyIcon(icon);
     if (saved) clear();
     return saved;
 }
