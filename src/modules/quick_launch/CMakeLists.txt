@@ -9,7 +9,7 @@ target_compile_definitions(simpilot_module_quick_launch PRIVATE
     UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
 target_compile_options(simpilot_module_quick_launch PRIVATE /W4 /permissive- /utf-8 /EHsc)
 target_link_libraries(simpilot_module_quick_launch PUBLIC
-    simpilot_module_support simpilot_win32_ui simpilot_command_execution comdlg32 shcore)
+    simpilot_module_support simpilot_win32_ui simpilot_command_execution comdlg32 shcore windowscodecs)
 foreach(locale en-US zh-CN zh-TW)
     set_property(GLOBAL APPEND PROPERTY SIMPILOT_MODULE_LANGUAGE_FILES
         "${CMAKE_CURRENT_SOURCE_DIR}/Languages/${locale}.json")

@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.4
+Applies to version: 1.0.5
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -353,10 +353,12 @@ Open **Settings > Menu Icons**:
 
 1. Select a local launch item.
 2. Select **Choose Icon...**.
-3. Choose an ICO file or select an icon from an EXE or DLL.
+3. Choose an ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF image. If you choose an EXE or DLL, select an icon from that file.
 4. Select **Apply** or **Save**.
 
-**Restore Automatic Icon** removes the selected custom icon. Custom icons are identified by the complete launch action, so the same executable with different arguments can use different icons.
+Double-clicking a menu entry also opens the picker. Cancelling or closing it leaves the icon source and pending changes untouched. Images retain their transparency and aspect ratio and are converted to 128x128 ICO files. Read or save failures preserve the current icon.
+
+**Restore Automatic Icon** removes the selected custom icon. Custom icons are indexed by the complete menu label, including its access key, not by application name, path, or arguments. Google Chrome(H) and Google Chrome(O) can have separate icons; changing the launch target keeps the custom icon for the same menu label.
 
 Websites, categories, and separators do not appear in the custom-icon list. Websites and categories use automatic icons; separators have no icon.
 
