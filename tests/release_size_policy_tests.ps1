@@ -2,6 +2,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $root = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+$repoRoot = $root
 $baselinePath = Join-Path $root '.github/ci/release-baseline.json'
 $baseline = Get-Content -LiteralPath $baselinePath -Raw -Encoding UTF8 | ConvertFrom-Json
 $tokens = $null
@@ -10,8 +11,8 @@ $pipelineAst = [System.Management.Automation.Language.Parser]::ParseFile(
     (Join-Path $root 'tools/ci.ps1'), [ref]$tokens, [ref]$parseErrors)
 if ($parseErrors.Count) { throw "CI script has PowerShell syntax errors: $parseErrors" }
 
-# Load only the size-report functions, without running the build pipeline.
-foreach ($name in @('Get-PercentChange', 'Get-ArtifactSizeComparison')) {
+# Load release checks without running the build pipeline.
+foreach ($name in @('Assert-WorkflowPolicy', 'Get-PercentChange', 'Get-ArtifactSizeComparison')) {
     $function = $pipelineAst.Find({
         param($node)
         $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
@@ -20,6 +21,8 @@ foreach ($name in @('Get-PercentChange', 'Get-ArtifactSizeComparison')) {
     if (-not $function) { throw "Missing CI function: $name" }
     . ([scriptblock]::Create($function.Extent.Text))
 }
+
+Assert-WorkflowPolicy
 
 foreach ($factor in @(1, 2, 10)) {
     $exeBytes = [long]$baseline.exeBytes * $factor
