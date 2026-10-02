@@ -109,7 +109,7 @@ function Assert-WorkflowPolicy {
         '^\s*permissions:\s*$',
         '^\s*contents:\s+read\s*$',
         '^\s*cancel-in-progress:\s+true\s*$',
-        '^\s*timeout-minutes:\s+30\s*$'
+        '^\s*timeout-minutes:\s+45\s*$'
     )
     foreach ($pattern in $requiredLines) {
         if (-not ($lines | Where-Object { $_ -match $pattern })) {
