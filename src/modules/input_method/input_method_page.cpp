@@ -4,7 +4,6 @@
 #include "toggle_switch.hpp"
 
 #include <commctrl.h>
-#include <commdlg.h>
 
 #include <algorithm>
 #include <array>
@@ -42,29 +41,14 @@ const char* mode_key(Mode mode) {
                                 : "settings.input_method.english";
 }
 
-std::optional<std::wstring> choose_exe(HWND owner, const Localization& localization) {
-    std::wstring buffer(32768, L'\0');
-    std::wstring filter(localization.text("settings.input_method.exe_filter"));
-    filter.push_back(L'\0');
-    filter.append(L"*.exe");
-    filter.push_back(L'\0');
-    filter.push_back(L'\0');
-    OPENFILENAMEW request{
-        .lStructSize = sizeof(request), .hwndOwner = owner,
-        .lpstrFilter = filter.c_str(), .lpstrFile = buffer.data(),
-        .nMaxFile = static_cast<DWORD>(buffer.size()),
-        .Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR};
-    if (!GetOpenFileNameW(&request)) return std::nullopt;
-    buffer.resize(wcslen(buffer.c_str()));
-    return buffer;
-}
-
 class RuleDialog final {
 public:
     RuleDialog(HINSTANCE instance, HWND owner, const Localization& localization,
-        Rule rule, std::vector<Profile> profiles, const std::vector<Rule>& others)
+        Rule rule, std::vector<Profile> profiles, const std::vector<Rule>& others,
+        ApplicationSelectionServices applications)
         : instance_(instance), owner_(owner), localization_(localization),
-          rule_(std::move(rule)), profiles_(std::move(profiles)), others_(others) {}
+          rule_(std::move(rule)), profiles_(std::move(profiles)), others_(others),
+          applications_(std::move(applications)) {}
     ~RuleDialog() { if (window_) DestroyWindow(window_); }
 
     std::optional<Rule> run() {
@@ -293,7 +277,8 @@ private:
                 if (id == IDCANCEL) DestroyWindow(window);
                 else if (id == IDOK) self->accept();
                 else if (id == browse_id && notification == BN_CLICKED) {
-                    if (const auto selected = choose_exe(window, self->localization_))
+                    if (const auto selected = choose_application(self->instance_, window,
+                            self->browse_, self->localization_, self->applications_))
                         text(self->path_, *selected);
                 } else if (id == policy_id && notification == CBN_SELCHANGE) {
                     text(self->error_, L"");
@@ -339,6 +324,7 @@ private:
     Rule rule_;
     std::vector<Profile> profiles_;
     std::vector<Rule> others_;
+    ApplicationSelectionServices applications_;
     std::optional<Rule> result_;
     UINT dpi_ = 96;
     settings_visual_style::PageTypography typography_;
@@ -540,14 +526,15 @@ private:
             if (id == edit_id && selected < 0) return;
             Rule initial;
             if (id == add_id) {
-                const auto chosen = choose_exe(window_, *localization_);
+                const auto chosen = choose_application(instance_, GetAncestor(window_, GA_ROOT),
+                    add_, *localization_, services_.applications);
                 if (!chosen) return;
                 initial.executable_path = *chosen;
             } else initial = draft_.rules[static_cast<std::size_t>(selected)];
             auto others = draft_.rules;
             if (id == edit_id) others.erase(others.begin() + selected);
             auto result = show_rule_dialog(instance_, GetAncestor(window_, GA_ROOT),
-                *localization_, initial, services_.profiles(), others);
+                *localization_, initial, services_.profiles(), others, services_.applications);
             if (!result || (id == edit_id && *result == initial)) return;
             if (id == add_id) draft_.rules.push_back(*result);
             else draft_.rules[static_cast<std::size_t>(selected)] = *result;
@@ -622,8 +609,10 @@ std::unique_ptr<ISettingsPage> make_settings_page(Settings& draft, PageServices 
 
 std::optional<Rule> show_rule_dialog(
     HINSTANCE instance, HWND owner, const Localization& localization,
-    Rule rule, const std::vector<Profile>& profiles, const std::vector<Rule>& other_rules) {
-    return RuleDialog(instance, owner, localization, std::move(rule), profiles, other_rules).run();
+    Rule rule, const std::vector<Profile>& profiles, const std::vector<Rule>& other_rules,
+    const ApplicationSelectionServices& applications) {
+    return RuleDialog(instance, owner, localization, std::move(rule), profiles, other_rules,
+        applications).run();
 }
 
 } // namespace simpilot::input_method

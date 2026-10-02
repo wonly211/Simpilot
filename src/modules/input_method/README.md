@@ -73,6 +73,32 @@ Fixed rules require a profile ID. Installed English-only layouts cannot
 offer Chinese mode. Uninstalled profiles remain editable and persistable.
 The editor rejects duplicate normalized paths.
 
+## Selecting an application
+
+The add button and the rule editor's path button both offer an EXE file picker
+or a running-application picker. Selecting an application only fills the rule
+editor; accepting that editor changes the draft, and applying settings changes
+the runtime. Cancelling either dialog does not change settings.
+
+The running picker takes an asynchronous, current-session snapshot on opening
+and explicit refresh. Visible top-level windows, including minimized windows,
+appear by default. Hidden, tool and DWM-cloaked windows are excluded; the
+background-process checkbox includes other processes with readable EXE paths.
+The current Simpilot process is excluded. No elevation, command-line access,
+process-memory access or permanent process monitor is used.
+
+Processes are grouped by the existing normalized full path. The original path
+is displayed, and all window captions are searchable without persisting them.
+Search and background filtering use the snapshot without reenumerating.
+An application that exits after enumeration can still be configured by its
+resolved path. Inaccessible or exited processes are skipped during enumeration;
+snapshot failures appear inline and can be retried.
+
+The picker owns a cancellable worker and a dispatch scope. Closing cancels
+pending callbacks and joins the worker before releasing window state. Tests
+inject snapshots, source selection and file selection through module-private
+services; no shared host APIs or configuration schema are extended.
+
 The settings participant stages drafts and prepares the timer before the
 shared INI commit. Runtime settings change only after that commit succeeds.
 Failed commits roll back monitoring; cancel discards only the draft.
@@ -109,6 +135,9 @@ path, and the shared list tooltip exposes full row text to mouse/keyboard users.
 Non-fixed strategies hide and disable the profile and mode controls.
 
 ## Verification
+
+Running-application picker results and remaining manual checks are recorded in
+[application_picker_verification.md](tests/application_picker_verification.md).
 
 Release builds use the existing Visual Studio 2022 x64 toolchain:
 

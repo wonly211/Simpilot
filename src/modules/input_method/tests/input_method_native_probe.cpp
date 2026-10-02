@@ -7,8 +7,10 @@
 
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 using namespace simpilot;
@@ -260,6 +262,90 @@ void screenshots(const std::filesystem::path& directory) {
     std::cout << "Isolated native screenshots captured\n";
 }
 
+std::function<void(HWND)> application_capture;
+std::string capture_failure;
+ULONGLONG capture_deadline = 0;
+
+void CALLBACK capture_application(HWND, UINT, UINT_PTR, DWORD) {
+    auto window = FindWindowW(L"Simpilot.InputMethodApplicationDialog", nullptr);
+    if (!window) return;
+    try {
+        if (GetTickCount64() > capture_deadline)
+            throw std::runtime_error("application screenshot timed out");
+        if (!IsWindowEnabled(GetDlgItem(window, 202))) return;
+        auto action = std::exchange(application_capture, {});
+        if (action) action(window);
+    } catch (const std::exception& error) {
+        capture_failure = error.what();
+    }
+    SendMessageW(window, WM_COMMAND, IDCANCEL, 0);
+}
+
+void application_screenshots(const std::filesystem::path& directory) {
+    std::filesystem::create_directories(directory);
+    const auto apartment = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+    require(SUCCEEDED(apartment), "screenshot COM initialization failed");
+    const auto instance = GetModuleHandleW(nullptr);
+    auto host = CreateWindowW(L"STATIC", L"Isolated application picker preview",
+        WS_OVERLAPPEDWINDOW, 0, 0, 1000, 700, nullptr, nullptr, instance, nullptr);
+    require(host != nullptr, "application preview host creation failed");
+    ShowWindow(host, SW_SHOWNOACTIVATE);
+    UiDispatcher dispatcher(instance);
+    std::cout << "Actual host DPI: " << GetDpiForWindow(host)
+        << "; other DPI captures simulate WM_DPICHANGED (not display scaling).\n";
+    for (auto language : {UiLanguage::simplified_chinese, UiLanguage::traditional_chinese, UiLanguage::english}) {
+        Localization localization(language);
+        const std::wstring code = language == UiLanguage::english ? L"en"
+            : language == UiLanguage::traditional_chinese ? L"zh-TW" : L"zh-CN";
+        for (UINT dpi : {96U, 144U, 192U}) {
+            for (bool minimum : {false, true}) {
+                ApplicationSelectionServices services{
+                    .dispatcher = &dispatcher,
+                    .enumerate = [](std::stop_token) {
+                        ApplicationSnapshot snapshot{{
+                            {L"C:\\Apps\\Chrome\\chrome.exe", {L"Google Chrome - Simpilot"}, true},
+                            {L"C:\\Apps\\Chrome\\chrome.exe", {L"Design review - Google Chrome"}, true},
+                            {L"C:\\Apps\\Visual Studio Code\\Code.exe", {L"input_method_page.cpp - Simpilot - Visual Studio Code"}, true},
+                            {L"C:\\Apps\\Notepad\\notepad.exe", {L"Untitled - Notepad"}, true},
+                            {L"C:\\Apps\\Background\\worker.exe", {}, false}}};
+                        for (int index = 0; index < 35; ++index)
+                            snapshot.applications.push_back({
+                                L"C:\\Apps\\An application with a very long installation path\\"
+                                L"Editor" + std::to_wstring(index) + L".exe",
+                                {L"A long document title for the application picker "
+                                    + std::to_wstring(index)}, true});
+                        return snapshot;
+                    }};
+                capture_failure.clear();
+                capture_deadline = GetTickCount64() + 5000;
+                application_capture = [&](HWND window) {
+                    RECT outer{0, 0, MulDiv(minimum ? 640 : 780, dpi, 96),
+                        MulDiv(minimum ? 420 : 500, dpi, 96)};
+                    AdjustWindowRectExForDpi(&outer, static_cast<DWORD>(GetWindowLongPtrW(window, GWL_STYLE)),
+                        FALSE, static_cast<DWORD>(GetWindowLongPtrW(window, GWL_EXSTYLE)), dpi);
+                    MONITORINFO monitor{.cbSize = sizeof(monitor)};
+                    GetMonitorInfoW(MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST), &monitor);
+                    OffsetRect(&outer, monitor.rcWork.left + 8 - outer.left, monitor.rcWork.top + 8 - outer.top);
+                    SendMessageW(window, WM_DPICHANGED, MAKEWPARAM(dpi, dpi), reinterpret_cast<LPARAM>(&outer));
+                    const auto list = GetDlgItem(window, 204);
+                    ListView_SetItemState(list, 1, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+                    SetFocus(list);
+                    RedrawWindow(window, nullptr, nullptr, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
+                    screenshot(window, directory / (L"applications-" + code + L"-layout-"
+                        + std::to_wstring(dpi) + (minimum ? L"-minimum.png" : L"-default.png")));
+                };
+                const auto timer = SetTimer(nullptr, 0, 100, capture_application);
+                (void)show_running_application_dialog(instance, host, localization, services);
+                KillTimer(nullptr, timer);
+                require(capture_failure.empty(), capture_failure.c_str());
+            }
+        }
+    }
+    DestroyWindow(host);
+    CoUninitialize();
+    std::cout << "Isolated application picker screenshots captured\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -269,6 +355,10 @@ int main(int argc, char** argv) {
         if (argc == 2 && std::string_view(argv[1]) == "--target") return target_main();
         if (argc == 3 && std::string_view(argv[1]) == "--screenshots") {
             screenshots(std::filesystem::path(argv[2]));
+            return 0;
+        }
+        if (argc == 3 && std::string_view(argv[1]) == "--application-screenshots") {
+            application_screenshots(std::filesystem::path(argv[2]));
             return 0;
         }
         native_test();

@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.6
+Applies to version: 1.0.7
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -289,10 +289,14 @@ Mappings are active only while Simpilot runs, and active target keys are release
 
 Open **Settings > Input methods**. The feature is disabled by default. Enable its switch and select **Apply** or **Save** to begin monitoring application changes.
 
-1. Select **Add application** and choose the complete EXE path.
+1. Select **Add application**, then **Choose an EXE file** or **Choose a running application**.
 2. Choose **Remember last state**, **Fixed input method**, or **Leave unchanged**.
 3. A fixed rule also requires an installed input method and Chinese or English mode. English-only keyboard layouts support English mode only.
 4. Save the rule, then apply or save the Settings window.
+
+The running-application picker initially shows applications with visible windows, including minimized windows. Enable **Show background processes** to include other processes in the current session with readable program paths. Search matches executable names, window titles and full paths; the refresh button reloads the snapshot. Processes and windows using the same EXE are combined into one row, while identically named applications at different paths remain separate. The selected full path appears below the list and can be focused and copied.
+
+Choosing an application still requires confirmation in the rule editor. Cancelling either dialog leaves the draft unchanged. The rule editor's path button offers the same two sources. Inaccessible paths are omitted without requesting elevation. Window titles are not saved; rules continue to identify applications by the complete EXE path.
 
 | Behavior | When the application becomes active |
 |---|---|

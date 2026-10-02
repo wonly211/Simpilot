@@ -92,7 +92,7 @@ public:
                             if (!config_readable_)
                                 return Status{"settings.input_method.config_failed", {}, ERROR_INVALID_DATA};
                             return runtime_.status();
-                        }});
+                        }, {.dispatcher = &dispatcher_}});
                 }});
             ensure_timer(live_.enabled);
             runtime_.configure(live_);
