@@ -77,6 +77,7 @@
     "settings.keyboard_mappings.key.down_arrow": "下方向键",
     "settings.keyboard_mappings.key.print_screen": "截屏",
     "settings.keyboard_mappings.key.scroll_lock": "滚动锁定",
+    "settings.keyboard_mappings.key.num_lock": "数字锁定 (Num Lock)",
     "settings.keyboard_mappings.key.pause": "暂停",
     "settings.keyboard_mappings.key.applications": "菜单键",
     "settings.keyboard_mappings.key.numpad_decimal": "数字键盘小数点",

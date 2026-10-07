@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.7
+Applies to version: 1.0.8
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -276,6 +276,7 @@ Open **Settings > Keyboard Mappings**. The page switch controls all saved mappin
 - A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. A standalone modifier waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.
 - A **target output** can be one key or up to four modifiers plus one action key. Target chords are not supported.
 - **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
+- `Num Lock` can be recorded or selected from the primary-key list as a source or target. Mapping `F12` to `Num Lock` toggles its state each time you press and release `F12`. Existing target mappings recorded as `VK 0x90` work without being recorded again.
 - Leave Application empty for a global rule. Enter an executable base name without a path to limit a rule to the foreground application. With **Exact application match** disabled, matching uses a case-insensitive process-name prefix. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
 - **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
 

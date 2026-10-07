@@ -34,12 +34,15 @@ void fill_keyboard_input(
         scan_code = static_cast<WORD>(scan_code & 0x00FFU);
         extended = true;
     }
-    input.ki.wVk = scan_code == 0
-        ? static_cast<WORD>(key.virtual_key) : 0;
+    // Num Lock is reported as extended by the hook, but sending E0 45 with
+    // KEYEVENTF_SCANCODE produces VK 0xFF. Use its VK for output and replay.
+    const auto num_lock = key.virtual_key == VK_NUMLOCK;
+    const auto use_scan_code = scan_code != 0 && !num_lock;
+    input.ki.wVk = use_scan_code ? 0 : static_cast<WORD>(key.virtual_key);
     input.ki.wScan = scan_code;
-    input.ki.dwFlags = scan_code != 0 ? KEYEVENTF_SCANCODE : 0;
+    input.ki.dwFlags = use_scan_code ? KEYEVENTF_SCANCODE : 0;
     if (!key_down) input.ki.dwFlags |= KEYEVENTF_KEYUP;
-    if (extended) input.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
+    if (extended || num_lock) input.ki.dwFlags |= KEYEVENTF_EXTENDEDKEY;
     input.ki.dwExtraInfo = marker;
 }
 

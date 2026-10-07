@@ -340,7 +340,7 @@ std::vector<PhysicalKey> keyboard_mapping_action_catalog() {
         append(key);
     }
     constexpr std::array numpad_keys{
-        VK_DECIMAL, VK_DIVIDE, VK_MULTIPLY, VK_SUBTRACT, VK_ADD,
+        VK_NUMLOCK, VK_DECIMAL, VK_DIVIDE, VK_MULTIPLY, VK_SUBTRACT, VK_ADD,
     };
     for (const auto key : numpad_keys) append(key);
 
@@ -400,6 +400,7 @@ std::wstring localized_keyboard_mapping_key_label(
     case VK_UP: return text("settings.keyboard_mappings.key.up_arrow");
     case VK_DOWN: return text("settings.keyboard_mappings.key.down_arrow");
     case VK_SNAPSHOT: return text("settings.keyboard_mappings.key.print_screen");
+    case VK_NUMLOCK: return text("settings.keyboard_mappings.key.num_lock");
     case VK_SCROLL: return text("settings.keyboard_mappings.key.scroll_lock");
     case VK_PAUSE: return text("settings.keyboard_mappings.key.pause");
     case VK_APPS: return text("settings.keyboard_mappings.key.applications");
