@@ -28,6 +28,10 @@ actions still exclude modifiers. The action-key lists include letters, digits, `
 editing and navigation keys, numpad keys, common punctuation, browser keys, and media keys. Modifier choices always identify the left or
 right physical key. A recorded hardware key outside the standard list retains its exact identity.
 
+`Num Lock` can be recorded or selected from the primary-key list as either a source or a target.
+For example, mapping `F12` to `Num Lock` toggles Num Lock each time you press and release `F12`.
+Existing target mappings recorded as `VK 0x90` work without being recorded again.
+
 For example, an ordinary keyboard can map **Right Ctrl** to **Left Win + Left Shift + F23** to emit
 the Copilot key sequence. Right Ctrl alone triggers the mapping. Pressing `C`, `V`, or another key
 within 250 ms replays Right Ctrl first, preserving normal shortcuts such as `Ctrl+C`. `F23` is the

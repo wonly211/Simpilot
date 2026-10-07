@@ -146,6 +146,87 @@ void key_up_with_driver_variant_still_releases_target() {
             "a driver-variant Win up must release the mapped target");
 }
 
+void num_lock_targets_use_virtual_key_input() {
+    // Cover recorded keys, older extended-scan representations, and VK-only
+    // settings. E0 45 with KEYEVENTF_SCANCODE becomes VK 0xFF on Windows.
+    constexpr std::array targets{
+        PhysicalKey{VK_NUMLOCK, 0x45, true},
+        PhysicalKey{VK_NUMLOCK, 0x145, true},
+        PhysicalKey{VK_NUMLOCK, 0x45, false},
+        PhysicalKey{VK_NUMLOCK, 0, false},
+    };
+    for (const auto& target : targets) {
+        std::vector<INPUT> injected;
+        KeyboardMappingEngine engine(
+            [&injected](const INPUT* inputs, const UINT count) {
+                injected.insert(injected.end(), inputs, inputs + count);
+                return count;
+            });
+        require(engine.replace_rules(true, {single_rule(key(L'A', 30), target)}),
+                "Num Lock target must compile");
+        const auto source = event_for(key(L'A', 30));
+        require(engine.handle(WM_KEYDOWN, source).decision
+                    == MappingEventDecision::suppress,
+                "Num Lock mapping must consume source down");
+        require(engine.handle(WM_KEYUP, source).decision
+                    == MappingEventDecision::suppress,
+                "Num Lock mapping must consume source up");
+        require(injected.size() == 2,
+                "Num Lock mapping must send one press and one release");
+        for (std::size_t index = 0; index < injected.size(); ++index) {
+            const auto& input = injected[index];
+            require(input.type == INPUT_KEYBOARD && input.ki.wVk == VK_NUMLOCK
+                        && input.ki.dwFlags == (KEYEVENTF_EXTENDEDKEY
+                            | (index == 1 ? DWORD{KEYEVENTF_KEYUP} : DWORD{0}))
+                        && input.ki.dwExtraInfo
+                            == KeyboardMappingEngine::target_injected_marker,
+                    "Num Lock must use extended VK input for both down and up");
+        }
+    }
+}
+
+void num_lock_sources_and_prefix_replay() {
+    const PhysicalKey num_lock{VK_NUMLOCK, 0x45, true};
+    std::vector<INPUT> injected;
+    std::uint64_t now = 0;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        },
+        [&now] { return now; });
+    require(engine.replace_rules(true, {single_rule(
+                simpilot::keyboard_mapping_catalog_key(VK_NUMLOCK), key(L'B', 48))}),
+            "Num Lock selected from the source list must compile");
+    const auto source = event_for(num_lock);
+    require(engine.handle(WM_KEYDOWN, source).decision
+                == MappingEventDecision::suppress
+                && engine.handle(WM_KEYUP, source).decision
+                    == MappingEventDecision::suppress,
+            "A catalog Num Lock source must match recorded hook events");
+    require(injected.size() == 2 && injected.front().ki.wScan == 48
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "Num Lock source must produce and release its mapped target");
+
+    injected.clear();
+    require(engine.replace_rules(true,
+                {chord_rule(num_lock, key(L'A', 30), key(L'B', 48))}),
+            "Num Lock chord source must compile");
+    require(engine.handle(WM_KEYDOWN, source).decision
+                == MappingEventDecision::suppress && engine.pending(),
+            "Num Lock chord prefix must be buffered");
+    now = KeyboardMappingEngine::pending_timeout_ms;
+    engine.on_timer();
+    require(!engine.pending() && injected.size() == 1
+                && injected.front().ki.wVk == VK_NUMLOCK
+                && injected.front().ki.dwFlags == KEYEVENTF_EXTENDEDKEY
+                && injected.front().ki.dwExtraInfo
+                    == KeyboardMappingEngine::replay_injected_marker,
+            "An unmatched Num Lock prefix must replay as a working Num Lock key");
+    require(engine.handle(WM_KEYUP, source).decision == MappingEventDecision::pass,
+            "Physical Num Lock release must pass after prefix replay");
+}
+
 void partial_input_delivery_is_retried() {
     std::vector<UINT> batches;
     KeyboardMappingEngine engine(
@@ -1041,6 +1122,11 @@ void editor_catalog_uses_hook_compatible_physical_keys() {
             "main Enter and numpad Enter must remain distinct");
 
     const auto source_actions = simpilot::keyboard_mapping_source_action_catalog();
+    const PhysicalKey num_lock{VK_NUMLOCK, 0x45, true};
+    require(contains_key(actions, num_lock) && contains_key(source_actions, num_lock),
+            "Num Lock must be selectable as both source and target");
+    require(simpilot::format_mapping_key(num_lock) == L"Num Lock",
+            "Recorded Num Lock must have a name instead of VK 0x90");
     require(contains_key(source_actions, modifiers[1])
                 && contains_key(source_actions, modifiers[7]),
             "the source primary-key catalog must expose sided modifiers");
@@ -1093,6 +1179,12 @@ void editor_catalog_uses_hook_compatible_physical_keys() {
                     simpilot::keyboard_mapping_catalog_key(VK_F23),
                     localization) == L"F23",
                 "F23 must have the documented label in every language");
+        const auto expected_num_lock = language == simpilot::UiLanguage::english
+            ? L"Num Lock" : language == simpilot::UiLanguage::simplified_chinese
+                ? L"数字锁定 (Num Lock)" : L"數字鎖定 (Num Lock)";
+        require(simpilot::localized_keyboard_mapping_key_label(num_lock, localization)
+                    == expected_num_lock,
+                "Num Lock must have a translated, recognizable label in every language");
     }
 }
 
@@ -1115,6 +1207,8 @@ void editor_model_preserves_unlisted_recorded_keys() {
 int wmain() {
     try {
         single_key_lifecycle();
+        num_lock_targets_use_virtual_key_input();
+        num_lock_sources_and_prefix_replay();
         partial_input_delivery_is_retried();
         failed_target_release_is_retried();
         variant_modifier_release_commits_without_replaying_a_stuck_key();

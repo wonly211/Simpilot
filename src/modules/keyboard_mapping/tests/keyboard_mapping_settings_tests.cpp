@@ -1,4 +1,7 @@
 #include "keyboard_mapping_module.hpp"
+#include "keyboard_capture_state.hpp"
+#include "keyboard_mapping_editor_model.hpp"
+#include "keyboard_mapping_engine.hpp"
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -200,11 +203,66 @@ void keyboard_mapping_validation_is_order_insensitive() {
             "Disjoint exact process scopes must not create a mapping cycle");
 }
 
+void recorded_num_lock_survives_save_reload_and_execution() {
+    simpilot::KeyboardCaptureState capture;
+    capture.begin(simpilot::CaptureMode::mapping_output);
+    const simpilot::PhysicalKey num_lock{VK_NUMLOCK, 0x45, true};
+    require(capture.handle(WM_KEYDOWN, num_lock).suppress,
+            "Recording Num Lock must suppress the physical press");
+    const auto release = capture.handle(WM_KEYUP, num_lock);
+    require(release.suppress && release.completed,
+            "Releasing Num Lock must complete target recording");
+    const auto completion = capture.take_completed();
+    require(completion && completion->output.single_key
+                && completion->output.action == num_lock,
+            "Recording must preserve the Num Lock physical identity");
+
+    simpilot::KeyboardMappingEditorModel editor;
+    editor.set_source_action(simpilot::PhysicalKey{VK_F24, 0x76, false});
+    editor.set_output(completion->output);
+    const auto draft = editor.build();
+    require(static_cast<bool>(draft), "Recorded Num Lock must form a valid draft");
+    simpilot::KeyboardMappingRule rule;
+    rule.trigger = draft.trigger;
+    rule.output = draft.output;
+    simpilot::KeyboardMappingSettings settings;
+    settings.rules = {rule};
+    const auto path = std::filesystem::temp_directory_path()
+        / (L"simpilot-num-lock-test-" + std::to_wstring(GetCurrentProcessId()) + L".ini");
+    require(save_settings(path, settings), "Recorded Num Lock mapping must save");
+    const auto loaded = load_settings(path);
+    std::filesystem::remove(path);
+    require(loaded.rules == settings.rules,
+            "Num Lock mapping must reload with unchanged physical key data");
+
+    std::vector<INPUT> injected;
+    simpilot::KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    require(engine.replace_rules(loaded.enabled, loaded.rules),
+            "Saved Num Lock mapping must activate");
+    const KBDLLHOOKSTRUCT source{.vkCode = VK_F24, .scanCode = 0x76};
+    require(engine.handle(WM_KEYDOWN, source).decision
+                == simpilot::MappingEventDecision::suppress
+                && engine.handle(WM_KEYUP, source).decision
+                    == simpilot::MappingEventDecision::suppress,
+            "Reloaded Num Lock mapping must consume its source press and release");
+    require(injected.size() == 2
+                && injected.front().ki.wVk == VK_NUMLOCK
+                && injected.front().ki.dwFlags == KEYEVENTF_EXTENDEDKEY
+                && injected.back().ki.wVk == VK_NUMLOCK
+                && injected.back().ki.dwFlags == (KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP),
+            "Recorded and reloaded Num Lock must emit usable virtual-key input");
+}
+
 } // namespace
 int main() {
     try {
         app_settings_rejects_malformed_keyboard_mappings();
         keyboard_mapping_validation_is_order_insensitive();
+        recorded_num_lock_survives_save_reload_and_execution();
         std::cout << "Keyboard mapping configuration tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

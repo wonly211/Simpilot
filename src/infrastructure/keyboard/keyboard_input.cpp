@@ -95,6 +95,7 @@ std::wstring format_mapping_key(const PhysicalKey& key) {
     case VK_UP: return L"Up Arrow";
     case VK_DOWN: return L"Down Arrow";
     case VK_SNAPSHOT: return L"Print Screen";
+    case VK_NUMLOCK: return L"Num Lock";
     case VK_SCROLL: return L"Scroll Lock";
     case VK_PAUSE: return L"Pause";
     case VK_APPS: return L"Applications";
