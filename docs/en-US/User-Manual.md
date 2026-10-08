@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.8
+Applies to version: 1.0.9
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -273,8 +273,10 @@ Exact `Win+A` through `Win+Z` combinations integrate with Windows Hotkey Blockin
 Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. The list's second column shows the optional purpose label for each mapping. Use **Add**, **Edit**, and **Delete** to manage rules.
 
 - A **source trigger** can be one key, one to four modifiers plus an action key, or up to three modifiers plus two action keys held at the same time. Either chord action may be pressed first.
-- A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. A standalone modifier waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.
+- A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. When mapped to an ordinary key or shortcut, it waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.
 - A **target output** can be one key or up to four modifiers plus one action key. Target chords are not supported.
+- Sided Ctrl, Alt, Shift, and Win keys can also be recorded or selected as single-key targets, without additional target modifiers. For example, **Left Win → Right Ctrl** holds Right Ctrl immediately and releases it when Left Win is released; holding Left Win and pressing `C` produces `Ctrl+C`. Ordinary keys can also map to modifiers, such as `Caps Lock → Left Ctrl`.
+- A modifier mapped to another modifier cannot coexist with a source shortcut containing that same source modifier. Saving rejects these conflicting rules. Existing tap behavior for modifiers mapped to ordinary keys or shortcuts is unchanged.
 - **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
 - `Num Lock` can be recorded or selected from the primary-key list as a source or target. Mapping `F12` to `Num Lock` toggles its state each time you press and release `F12`. Existing target mappings recorded as `VK 0x90` work without being recorded again.
 - Leave Application empty for a global rule. Enter an executable base name without a path to limit a rule to the foreground application. With **Exact application match** disabled, matching uses a case-insensitive process-name prefix. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.

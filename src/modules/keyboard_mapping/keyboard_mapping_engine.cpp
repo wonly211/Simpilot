@@ -144,6 +144,11 @@ bool expected_trigger_key(
     return trigger.chord_action && *trigger.chord_action == key;
 }
 
+bool single_modifier_output(const KeyboardOutput& output) noexcept {
+    return output.single_key
+        && is_mapping_physical_modifier(output.action.virtual_key);
+}
+
 } // namespace
 
 KeyboardMappingEngine::KeyboardMappingEngine()
@@ -313,8 +318,33 @@ bool KeyboardMappingEngine::matches_rule(
     }
     const auto& trigger = rule.rule.trigger;
     if (!is_mapping_key_valid(trigger.action)) return false;
+    if (trigger.single_key && belongs_to_active(trigger.action)) return false;
     if (trigger.single_key && (trigger.modifier_count != 0 || trigger.chord_action)) {
         return false;
+    }
+    if (trigger.single_key && single_modifier_output(rule.rule.output)) {
+        if (!pressed_contains(trigger.action)) return false;
+        const auto held = [this](const UINT virtual_key) noexcept {
+            return std::ranges::any_of(pressed_.begin(),
+                pressed_.begin() + static_cast<std::ptrdiff_t>(pressed_count_),
+                [virtual_key](const PressedKey& pressed) {
+                    return pressed.key.virtual_key == virtual_key;
+                });
+        };
+        const auto target = rule.rule.output.action.virtual_key;
+        const auto control = held(VK_CONTROL) || held(VK_LCONTROL) || held(VK_RCONTROL);
+        const auto alt = held(VK_MENU) || held(VK_LMENU) || held(VK_RMENU);
+        // A modifier target can join keys that were pressed first, but must
+        // not complete a live lock or secure-attention sequence.
+        if ((held(L'L') && (target == VK_LWIN || target == VK_RWIN
+                || trigger.action.virtual_key == VK_LWIN
+                || trigger.action.virtual_key == VK_RWIN))
+            || (held(VK_DELETE)
+                && ((alt && (target == VK_LCONTROL || target == VK_RCONTROL))
+                    || (control && (target == VK_LMENU || target == VK_RMENU))))) {
+            return false;
+        }
+        return true;
     }
     if (!all_pressed_are_source(trigger)) return false;
     if (trigger.single_key) {
@@ -533,12 +563,39 @@ bool KeyboardMappingEngine::send_output_down(
     return send_events(inputs.data(), count);
 }
 
+bool KeyboardMappingEngine::modifier_is_held(
+    const UINT virtual_key, const ActiveMapping* releasing) const noexcept {
+    for (std::size_t index = 0; index < pressed_count_; ++index) {
+        if (pressed_[index].key.virtual_key == virtual_key
+            && !belongs_to_active(pressed_[index].key)
+            && !pending_contains_key(pressed_[index].key)) {
+            return true;
+        }
+    }
+    for (const auto& mapping : active_mappings_) {
+        if (!mapping.active || &mapping == releasing
+            || mapping.rule_index >= rules_.size()) continue;
+        const auto& output = rules_[mapping.rule_index].rule.output;
+        if (output.action.virtual_key == virtual_key) return true;
+        if (!output.single_key) {
+            for (std::size_t index = 0; index < output.modifier_count; ++index) {
+                if (output.modifiers[index].virtual_key == virtual_key) return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool KeyboardMappingEngine::send_output_up(
-    const KeyboardOutput& output) noexcept {
+    const KeyboardOutput& output, const ActiveMapping* releasing) noexcept {
     if (!is_mapping_key_valid(output.action)) return false;
     std::array<INPUT, 5> inputs{};
     UINT count = 0;
-    const auto append_up = [&inputs, &count](const PhysicalKey& key) {
+    const auto append_up = [this, releasing, &inputs, &count](const PhysicalKey& key) {
+        // Several mappings, or the real target key, can hold the same sided
+        // modifier. Only the final owner is allowed to send its key-up.
+        if (is_mapping_physical_modifier(key.virtual_key)
+            && modifier_is_held(key.virtual_key, releasing)) return;
         fill_keyboard_input(inputs[count++], key, false, target_injected_marker);
     };
 
@@ -803,6 +860,16 @@ MappingEventResult KeyboardMappingEngine::handle(
                     if (!mapping.active || mapping.rule_index >= rules_.size()) {
                         continue;
                     }
+                    if (!std::ranges::any_of(mapping.source_keys.begin(),
+                            mapping.source_keys.begin()
+                                + static_cast<std::ptrdiff_t>(mapping.source_count),
+                            [&key](const PhysicalKey& source) { return same_key(source, key); })) {
+                        continue;
+                    }
+                    if (is_mapping_modifier(
+                            rules_[mapping.rule_index].rule.output.action.virtual_key)) {
+                        break;
+                    }
                     if (!send_single(
                             rules_[mapping.rule_index].rule.output.action,
                             true, target_injected_marker)) {
@@ -825,7 +892,7 @@ MappingEventResult KeyboardMappingEngine::handle(
             }
             if (source_still_down) continue;
             if (mapping.rule_index < rules_.size()
-                && !send_output_up(rules_[mapping.rule_index].rule.output)) {
+                && !send_output_up(rules_[mapping.rule_index].rule.output, &mapping)) {
                 mark_diagnostic();
             }
             mapping = {};
@@ -835,6 +902,11 @@ MappingEventResult KeyboardMappingEngine::handle(
     }
 
     if (!down) {
+        if (!was_pending && is_mapping_physical_modifier(key.virtual_key)
+            && modifier_is_held(key.virtual_key)) {
+            result.decision = MappingEventDecision::suppress;
+            return result;
+        }
         if (pending_count_ == 0) return result;
         if (!was_pending) {
             // A key that was already held before the prefix started is not
@@ -881,6 +953,7 @@ MappingEventResult KeyboardMappingEngine::handle(
     if (complete && complete->rule.trigger.single_key
         && is_mapping_physical_modifier(
             complete->rule.trigger.action.virtual_key)
+        && !single_modifier_output(complete->rule.output)
         && pending_count_ == 0 && !was_pressed) {
         if (!append_pending(message, event)) {
             result.diagnostic = true;
@@ -894,7 +967,8 @@ MappingEventResult KeyboardMappingEngine::handle(
 
     const auto can_activate = complete
         && ((!complete->rule.trigger.single_key && pending_count_ != 0)
-            || (complete->rule.trigger.single_key && !was_pressed));
+            || (complete->rule.trigger.single_key && !was_pressed
+                && same_key(complete->rule.trigger.action, key)));
     if (can_activate) {
         if (complete->rule.trigger.single_key && pending_count_ != 0
             && !replay_pending()) {
@@ -989,7 +1063,7 @@ void KeyboardMappingEngine::reset(const bool replay_pending_events) noexcept {
     for (auto& mapping : active_mappings_) {
         if (!mapping.active) continue;
         if (mapping.rule_index < rules_.size()
-            && !send_output_up(rules_[mapping.rule_index].rule.output)) {
+            && !send_output_up(rules_[mapping.rule_index].rule.output, &mapping)) {
             mark_diagnostic();
         }
         mapping = {};

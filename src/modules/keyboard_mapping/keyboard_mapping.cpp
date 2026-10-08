@@ -294,7 +294,8 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
                 add_error(L"A single-key target cannot contain modifiers.");
             }
             if (!is_mapping_key_valid(output.action)
-                || is_mapping_modifier(output.action.virtual_key)) {
+                || (is_mapping_modifier(output.action.virtual_key)
+                    && !is_mapping_physical_modifier(output.action.virtual_key))) {
                 add_error(L"Target key is invalid.");
             }
         } else {
@@ -340,7 +341,20 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
         for (std::size_t right = left + 1; right < rules.size(); ++right) {
             if (!rules[right].enabled) continue;
             if (!process_scopes_overlap(rules[left], rules[right])) continue;
-            if (trigger_is_reachable_prefix(
+            const auto modifier_remap_conflicts = [](
+                const KeyboardMappingRule& remap, const KeyboardMappingRule& shortcut) {
+                return remap.trigger.single_key
+                    && is_mapping_physical_modifier(remap.trigger.action.virtual_key)
+                    && remap.output.single_key
+                    && is_mapping_physical_modifier(remap.output.action.virtual_key)
+                    && !shortcut.trigger.single_key
+                    && contains_physical_key(shortcut.trigger, remap.trigger.action);
+            };
+            if (modifier_remap_conflicts(rules[left], rules[right])
+                || modifier_remap_conflicts(rules[right], rules[left])) {
+                errors.push_back({left,
+                    L"A modifier remap conflicts with a shortcut using the same source modifier."});
+            } else if (trigger_is_reachable_prefix(
                     rules[left].trigger, rules[right].trigger)) {
                 errors.push_back({left,
                     L"Shortcut sources contain an ambiguous prefix."});

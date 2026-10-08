@@ -443,6 +443,201 @@ void physical_modifier_single_key_disambiguation() {
             "the longer mapping target must release with the final source key");
 }
 
+void single_modifier_targets_follow_the_source_lifetime() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    for (const auto target : modifiers) {
+        for (const auto source : {key(VK_CAPITAL, 0x3A),
+                                  target.virtual_key == VK_LWIN
+                                      ? modifiers[7] : modifiers[6]}) {
+            injected.clear();
+            require(engine.replace_rules(true, {single_rule(source, target)}),
+                "A sided modifier target must compile");
+            const auto source_event = event_for(source);
+            require(engine.handle(WM_KEYDOWN, source_event).decision
+                        == MappingEventDecision::suppress
+                        && !engine.pending() && injected.size() == 1,
+                "A single modifier target must go down immediately");
+            require(injected.front().ki.wScan == target.scan_code
+                        && (injected.front().ki.dwFlags & KEYEVENTF_EXTENDEDKEY)
+                            == (target.extended ? DWORD{KEYEVENTF_EXTENDEDKEY} : DWORD{0})
+                        && (injected.front().ki.dwFlags & KEYEVENTF_KEYUP) == 0,
+                "The output must identify the selected modifier side");
+            require(engine.handle(WM_KEYDOWN, source_event).decision
+                        == MappingEventDecision::suppress && injected.size() == 1,
+                "Auto-repeat must not repeat a held target modifier");
+            const auto c = event_for(key(L'C', 0x2E));
+            require(engine.handle(WM_KEYDOWN, c).decision == MappingEventDecision::pass
+                        && injected.size() == 1,
+                "A fast combination must use the target modifier without replaying the source");
+            require(engine.handle(WM_KEYUP, source_event).decision
+                        == MappingEventDecision::suppress && injected.size() == 2
+                        && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+                "The target must release with the source even while C stays down");
+            require(engine.handle(WM_KEYUP, c).decision == MappingEventDecision::pass,
+                "The companion key release must remain visible");
+
+            injected.clear();
+            require(engine.handle(WM_KEYDOWN, c).decision == MappingEventDecision::pass,
+                "The companion key may be pressed first");
+            require(engine.handle(WM_KEYDOWN, source_event).decision
+                        == MappingEventDecision::suppress && injected.size() == 1,
+                "A modifier target must work while another key is already held");
+            require(engine.handle(WM_KEYUP, c).decision == MappingEventDecision::pass
+                        && injected.size() == 1,
+                "Companion release must not release the target modifier");
+            require(engine.handle(WM_KEYUP, source_event).decision
+                        == MappingEventDecision::suppress && injected.size() == 2,
+                "The final source release must balance the modifier down");
+
+            injected.clear();
+            (void)engine.handle(WM_KEYDOWN, source_event);
+            engine.reset(true);
+            require(injected.size() == 2
+                        && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+                "Reset must release a held modifier target");
+            injected.clear();
+            (void)engine.handle(WM_KEYDOWN, source_event);
+            require(engine.replace_rules(false, {}) && injected.size() == 2
+                        && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+                "Replacing rules must release the old modifier target");
+        }
+    }
+}
+
+void shared_modifier_targets_stay_held_until_the_last_owner_releases() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto left_win = event_for(modifiers[6]);
+    const auto caps_lock = event_for(key(VK_CAPITAL, 0x3A));
+    const auto right_ctrl = event_for(modifiers[1]);
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine(
+        [&injected](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            return count;
+        });
+    require(engine.replace_rules(true, {
+        single_rule(modifiers[6], modifiers[1]),
+        single_rule(key(VK_CAPITAL, 0x3A), modifiers[1])}),
+        "Independent sources may share a modifier target");
+    (void)engine.handle(WM_KEYDOWN, left_win);
+    (void)engine.handle(WM_KEYDOWN, caps_lock);
+    const auto downs = injected.size();
+    require(downs == 2, "Both sources must activate");
+    (void)engine.handle(WM_KEYUP, left_win);
+    require(injected.size() == downs, "One owner must not release another owner's Ctrl");
+    (void)engine.handle(WM_KEYUP, caps_lock);
+    require(injected.size() == downs + 1
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "The last owner must release Ctrl");
+
+    injected.clear();
+    (void)engine.handle(WM_KEYDOWN, left_win);
+    require(engine.handle(WM_KEYDOWN, right_ctrl).decision == MappingEventDecision::pass,
+        "A physical target modifier press must pass through");
+    (void)engine.handle(WM_KEYUP, left_win);
+    require(injected.size() == 1,
+        "Mapped source release must not release a physically held target");
+    require(engine.handle(WM_KEYUP, right_ctrl).decision == MappingEventDecision::pass,
+        "The final physical target release must pass through");
+
+    injected.clear();
+    (void)engine.handle(WM_KEYDOWN, right_ctrl);
+    (void)engine.handle(WM_KEYDOWN, left_win);
+    require(engine.handle(WM_KEYUP, right_ctrl).decision == MappingEventDecision::suppress,
+        "Physical target release must not cancel a held mapped target");
+    (void)engine.handle(WM_KEYUP, left_win);
+    require(injected.size() == 2 && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "Mapped release must finish the shared physical-target lifetime");
+
+    injected.clear();
+    (void)engine.handle(WM_KEYDOWN, left_win);
+    (void)engine.handle(WM_KEYDOWN, caps_lock);
+    engine.reset(true);
+    require(injected.size() == 3 && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "Reset must release a shared target exactly once");
+}
+
+void modifier_targets_do_not_complete_live_secure_combinations() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    for (const auto target : {modifiers[6], modifiers[1], modifiers[3]}) {
+        std::vector<INPUT> injected;
+        KeyboardMappingEngine engine(
+            [&injected](const INPUT* inputs, const UINT count) {
+                injected.insert(injected.end(), inputs, inputs + count);
+                return count;
+            });
+        require(engine.replace_rules(true,
+                    {single_rule(key(VK_CAPITAL, 0x3A), target)}),
+            "A modifier-target safety rule must compile");
+        if (target.virtual_key == VK_LWIN) {
+            (void)engine.handle(WM_KEYDOWN, event_for(key(L'L', 0x26)));
+        } else {
+            (void)engine.handle(WM_KEYDOWN, event_for(
+                target.virtual_key == VK_RCONTROL ? modifiers[2] : modifiers[0]));
+            (void)engine.handle(WM_KEYDOWN, event_for(PhysicalKey{VK_DELETE, 0x53, true}));
+        }
+        require(engine.handle(WM_KEYDOWN, event_for(key(VK_CAPITAL, 0x3A))).decision
+                    == MappingEventDecision::pass && injected.empty(),
+            "A modifier output must not complete Win+L or Ctrl+Alt+Delete with held keys");
+    }
+}
+
+void modifier_target_failures_and_shortcut_sources_are_balanced() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    std::vector<INPUT> injected;
+    bool reject_down = true;
+    bool reject_first_up = false;
+    KeyboardMappingEngine engine(
+        [&injected, &reject_down, &reject_first_up](const INPUT* inputs, const UINT count) {
+            injected.insert(injected.end(), inputs, inputs + count);
+            if ((inputs[0].ki.dwFlags & KEYEVENTF_KEYUP) == 0 && reject_down) return 0U;
+            if ((inputs[0].ki.dwFlags & KEYEVENTF_KEYUP) != 0 && reject_first_up) {
+                reject_first_up = false;
+                return 0U;
+            }
+            return count;
+        });
+    const auto win = event_for(modifiers[6]);
+    require(engine.replace_rules(true, {single_rule(modifiers[6], modifiers[1])}),
+        "A modifier-target failure rule must compile");
+    require(engine.handle(WM_KEYDOWN, win).decision == MappingEventDecision::pass
+                && engine.consume_diagnostic() && injected.size() == 2
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "Failed modifier down must clean up and pass the original source");
+    require(engine.handle(WM_KEYUP, win).decision == MappingEventDecision::pass,
+        "A failed activation must not own the original source release");
+    injected.clear();
+    reject_down = false;
+    (void)engine.handle(WM_KEYDOWN, win);
+    reject_first_up = true;
+    require(engine.handle(WM_KEYUP, win).decision == MappingEventDecision::suppress
+                && injected.size() == 3
+                && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "A transient modifier-up failure must be retried");
+
+    injected.clear();
+    require(engine.replace_rules(true, {shortcut_rule(
+        modifiers[0], key(L'A', 0x1E), modifiers[1])}),
+        "A shortcut may map to a single modifier target");
+    const auto control = event_for(modifiers[0]);
+    const auto action = event_for(key(L'A', 0x1E));
+    (void)engine.handle(WM_KEYDOWN, control);
+    (void)engine.handle(WM_KEYDOWN, action);
+    require(injected.size() == 1 && injected.front().ki.wScan == modifiers[1].scan_code,
+        "A completed shortcut must hold its modifier target");
+    (void)engine.handle(WM_KEYUP, action);
+    require(injected.size() == 1, "A shortcut target must wait for all source releases");
+    (void)engine.handle(WM_KEYUP, control);
+    require(injected.size() == 2 && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+        "The final shortcut source release must release its target modifier");
+}
+
 void auto_repeat_repeats_the_target_action() {
     std::vector<INPUT> injected;
     KeyboardMappingEngine engine(
@@ -1092,6 +1287,25 @@ void editor_model_supports_a_physical_modifier_source() {
             "a generic Ctrl identity must not replace a sided physical source");
 }
 
+void editor_model_supports_sided_modifier_targets() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    KeyboardMappingEditorModel editor;
+    editor.set_source_action(modifiers[6]);
+    editor.set_target_action(modifiers[1]);
+    const auto draft = editor.build();
+    require(static_cast<bool>(draft) && draft.output.single_key
+                && draft.output.action == modifiers[1],
+        "Left Win to Right Ctrl must build as a pair of single physical keys");
+    editor.set_target_modifier(0, modifiers[4]);
+    require(editor.build().error
+                == KeyboardMappingDraftError::target_modifier_action_requires_single,
+        "A modifier target primary key must reject extra target modifiers");
+    editor.set_target_modifier(0, std::nullopt);
+    editor.set_target_action(PhysicalKey{VK_CONTROL, 0x1D, false});
+    require(editor.build().error == KeyboardMappingDraftError::target_action_invalid,
+        "A generic Ctrl must not replace a sided target");
+}
+
 void editor_catalog_uses_hook_compatible_physical_keys() {
     const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
     require(modifiers[4] == PhysicalKey{VK_LSHIFT, 0x2A, false},
@@ -1121,15 +1335,16 @@ void editor_catalog_uses_hook_compatible_physical_keys() {
                 && contains_key(actions, PhysicalKey{VK_RETURN, 0x1C, true}),
             "main Enter and numpad Enter must remain distinct");
 
-    const auto source_actions = simpilot::keyboard_mapping_source_action_catalog();
+    const auto source_actions = simpilot::keyboard_mapping_primary_key_catalog();
     const PhysicalKey num_lock{VK_NUMLOCK, 0x45, true};
     require(contains_key(actions, num_lock) && contains_key(source_actions, num_lock),
             "Num Lock must be selectable as both source and target");
     require(simpilot::format_mapping_key(num_lock) == L"Num Lock",
             "Recorded Num Lock must have a name instead of VK 0x90");
-    require(contains_key(source_actions, modifiers[1])
-                && contains_key(source_actions, modifiers[7]),
-            "the source primary-key catalog must expose sided modifiers");
+    for (const auto modifier : modifiers) {
+        require(contains_key(source_actions, modifier),
+            "the shared source and target primary-key catalog must expose every sided modifier");
+    }
     require(simpilot::format_mapping_key(
                 simpilot::keyboard_mapping_catalog_key(VK_F23)) == L"F23",
             "VK_F23 must be displayed as F23 instead of decimal VK134");
@@ -1213,6 +1428,10 @@ int wmain() {
         failed_target_release_is_retried();
         variant_modifier_release_commits_without_replaying_a_stuck_key();
         physical_modifier_single_key_disambiguation();
+        single_modifier_targets_follow_the_source_lifetime();
+        shared_modifier_targets_stay_held_until_the_last_owner_releases();
+        modifier_targets_do_not_complete_live_secure_combinations();
+        modifier_target_failures_and_shortcut_sources_are_balanced();
         auto_repeat_repeats_the_target_action();
         secure_combinations_bypass_single_key_mapping();
         prefix_timeout_replays_original_events();
@@ -1235,6 +1454,7 @@ int wmain() {
         editor_model_saves_recorded_shortcuts_without_text_parsing();
         editor_model_validates_structured_chords_and_modifiers();
         editor_model_supports_a_physical_modifier_source();
+        editor_model_supports_sided_modifier_targets();
         editor_catalog_uses_hook_compatible_physical_keys();
         editor_model_preserves_unlisted_recorded_keys();
         std::wcout << L"All keyboard mapping engine tests passed.\n";
