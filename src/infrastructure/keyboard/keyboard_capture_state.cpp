@@ -330,9 +330,11 @@ CaptureEventResult KeyboardCaptureState::handle(
         if (!add_pressed(key)) return cancel();
         if (already_captured(key)) return result;
 
-        if (mode_ == CaptureMode::mapping_trigger) {
+        if (mode_ != CaptureMode::legacy) {
+            const auto count = mode_ == CaptureMode::mapping_trigger
+                ? trigger_candidate_.modifier_count : output_candidate_.modifier_count;
             if (is_modifier(key) && pressed_count_ == 1 && !has_action_
-                && trigger_candidate_.modifier_count == 0) {
+                && count == 0 && is_mapping_physical_modifier(key.virtual_key)) {
                 standalone_modifier_candidate_ = key;
             } else {
                 standalone_modifier_candidate_.reset();
@@ -348,12 +350,17 @@ CaptureEventResult KeyboardCaptureState::handle(
     const auto pressed_index = find_pressed(key);
     if (pressed_index != no_index) remove_pressed(pressed_index);
 
-    if (mode_ == CaptureMode::mapping_trigger && !has_action_
-        && all_released() && standalone_modifier_candidate_
-        && trigger_candidate_.modifier_count == 1) {
-        trigger_candidate_.action = *standalone_modifier_candidate_;
-        trigger_candidate_.modifiers[0] = {};
-        trigger_candidate_.modifier_count = 0;
+    if (mode_ != CaptureMode::legacy && !has_action_
+        && all_released() && standalone_modifier_candidate_) {
+        if (mode_ == CaptureMode::mapping_trigger) {
+            trigger_candidate_.action = *standalone_modifier_candidate_;
+            trigger_candidate_.modifiers[0] = {};
+            trigger_candidate_.modifier_count = 0;
+        } else {
+            output_candidate_.action = *standalone_modifier_candidate_;
+            output_candidate_.modifiers[0] = {};
+            output_candidate_.modifier_count = 0;
+        }
         standalone_modifier_candidate_.reset();
         has_action_ = true;
         return complete();

@@ -89,7 +89,10 @@ private:
     void clear_pending() noexcept;
     [[nodiscard]] bool replay_pending() noexcept;
     [[nodiscard]] bool send_output_down(const KeyboardOutput& output) noexcept;
-    [[nodiscard]] bool send_output_up(const KeyboardOutput& output) noexcept;
+    [[nodiscard]] bool send_output_up(
+        const KeyboardOutput& output, const ActiveMapping* releasing = nullptr) noexcept;
+    [[nodiscard]] bool modifier_is_held(
+        UINT virtual_key, const ActiveMapping* releasing = nullptr) const noexcept;
     [[nodiscard]] bool send_output_tap(const KeyboardOutput& output) noexcept;
     [[nodiscard]] bool send_single(
         const PhysicalKey& key, bool key_down, ULONG_PTR marker) noexcept;

@@ -360,9 +360,61 @@ void captures_a_standalone_physical_modifier_source() {
     const auto output_release = state.handle(WM_KEYUP, right_control);
     require_suppressed(output_release,
         "A target modifier release must remain suppressed while recording");
-    require(!output_release.completed && state.active(),
-        "A modifier alone must remain invalid as a mapping target");
+    require(output_release.completed && !state.active(),
+        "A standalone modifier must complete target recording");
+    const auto output = state.take_completed();
+    require(output && output->output.single_key
+                && output->output.modifier_count == 0
+                && output->output.action == right_control,
+        "A standalone target must preserve the right Ctrl identity");
     state.end();
+}
+
+void captures_sided_modifier_targets_and_keeps_shortcuts() {
+    constexpr PhysicalKey modifiers[]{
+        {VK_LCONTROL, 0x1D, false}, {VK_RCONTROL, 0x1D, true},
+        {VK_LMENU, 0x38, false}, {VK_RMENU, 0x38, true},
+        {VK_LSHIFT, 0x2A, false}, {VK_RSHIFT, 0x36, false},
+        {VK_LWIN, 0x5B, true}, {VK_RWIN, 0x5C, true},
+    };
+    KeyboardCaptureState state;
+    for (const auto modifier : modifiers) {
+        state.begin(CaptureMode::mapping_output);
+        require_suppressed(state.handle(WM_SYSKEYDOWN, modifier),
+            "Target recording must suppress each sided modifier");
+        require_suppressed(state.handle(WM_SYSKEYDOWN, modifier),
+            "Repeated modifier presses must not change the candidate");
+        require(state.handle(WM_SYSKEYUP, modifier).completed,
+            "Every sided modifier must be recordable as a single target");
+        const auto completion = state.take_completed();
+        require(completion && completion->output.single_key
+                    && completion->output.action == modifier
+                    && completion->output.modifier_count == 0,
+            "Recording must retain the exact target side and scan code");
+
+        for (const bool action_first : {false, true}) {
+            state.begin(CaptureMode::mapping_output);
+            const auto action = physical(L'C', 0x2E);
+            (void)state.handle(WM_KEYDOWN, modifier);
+            (void)state.handle(WM_KEYDOWN, action);
+            require(!state.handle(WM_KEYUP, action_first ? action : modifier).completed,
+                "A target shortcut must wait until both keys are released");
+            require(state.handle(WM_KEYUP, action_first ? modifier : action).completed,
+                "A target shortcut must complete in either release order");
+            const auto shortcut = state.take_completed();
+            require(shortcut && !shortcut->output.single_key
+                        && shortcut->output.modifier_count == 1
+                        && shortcut->output.modifiers[0] == modifier
+                        && shortcut->output.action == action,
+                "A modifier followed by an action must still record a shortcut");
+        }
+    }
+    state.begin(CaptureMode::mapping_output);
+    (void)state.handle(WM_KEYDOWN, modifiers[0]);
+    (void)state.handle(WM_KEYDOWN, modifiers[4]);
+    (void)state.handle(WM_KEYUP, modifiers[4]);
+    require(!state.handle(WM_KEYUP, modifiers[0]).completed && state.active(),
+        "Multiple modifiers without an action must not become a single target");
 }
 
 } // namespace
@@ -377,6 +429,7 @@ int wmain() {
         reset_and_begin_clear_pending_state();
         captures_physical_modifiers_and_simultaneous_chords();
         captures_a_standalone_physical_modifier_source();
+        captures_sided_modifier_targets_and_keeps_shortcuts();
         std::wcout << L"All keyboard capture state tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

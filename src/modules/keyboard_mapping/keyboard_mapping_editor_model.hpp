@@ -21,6 +21,7 @@ enum class KeyboardMappingDraftError {
     source_action_invalid,
     source_modifier_action_requires_single,
     target_action_invalid,
+    target_modifier_action_requires_single,
     source_modifier_invalid,
     target_modifier_invalid,
     source_modifier_duplicate,
@@ -80,7 +81,7 @@ private:
 [[nodiscard]] std::array<PhysicalKey, 8>
 keyboard_mapping_modifier_catalog() noexcept;
 [[nodiscard]] std::vector<PhysicalKey>
-keyboard_mapping_source_action_catalog();
+keyboard_mapping_primary_key_catalog();
 [[nodiscard]] std::vector<PhysicalKey> keyboard_mapping_action_catalog();
 [[nodiscard]] std::wstring localized_keyboard_mapping_key_label(
     const PhysicalKey& key, const Localization& localization);

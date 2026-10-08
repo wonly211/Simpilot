@@ -105,7 +105,7 @@ void app_settings_rejects_malformed_keyboard_mappings() {
                << "KeyboardMappingCount=2\r\n"
                << "KeyboardMapping1Enabled=1\r\n"
                << "KeyboardMapping1SourceAction=65:30:0\r\n"
-               << "KeyboardMapping1TargetAction=162:29:0\r\n"
+               << "KeyboardMapping1TargetAction=17:29:0\r\n"
                << "KeyboardMapping2Enabled=1\r\n"
                << "KeyboardMapping2SourceAction=65:30:0\r\n"
                << "KeyboardMapping2TargetAction=66:48:0\r\n";
@@ -257,12 +257,101 @@ void recorded_num_lock_survives_save_reload_and_execution() {
             "Recorded and reloaded Num Lock must emit usable virtual-key input");
 }
 
+void recorded_modifier_targets_survive_save_reload_and_execution() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    const auto path = std::filesystem::temp_directory_path()
+        / (L"simpilot-modifier-target-test-" + std::to_wstring(GetCurrentProcessId()) + L".ini");
+    for (const auto target : modifiers) {
+        simpilot::KeyboardCaptureState capture;
+        capture.begin(simpilot::CaptureMode::mapping_output);
+        (void)capture.handle(WM_KEYDOWN, target);
+        require(capture.handle(WM_KEYUP, target).completed,
+            "A sided target modifier must finish recording");
+        const auto completion = capture.take_completed();
+        require(completion && completion->output.single_key
+                    && completion->output.action == target,
+            "Recording must preserve the target modifier identity");
+        simpilot::KeyboardMappingEditorModel editor;
+        const auto source = target.virtual_key == VK_LWIN ? modifiers[7] : modifiers[6];
+        editor.set_source_action(source);
+        editor.set_output(completion->output);
+        const auto draft = editor.build();
+        require(static_cast<bool>(draft), "A recorded modifier target must build");
+        simpilot::KeyboardMappingRule rule;
+        rule.trigger = draft.trigger;
+        rule.output = draft.output;
+        simpilot::KeyboardMappingSettings settings;
+        settings.rules = {rule};
+        require(save_settings(path, settings), "A recorded modifier target must save");
+        const auto loaded = load_settings(path);
+        require(loaded.rules == settings.rules,
+            "Every target side and scan code must survive reloading");
+        std::vector<INPUT> injected;
+        simpilot::KeyboardMappingEngine engine(
+            [&injected](const INPUT* inputs, const UINT count) {
+                injected.insert(injected.end(), inputs, inputs + count);
+                return count;
+            });
+        require(engine.replace_rules(loaded.enabled, loaded.rules),
+            "A reloaded modifier target must activate");
+        const KBDLLHOOKSTRUCT event{.vkCode = source.virtual_key,
+            .scanCode = source.scan_code, .flags = source.extended ? LLKHF_EXTENDED : 0U};
+        require(engine.handle(WM_KEYDOWN, event).decision
+                    == simpilot::MappingEventDecision::suppress
+                    && injected.size() == 1 && !engine.pending(),
+            "A reloaded modifier must press immediately");
+        require(engine.handle(WM_KEYUP, event).decision
+                    == simpilot::MappingEventDecision::suppress
+                    && injected.size() == 2 && injected.front().ki.wScan == target.scan_code
+                    && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP) != 0,
+            "A saved modifier target must emit a balanced down/up pair");
+    }
+    std::filesystem::remove(path);
+}
+
+void modifier_targets_reject_invalid_and_conflicting_rules() {
+    const auto modifiers = simpilot::keyboard_mapping_modifier_catalog();
+    simpilot::KeyboardMappingRule remap;
+    remap.trigger.single_key = true;
+    remap.trigger.action = modifiers[6];
+    remap.output.single_key = true;
+    remap.output.action = modifiers[1];
+    for (const auto generic : {VK_CONTROL, VK_MENU, VK_SHIFT}) {
+        auto invalid = remap;
+        invalid.output.action.virtual_key = generic;
+        require(!simpilot::validate_keyboard_mappings({invalid}).empty(),
+            "Generic target modifiers must be rejected in favor of sided identities");
+    }
+    auto invalid = remap;
+    invalid.output.single_key = false;
+    invalid.output.modifier_count = 1;
+    invalid.output.modifiers[0] = modifiers[4];
+    require(!simpilot::validate_keyboard_mappings({invalid}).empty(),
+        "A modifier primary target must not accept extra modifiers");
+
+    simpilot::KeyboardMappingRule shortcut;
+    shortcut.trigger.modifier_count = 1;
+    shortcut.trigger.modifiers[0] = modifiers[6];
+    shortcut.trigger.action = {L'C', 0x2E, false};
+    shortcut.output.single_key = true;
+    shortcut.output.action = {L'B', 0x30, false};
+    require(!simpilot::validate_keyboard_mappings({remap, shortcut}).empty()
+                && !simpilot::validate_keyboard_mappings({shortcut, remap}).empty(),
+        "An immediate modifier remap must reject conflicting shortcut prefixes in either order");
+    remap.process_name = L"editor.exe";
+    shortcut.process_name = L"browser.exe";
+    require(simpilot::validate_keyboard_mappings({remap, shortcut}).empty(),
+        "Disjoint process scopes must allow the two modifier uses");
+}
+
 } // namespace
 int main() {
     try {
         app_settings_rejects_malformed_keyboard_mappings();
         keyboard_mapping_validation_is_order_insensitive();
         recorded_num_lock_survives_save_reload_and_execution();
+        recorded_modifier_targets_survive_save_reload_and_execution();
+        modifier_targets_reject_invalid_and_conflicting_rules();
         std::cout << "Keyboard mapping configuration tests passed.\n";
         return 0;
     } catch (const std::exception& error) {

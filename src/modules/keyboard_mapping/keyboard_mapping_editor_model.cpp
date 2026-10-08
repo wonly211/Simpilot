@@ -236,8 +236,16 @@ KeyboardMappingDraftResult KeyboardMappingEditorModel::build() const noexcept {
         return result;
     }
     if (!is_mapping_key_valid(*target_action_)
-        || is_mapping_modifier(target_action_->virtual_key)) {
+        || (is_mapping_modifier(target_action_->virtual_key)
+            && !is_mapping_physical_modifier(target_action_->virtual_key))) {
         result.error = KeyboardMappingDraftError::target_action_invalid;
+        return result;
+    }
+    if (is_mapping_physical_modifier(target_action_->virtual_key)
+        && std::ranges::any_of(target_modifiers_, [](const auto& key) {
+            return key.has_value();
+        })) {
+        result.error = KeyboardMappingDraftError::target_modifier_action_requires_single;
         return result;
     }
     if (source_chord_action_
@@ -296,7 +304,7 @@ std::array<PhysicalKey, 8> keyboard_mapping_modifier_catalog() noexcept {
     };
 }
 
-std::vector<PhysicalKey> keyboard_mapping_source_action_catalog() {
+std::vector<PhysicalKey> keyboard_mapping_primary_key_catalog() {
     std::vector<PhysicalKey> result;
     const auto modifiers = keyboard_mapping_modifier_catalog();
     result.insert(result.end(), modifiers.begin(), modifiers.end());
