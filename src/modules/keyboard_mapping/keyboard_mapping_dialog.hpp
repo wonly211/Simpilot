@@ -35,6 +35,7 @@ public:
         BeginOutputCapture begin_output;
         EndCapture end;
         ForegroundProcessProvider foreground_process;
+        std::function<std::optional<std::wstring>(const KeyboardMappingRule&)> validate;
     };
 
     [[nodiscard]] static std::optional<KeyboardMappingRule> show_modal(
@@ -82,6 +83,12 @@ private:
     void end_capture();
     void save();
     void use_foreground_process();
+    bool add_process(std::wstring name);
+    void remove_process();
+    void browse_process();
+    void refresh_process_list();
+    void update_process_controls();
+    void show_process_error(std::wstring_view message);
     void show_draft_error(KeyboardMappingDraftError error) const;
     [[nodiscard]] std::wstring key_label(const PhysicalKey& key) const;
     [[nodiscard]] std::wstring option_label(const KeyOption& option) const;
@@ -136,6 +143,13 @@ private:
     HWND purpose_edit_ = nullptr;
     HWND process_label_ = nullptr;
     HWND process_edit_ = nullptr;
+    HWND process_scope_ = nullptr;
+    HWND process_list_ = nullptr;
+    HWND process_add_ = nullptr;
+    HWND process_remove_ = nullptr;
+    HWND process_browse_ = nullptr;
+    HWND process_status_ = nullptr;
+    std::vector<std::wstring> process_names_;
     HWND process_foreground_ = nullptr;
     HWND exact_match_ = nullptr;
     HWND enabled_ = nullptr;

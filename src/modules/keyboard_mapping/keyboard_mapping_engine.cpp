@@ -175,15 +175,20 @@ bool KeyboardMappingEngine::replace_rules(
         compiled.reserve(rules.size());
         for (const auto& rule : rules) {
             if (!rule.enabled) continue;
-            CompiledRule item;
-            item.rule = rule;
-            item.process_name = normalize_mapping_process_name(rule.process_name);
-            if (!rule.process_name.empty() && item.process_name.empty()) {
+            const auto names = normalize_mapping_process_names(rule.process_names);
+            if (!names) {
                 mark_diagnostic();
                 return false;
             }
-            item.rule.process_name = item.process_name;
-            compiled.push_back(std::move(item));
+            const auto append = [&](const std::wstring& process) {
+                CompiledRule item;
+                item.rule = rule;
+                item.rule.process_names.clear();
+                item.process_name = process;
+                compiled.push_back(std::move(item));
+            };
+            if (names->empty()) append({});
+            for (const auto& process : *names) append(process);
         }
 
         reset(true);

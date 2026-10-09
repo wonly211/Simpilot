@@ -46,7 +46,7 @@ void app_settings_rejects_malformed_keyboard_mappings() {
     canonical.trigger.action = {VK_F13, 0x64, false};
     canonical.output.single_key = true;
     canonical.output.action = {VK_F14, 0x65, false};
-    canonical.process_name = L"Editor";
+    canonical.process_names = {L"Editor"};
     malformed.rules = {canonical};
     require(save_settings(path, malformed),
             "Valid mapping with a bare process name must save");
@@ -59,7 +59,7 @@ void app_settings_rejects_malformed_keyboard_mappings() {
     }
     const auto loaded = load_settings(path);
     require(loaded.rules.size() == 1
-                && loaded.rules.front().process_name == L"editor.exe",
+                && loaded.rules.front().process_names == std::vector<std::wstring>{L"editor.exe"},
             "Canonical process scope must round-trip");
 
     simpilot::KeyboardMappingRule copilot;
@@ -141,7 +141,7 @@ void keyboard_mapping_validation_is_order_insensitive() {
     first.trigger.action = action;
     first.output.single_key = true;
     first.output.action = first_target;
-    first.process_name = L"Editor.exe";
+    first.process_names = {L"Editor.exe"};
 
     auto reordered = first;
     reordered.trigger.modifiers[0] = left_shift;
@@ -181,23 +181,23 @@ void keyboard_mapping_validation_is_order_insensitive() {
             "Reordered modifier sets must still detect mapping cycles");
 
     auto exact_source = first;
-    exact_source.process_name = L"editor.exe";
+    exact_source.process_names = {L"editor.exe"};
     exact_source.exact_match = true;
     auto prefix_source = reordered;
-    prefix_source.process_name = L"editor.exe";
+    prefix_source.process_names = {L"editor.exe"};
     prefix_source.exact_match = false;
     require(simpilot::validate_keyboard_mappings(
                 {exact_source, prefix_source}).empty(),
             "Exact and prefix process scopes must be distinct rule scopes");
 
     auto disjoint_chord = chord;
-    disjoint_chord.process_name = L"browser.exe";
+    disjoint_chord.process_names = {L"browser.exe"};
     require(simpilot::validate_keyboard_mappings(
                 {first, disjoint_chord}).empty(),
             "Disjoint exact process scopes must not create a prefix conflict");
 
-    cycle_start.process_name = L"editor.exe";
-    cycle_end.process_name = L"browser.exe";
+    cycle_start.process_names = {L"editor.exe"};
+    cycle_end.process_names = {L"browser.exe"};
     require(simpilot::validate_keyboard_mappings(
                 {cycle_start, cycle_end}).empty(),
             "Disjoint exact process scopes must not create a mapping cycle");
@@ -338,8 +338,8 @@ void modifier_targets_reject_invalid_and_conflicting_rules() {
     require(!simpilot::validate_keyboard_mappings({remap, shortcut}).empty()
                 && !simpilot::validate_keyboard_mappings({shortcut, remap}).empty(),
         "An immediate modifier remap must reject conflicting shortcut prefixes in either order");
-    remap.process_name = L"editor.exe";
-    shortcut.process_name = L"browser.exe";
+    remap.process_names = {L"editor.exe"};
+    shortcut.process_names = {L"browser.exe"};
     require(simpilot::validate_keyboard_mappings({remap, shortcut}).empty(),
         "Disjoint process scopes must allow the two modifier uses");
 }

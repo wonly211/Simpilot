@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.9
+Applies to version: 1.0.10
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -279,7 +279,9 @@ Open **Settings > Keyboard Mappings**. The page switch controls all saved mappin
 - A modifier mapped to another modifier cannot coexist with a source shortcut containing that same source modifier. Saving rejects these conflicting rules. Existing tap behavior for modifiers mapped to ordinary keys or shortcuts is unchanged.
 - **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
 - `Num Lock` can be recorded or selected from the primary-key list as a source or target. Mapping `F12` to `Num Lock` toggles its state each time you press and release `F12`. Existing target mappings recorded as `VK 0x90` work without being recorded again.
-- Leave Application empty for a global rule. Enter an executable base name without a path to limit a rule to the foreground application. With **Exact application match** disabled, matching uses a case-insensitive process-name prefix. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
+- Choose **All applications** or **Specific applications**. Each rule can list up to 32 applications and applies when any listed app is in the foreground. Add executable names individually, browse for an EXE, or use **Add foreground app**. Names are normalized and deduplicated, and entries can be removed individually. An empty specific-app list cannot be saved.
+- **Exact application match** is enabled by default. Turning it off applies case-insensitive prefix matching to every name in the list. Matching uses the EXE basename, including when browsing for a file; it does not distinguish paths, windows, or web pages. The same source may have different targets in different apps. Overlapping duplicate sources are reported before saving, with the editor kept open.
+- Existing single-app and global settings remain compatible. Versions v1.0.9 and earlier skip new multi-app rules instead of treating them as global. Back up `Config/` before downgrading: saving settings in an older version may discard these rules. This feature does not add switchable scenario profiles.
 - **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
 
 An ordinary keyboard can map **Right Ctrl** to **Left Win + Left Shift + F23** to emit the Copilot
