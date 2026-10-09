@@ -173,7 +173,7 @@ Samples seed(const fs::path& root, int count, const std::string& language) {
         rule.purpose = i % 3 == 0
             ? L"Long mapping purpose: review selection across multiple workspace panels / \u9009\u62e9\u5207\u6362"
             : L"Fixture mapping " + std::to_wstring(i + 1) + L" / \u6620\u5c04";
-        rule.process_name = i % 2 == 0 ? L"audittool.exe" : L"";
+        if (i % 2 == 0) rule.process_names = {L"audittool.exe"};
         rule.exact_match = i % 3 != 0;
         rule.enabled = i % 5 != 4;
         samples.mapping.rules.push_back(rule);
