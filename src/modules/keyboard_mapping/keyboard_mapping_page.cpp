@@ -16,6 +16,32 @@ constexpr int keyboard_mapping_add_identifier = 601;
 constexpr int keyboard_mapping_delete_identifier = 602;
 constexpr int keyboard_mapping_edit_identifier = 603;
 constexpr int keyboard_mapping_switch_identifier = 604;
+
+std::optional<std::wstring> validation_message(
+    const std::vector<KeyboardMappingRule>& rules, const Localization& localization) {
+    if (rules.size() > maximum_keyboard_mappings) {
+        return std::wstring(localization.text("settings.keyboard_mappings.limit_reached"));
+    }
+    const auto errors = validate_keyboard_mappings(rules);
+    if (errors.empty()) return std::nullopt;
+    const auto& error = errors.front();
+    std::string_view key = "settings.keyboard_mappings.invalid";
+    switch (error.kind) {
+    case KeyboardMappingValidationKind::duplicate_source:
+        key = "settings.keyboard_mappings.duplicate_source"; break;
+    case KeyboardMappingValidationKind::modifier_conflict:
+        key = "settings.keyboard_mappings.modifier_conflict"; break;
+    case KeyboardMappingValidationKind::prefix_conflict:
+        key = "settings.keyboard_mappings.prefix_conflict"; break;
+    case KeyboardMappingValidationKind::cycle:
+        key = "settings.keyboard_mappings.cycle"; break;
+    default: return std::wstring(localization.text(key));
+    }
+    return std::wstring(localization.text(key)) + L" "
+        + (error.process.empty() ? std::wstring(localization.text("settings.keyboard_mappings.global"))
+                                 : error.process);
+}
+
 KeyboardMappingDialog::CaptureCallbacks mapping_capture_callbacks(
     KeyboardManager& keyboard_manager) {
     KeyboardMappingDialog::CaptureCallbacks callbacks;
@@ -347,9 +373,12 @@ void MappingSettingsPage::refresh_keyboard_mapping_list(
         const auto source = keyboard_mapping_trigger_label(mapping.trigger);
         const auto target = keyboard_mapping_output_label(mapping.output);
         const auto purpose = mapping.purpose;
-        const auto process = mapping.process_name.empty()
-            ? std::wstring(text("settings.keyboard_mappings.global"))
-            : mapping.process_name;
+        std::wstring process;
+        for (const auto& name : mapping.process_names) {
+            if (!process.empty()) process.append(L"; ");
+            process.append(name);
+        }
+        if (process.empty()) process = text("settings.keyboard_mappings.global");
         ListView_SetItemText(keyboard_mapping_list_, row, 1,
                              const_cast<wchar_t*>(purpose.c_str()));
         ListView_SetItemText(keyboard_mapping_list_, row, 2,
@@ -386,9 +415,15 @@ void MappingSettingsPage::update_keyboard_mapping_buttons() {
 }
 
 void MappingSettingsPage::add_keyboard_mapping() {
+    auto callbacks = mapping_capture_callbacks(keyboard_manager_);
+    callbacks.validate = [this](const KeyboardMappingRule& candidate) {
+        auto next = settings_.rules;
+        next.push_back(candidate);
+        return validation_message(next, localization_);
+    };
     auto candidate = KeyboardMappingDialog::show_modal(
         instance_, window_, language_code_, nullptr,
-        mapping_capture_callbacks(keyboard_manager_),
+        std::move(callbacks),
         [this](const std::wstring_view message) { diagnose(message); });
     if (candidate && commit_keyboard_mapping(std::move(*candidate), std::nullopt)) {
         mark_dirty();
@@ -398,9 +433,15 @@ void MappingSettingsPage::add_keyboard_mapping() {
 void MappingSettingsPage::edit_selected_keyboard_mapping() {
     const auto index = selected_keyboard_mapping_index();
     if (!index) return;
+    auto callbacks = mapping_capture_callbacks(keyboard_manager_);
+    callbacks.validate = [this, index](const KeyboardMappingRule& candidate) {
+        auto next = settings_.rules;
+        next[*index] = candidate;
+        return validation_message(next, localization_);
+    };
     auto candidate = KeyboardMappingDialog::show_modal(
         instance_, window_, language_code_, &settings_.rules[*index],
-        mapping_capture_callbacks(keyboard_manager_),
+        std::move(callbacks),
         [this](const std::wstring_view message) { diagnose(message); });
     if (candidate && commit_keyboard_mapping(std::move(*candidate), index)) {
         mark_dirty();

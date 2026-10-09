@@ -58,7 +58,7 @@ KeyboardMappingRule single_rule(
     rule.trigger.action = source;
     rule.output.single_key = true;
     rule.output.action = target;
-    rule.process_name = std::move(process);
+    if (!process.empty()) rule.process_names = {std::move(process)};
     return rule;
 }
 
@@ -71,7 +71,7 @@ KeyboardMappingRule shortcut_rule(
     rule.trigger.action = source;
     rule.output.single_key = true;
     rule.output.action = target;
-    rule.process_name = std::move(process);
+    if (!process.empty()) rule.process_names = {std::move(process)};
     return rule;
 }
 

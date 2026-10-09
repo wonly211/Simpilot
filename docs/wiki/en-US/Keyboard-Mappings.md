@@ -11,7 +11,7 @@ Mappings are active only while Simpilot runs and do not modify Windows system po
 - Target: one key, or up to four modifiers plus one action key.
 - Left and right Ctrl, Alt, Shift, and Win are recorded separately.
 - A sided modifier can also be a source or target primary key by itself, without additional modifiers on that side. A modifier source primary key also cannot have a chord.
-- Leave Application empty for a global rule, or enter an `.exe` base name without a path.
+- Choose **All applications** for a global rule, or **Specific applications** to associate up to 32 `.exe` basenames. The rule applies when any listed app is in the foreground.
 - With **Exact application match** disabled, a case-insensitive process-name prefix is used.
 - At most 128 rules can be stored.
 
@@ -20,8 +20,11 @@ Mappings are active only while Simpilot runs and do not modify Windows system po
 1. Select **Add**.
 2. Select **Record Source**, press the source key or combination, then release every key. You can instead select up to four physical modifiers, a primary key, and an optional simultaneous key from the lists.
 3. Select **Record Target**, press the target key or shortcut, then release every key. You can instead select up to four physical modifiers and one primary key.
-4. Optionally enter an application scope. **Use Foreground Application** uses the latest external foreground process observed by Simpilot.
+4. Choose **All applications** or **Specific applications**. For specific apps, enter each name and select **Add**, browse for an EXE, or use **Add foreground app** (the latest external foreground process observed by Simpilot). Duplicate names are merged and individual entries can be removed.
 5. Save the rule, then select **Apply** or **Save** in Settings.
+
+For example, associate **Left Win → Right Ctrl** with `Code.exe` and `notepad.exe` to enable it when either program is in the foreground. It does not activate in other programs. An already-held target is still released when its source key is released after switching apps.
+An empty specific-app list cannot be saved; removing its last entry does not make it global. Matching always uses the executable basename, including when browsing, and does not distinguish different paths, windows, or web pages. Switchable work/game profiles are a separate feature and are not included.
 
 Both source and target primary-key lists include sided Ctrl, Alt, Shift, and Win keys; chord
 actions still exclude modifiers. The action-key lists include letters, digits, `F1` through `F24`,
@@ -52,6 +55,10 @@ Saving rejects duplicate sources, ambiguous prefixes, cycles, `Win+L`, Windows s
 and invalid keys. Target chords are not supported. When an older configuration has no
 `[KeyboardMappings]` section, all other settings and existing hotkey behavior remain unchanged.
 A modifier mapped to another modifier also conflicts with source shortcuts containing the same source modifier. Saving rejects these rules to avoid conflicting immediate-remap and prefix-wait behavior.
+
+Multi-app conflicts are checked in their shared applications, and the editor stays open when a conflict is found. App-specific rules beat global rules, exact matching beats prefix matching, and the longest matching prefix wins. List order and size do not affect priority.
+
+Existing global and single-app settings load directly. v1.0.10 saves multi-app rules with a separate list and a legacy-reader guard. v1.0.9 and earlier skip those rules instead of treating them as global. Back up `Config/` before downgrading: saving settings in an older version may discard multi-app rules.
 
 Windows UIPI, elevation differences, or the secure desktop may block input injection. A normally
 running Simpilot process cannot guarantee delivery to a higher-privilege window. Failures are

@@ -194,39 +194,70 @@ std::wstring_view process_stem(const std::wstring_view process_name) noexcept {
         : process_name;
 }
 
-bool process_scopes_overlap(
+std::optional<std::wstring> overlapping_process(
     const KeyboardMappingRule& left,
     const KeyboardMappingRule& right) {
-    const auto left_name = normalize_mapping_process_name(left.process_name);
-    const auto right_name = normalize_mapping_process_name(right.process_name);
-    if (left_name.empty() || right_name.empty()) return true;
-    if (left.exact_match && right.exact_match) return left_name == right_name;
-    if (left.exact_match) {
-        return process_stem(left_name).starts_with(process_stem(right_name));
+    if (left.process_names.empty()) {
+        return right.process_names.empty() ? std::wstring{} : right.process_names.front();
     }
-    if (right.exact_match) {
-        return process_stem(right_name).starts_with(process_stem(left_name));
+    if (right.process_names.empty()) return left.process_names.front();
+    for (const auto& left_name : left.process_names) {
+        for (const auto& right_name : right.process_names) {
+            if (left.exact_match && right.exact_match) {
+                if (left_name == right_name) return left_name;
+            } else if (!right.exact_match
+                       && process_stem(left_name).starts_with(process_stem(right_name))) {
+                return left_name;
+            } else if (!left.exact_match
+                       && process_stem(right_name).starts_with(process_stem(left_name))) {
+                return right_name;
+            }
+        }
     }
-    const auto left_stem = process_stem(left_name);
-    const auto right_stem = process_stem(right_name);
-    return left_stem.starts_with(right_stem)
-        || right_stem.starts_with(left_stem);
+    return std::nullopt;
 }
 
-std::wstring process_scope_token(const KeyboardMappingRule& rule) {
-    const auto process_name = normalize_mapping_process_name(rule.process_name);
-    if (process_name.empty()) return L"global";
-    return (rule.exact_match ? L"exact:" : L"prefix:") + process_name;
+std::wstring process_scope_token(const std::wstring& name, const bool exact) {
+    if (name.empty()) return L"global";
+    return (exact ? L"exact:" : L"prefix:") + name;
 }
 
 } // namespace
 
-std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
-    const std::vector<KeyboardMappingRule>& rules) {
-    std::vector<KeyboardMappingValidationError> errors;
-    if (rules.size() > 128) {
-        errors.push_back({rules.size(), L"At most 128 keyboard mappings are supported."});
+std::optional<std::vector<std::wstring>> normalize_mapping_process_names(
+    const std::vector<std::wstring>& names) {
+    if (names.size() > maximum_mapping_applications) return std::nullopt;
+    std::vector<std::wstring> result;
+    for (const auto& name : names) {
+        auto normalized = normalize_mapping_process_name(name);
+        if (normalized.empty() || normalized.size() > 255
+            || normalized.find_first_of(L"<>\"|?*") != std::wstring::npos
+            || std::ranges::any_of(normalized, [](const wchar_t c) { return c < 32; })) {
+            return std::nullopt;
+        }
+        result.push_back(std::move(normalized));
     }
+    std::ranges::sort(result);
+    result.erase(std::unique(result.begin(), result.end()), result.end());
+    return result;
+}
+
+std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
+    const std::vector<KeyboardMappingRule>& input) {
+    std::vector<KeyboardMappingValidationError> errors;
+    if (input.size() > maximum_keyboard_mappings) {
+        return {{input.size(), L"At most 128 keyboard mappings are supported."}};
+    }
+    auto rules = input;
+    for (std::size_t index = 0; index < rules.size(); ++index) {
+        auto names = normalize_mapping_process_names(rules[index].process_names);
+        if (!names) {
+            errors.push_back({index, L"Use at most 32 nonempty executable base names."});
+        } else {
+            rules[index].process_names = std::move(*names);
+        }
+    }
+    if (!errors.empty()) return errors;
 
     std::map<std::wstring, std::size_t> source_owners;
     std::vector<std::wstring> sources;
@@ -236,11 +267,6 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
         const auto add_error = [&errors, index](std::wstring message) {
             errors.push_back({index, std::move(message)});
         };
-        if (!rule.process_name.empty()
-            && normalize_mapping_process_name(rule.process_name).empty()) {
-            add_error(L"Process scope must be an executable base name.");
-        }
-
         const auto& trigger = rule.trigger;
         if (trigger.modifier_count > trigger.modifiers.size()) {
             add_error(L"Too many source modifiers.");
@@ -325,13 +351,16 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
         }
 
         const auto source = trigger_token(trigger);
-        const auto key = process_scope_token(rule) + L"\n" + source;
-        if (const auto [found, inserted] = source_owners.emplace(key, index);
-            !inserted) {
-            // Disabled entries are validated too, so enabling a rule later
-            // cannot make validity depend on edit order.
-            add_error(L"Duplicate source mapping in the same scope.");
-        }
+        const auto register_scope = [&](const std::wstring& process) {
+            const auto key = process_scope_token(process, rule.exact_match) + L"\n" + source;
+            if (!source_owners.emplace(key, index).second) {
+                // Validate disabled duplicates too, independent of edit order.
+                errors.push_back({index, L"Duplicate source mapping in the same scope.",
+                    KeyboardMappingValidationKind::duplicate_source, process});
+            }
+        };
+        if (rule.process_names.empty()) register_scope({});
+        for (const auto& process : rule.process_names) register_scope(process);
         sources.push_back(source);
         targets.push_back(output_token(output));
     }
@@ -340,7 +369,8 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
         if (!rules[left].enabled) continue;
         for (std::size_t right = left + 1; right < rules.size(); ++right) {
             if (!rules[right].enabled) continue;
-            if (!process_scopes_overlap(rules[left], rules[right])) continue;
+            const auto process = overlapping_process(rules[left], rules[right]);
+            if (!process) continue;
             const auto modifier_remap_conflicts = [](
                 const KeyboardMappingRule& remap, const KeyboardMappingRule& shortcut) {
                 return remap.trigger.single_key
@@ -353,38 +383,67 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
             if (modifier_remap_conflicts(rules[left], rules[right])
                 || modifier_remap_conflicts(rules[right], rules[left])) {
                 errors.push_back({left,
-                    L"A modifier remap conflicts with a shortcut using the same source modifier."});
+                    L"A modifier remap conflicts with a shortcut using the same source modifier.",
+                    KeyboardMappingValidationKind::modifier_conflict, *process});
             } else if (trigger_is_reachable_prefix(
                     rules[left].trigger, rules[right].trigger)) {
                 errors.push_back({left,
-                    L"Shortcut sources contain an ambiguous prefix."});
+                    L"Shortcut sources contain an ambiguous prefix.",
+                    KeyboardMappingValidationKind::prefix_conflict, *process});
             } else if (trigger_is_reachable_prefix(
                            rules[right].trigger, rules[left].trigger)) {
                 errors.push_back({right,
-                    L"Shortcut sources contain an ambiguous prefix."});
+                    L"Shortcut sources contain an ambiguous prefix.",
+                    KeyboardMappingValidationKind::prefix_conflict, *process});
             }
         }
     }
 
-    std::vector<int> visit(rules.size(), 0);
-    const auto visit_rule = [&](const auto& self, const std::size_t index) -> bool {
-        if (!rules[index].enabled) return false;
-        if (visit[index] == 1) return true;
-        if (visit[index] == 2) return false;
-        visit[index] = 1;
-        for (std::size_t next = 0; next < rules.size(); ++next) {
-            if (!rules[next].enabled || targets[index] != sources[next]
-                || !process_scopes_overlap(rules[index], rules[next])) {
-                continue;
-            }
-            if (self(self, next)) return true;
-        }
-        visit[index] = 2;
-        return false;
-    };
+    if (!errors.empty()) return errors;
+    // Exact names and prefix-only regions cover every distinct foreground
+    // scope. A cycle must exist within one region, not just pairwise overlaps
+    // between app lists (e.g. {A,B}, {B,C}, {A,C}).
+    std::set<std::pair<std::wstring, bool>> contexts{{L"", false}};
+    std::vector<std::vector<std::size_t>> edges(rules.size());
     for (std::size_t index = 0; index < rules.size(); ++index) {
-        if (visit_rule(visit_rule, index)) {
-            errors.push_back({index, L"Mapping cycle is not allowed."});
+        if (!rules[index].enabled) continue;
+        for (const auto& process : rules[index].process_names) {
+            contexts.emplace(process, rules[index].exact_match);
+        }
+        for (std::size_t next = 0; next < rules.size(); ++next) {
+            if (rules[next].enabled && targets[index] == sources[next]) {
+                edges[index].push_back(next);
+            }
+        }
+    }
+    for (const auto& [process, exact] : contexts) {
+        std::vector<bool> active(rules.size(), false);
+        for (std::size_t index = 0; index < rules.size(); ++index) {
+            const auto& rule = rules[index];
+            active[index] = rule.enabled && (rule.process_names.empty()
+                || std::ranges::any_of(rule.process_names, [&](const auto& name) {
+                    return rule.exact_match ? exact && process == name
+                        : !process.empty() && process_stem(process).starts_with(process_stem(name));
+                }));
+        }
+        std::vector<int> visit(rules.size(), 0);
+        const auto visit_rule = [&](const auto& self, const std::size_t index) -> bool {
+            if (!active[index]) return false;
+            if (visit[index] == 1) return true;
+            if (visit[index] == 2) return false;
+            visit[index] = 1;
+            for (const auto next : edges[index]) {
+                if (self(self, next)) return true;
+            }
+            visit[index] = 2;
+            return false;
+        };
+        for (std::size_t index = 0; index < rules.size(); ++index) {
+            if (visit_rule(visit_rule, index)) {
+                errors.push_back({index, L"Mapping cycle is not allowed.",
+                    KeyboardMappingValidationKind::cycle, process});
+                return errors;
+            }
         }
     }
     return errors;

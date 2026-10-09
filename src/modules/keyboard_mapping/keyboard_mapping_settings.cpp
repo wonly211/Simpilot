@@ -168,16 +168,33 @@ void load_keyboard_mappings(
             diagnose(number, L"invalid persisted key fields");
             continue;
         }
-        const auto process_value = string_value(values, prefix + L"Process");
-        const auto process_name = normalize_mapping_process_name(process_value);
-        if (!trim(process_value).empty() && process_name.empty()) {
-            diagnose(number, L"invalid process scope");
-            continue;
-        }
         KeyboardMappingRule rule;
         rule.purpose = string_value(values, prefix + L"Purpose");
         rule.enabled = boolean_value(values, enabled_key, false);
-        rule.process_name = process_name;
+        const auto process_value = string_value(values, prefix + L"Process");
+        if (values.contains(lowercase(prefix + L"ProcessCount"))) {
+            const auto process_count = parse_mapping_number(
+                string_value(values, prefix + L"ProcessCount"));
+            if (!process_count || *process_count < 2 || *process_count > maximum_mapping_applications
+                || process_value != L":multi-app:") {
+                diagnose(number, L"invalid application list count");
+                continue;
+            }
+            for (UINT process = 1; process <= *process_count; ++process) {
+                rule.process_names.push_back(string_value(
+                    values, prefix + L"Process" + std::to_wstring(process)));
+            }
+        } else if (!trim(process_value).empty()) {
+            // Legacy single-app/global settings remain readable. In particular,
+            // never treat an invalid downgrade guard as an empty/global scope.
+            rule.process_names.push_back(process_value);
+        }
+        auto names = normalize_mapping_process_names(rule.process_names);
+        if (!names) {
+            diagnose(number, L"invalid process scope");
+            continue;
+        }
+        rule.process_names = std::move(*names);
         rule.exact_match = boolean_value(
             values, prefix + L"ExactMatch", true);
         rule.trigger.single_key = modifiers->empty() && !source_chord;
@@ -210,9 +227,23 @@ void write_keyboard_mappings(
     for (std::size_t index = 0; index < count; ++index) {
         const auto prefix = "KeyboardMapping" + std::to_string(index + 1);
         const auto& mapping = mappings[index];
+        // v1.0.9 and earlier reject ':' in Process and skip this rule. Omitting
+        // Process instead would dangerously turn a multi-app rule into global.
+        const auto legacy_process = mapping.process_names.size() > 1
+            ? std::wstring(L":multi-app:") : mapping.process_names.empty()
+            ? std::wstring{} : mapping.process_names.front();
+        // Keep single-app/global rules entirely in the legacy format, so edits
+        // in an older version cannot leave a stale parallel list behind.
+        if (mapping.process_names.size() > 1) {
+            stream << prefix << "ProcessCount=" << mapping.process_names.size() << "\r\n";
+            for (std::size_t process = 0; process < mapping.process_names.size(); ++process) {
+                stream << prefix << "Process" << process + 1 << "="
+                       << encode_utf8(mapping.process_names[process]) << "\r\n";
+            }
+        }
         stream << prefix << "Enabled=" << (mapping.enabled ? 1 : 0) << "\r\n"
                << prefix << "Purpose=" << encode_utf8(mapping.purpose) << "\r\n"
-               << prefix << "Process=" << encode_utf8(mapping.process_name) << "\r\n"
+               << prefix << "Process=" << encode_utf8(legacy_process) << "\r\n"
                << prefix << "ExactMatch=" << (mapping.exact_match ? 1 : 0) << "\r\n"
                << prefix << "SourceModifiers="
                << encode_utf8(mapping_modifier_text(
@@ -244,12 +275,20 @@ KeyboardMappingSettings KeyboardMappingSettings::read(
     collect(L"KeyboardMappingsEnabled");
     collect(L"KeyboardMappingCount");
     constexpr std::wstring_view suffixes[]{
-        L"Enabled", L"Purpose", L"Process", L"ExactMatch", L"SourceModifiers",
+        L"Enabled", L"Purpose", L"Process", L"ProcessCount", L"ExactMatch", L"SourceModifiers",
         L"SourceAction", L"SourceChord", L"TargetModifiers", L"TargetAction"};
     const auto count = unsigned_value(values, L"KeyboardMappingCount", 0, 128);
     for (unsigned int number = 1; number <= count; ++number) {
+        const auto prefix = L"KeyboardMapping" + std::to_wstring(number);
         for (const auto suffix : suffixes) {
-            collect(L"KeyboardMapping" + std::to_wstring(number) + std::wstring(suffix));
+            collect(prefix + std::wstring(suffix));
+        }
+        const auto process_count = parse_mapping_number(
+            string_value(values, prefix + L"ProcessCount"));
+        if (process_count && *process_count <= maximum_mapping_applications) {
+            for (UINT process = 1; process <= *process_count; ++process) {
+                collect(prefix + L"Process" + std::to_wstring(process));
+            }
         }
     }
     KeyboardMappingSettings result;
@@ -260,10 +299,9 @@ KeyboardMappingSettings KeyboardMappingSettings::read(
 void KeyboardMappingSettings::write(SettingsDocument& document) const {
     auto normalized = rules;
     for (auto& rule : normalized) {
-        if (!rule.process_name.empty()) {
-            rule.process_name = normalize_mapping_process_name(rule.process_name);
-            if (rule.process_name.empty()) throw std::invalid_argument("Invalid mapping process scope");
-        }
+        auto names = normalize_mapping_process_names(rule.process_names);
+        if (!names) throw std::invalid_argument("Invalid mapping process scope");
+        rule.process_names = std::move(*names);
     }
     if (!validate_keyboard_mappings(normalized).empty()) {
         throw std::invalid_argument("Invalid keyboard mappings");
@@ -271,9 +309,14 @@ void KeyboardMappingSettings::write(SettingsDocument& document) const {
     std::ostringstream stream;
     write_keyboard_mappings(stream, enabled, normalized);
     constexpr std::wstring_view suffixes[]{
-        L"Enabled", L"Purpose", L"Process", L"ExactMatch", L"SourceModifiers",
+        L"Enabled", L"Purpose", L"Process", L"ProcessCount", L"ExactMatch", L"SourceModifiers",
         L"SourceAction", L"SourceChord", L"TargetModifiers", L"TargetAction"};
     document.erase_numbered(L"KeyboardMapping", suffixes);
+    for (std::size_t process = 1; process <= maximum_mapping_applications; ++process) {
+        const auto suffix = L"Process" + std::to_wstring(process);
+        const std::wstring_view owned[]{suffix};
+        document.erase_numbered(L"KeyboardMapping", owned);
+    }
     document.overlay(SettingsDocument::parse(stream.str()));
 }
 
