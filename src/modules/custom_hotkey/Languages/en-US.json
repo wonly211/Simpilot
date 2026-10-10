@@ -1,6 +1,8 @@
 {
   "locale": "en-US",
   "strings": {
+    "custom_hotkey.condition_add": "Add program…",
+    "custom_hotkey.conditions_hint": "Up to 32 programs, matched by full path. Add at least one program when the program condition is enabled. All selected lock-key conditions must also match.",
     "custom_hotkey.window_title": "简驭 | Simpilot - Add global hotkey",
     "custom_hotkey.edit_window_title": "简驭 | Simpilot - Edit global hotkey",
     "custom_hotkey.title": "Add a new global hotkey",

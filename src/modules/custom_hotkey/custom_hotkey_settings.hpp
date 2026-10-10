@@ -23,6 +23,7 @@ struct CustomHotkeySettings {
     std::vector<CustomGlobalHotKey> items;
     static CustomHotkeySettings read(const SettingsDocument& document);
     void write(SettingsDocument& document) const;
+    [[nodiscard]] bool valid() const;
     bool operator==(const CustomHotkeySettings&) const = default;
 };
 } // namespace simpilot

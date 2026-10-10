@@ -230,8 +230,13 @@ LRESULT TrayApplication::handle_message(HWND window, UINT message, WPARAM wparam
         return 0;
     }
     if (message == WM_HOTKEY) {
-        (void)hotkeys_.dispatch(static_cast<int>(wparam), window_);
+        if (keyboard_manager_.activation_allows_dispatch(static_cast<int>(wparam)))
+            (void)hotkeys_.dispatch(static_cast<int>(wparam), window_);
         return 0;
+    }
+    if (message == WM_POWERBROADCAST && (wparam == PBT_APMRESUMEAUTOMATIC || wparam == PBT_APMRESUMESUSPEND)) {
+        keyboard_manager_.resync_activation_state();
+        return TRUE;
     }
     if (message == WM_COMMAND) {
         const auto identifier = LOWORD(wparam);

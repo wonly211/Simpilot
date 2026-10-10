@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 1.0.11 LANGUAGES CXX)
+project(Simpilot VERSION 1.0.12 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -25,6 +25,7 @@ add_library(simpilot_core STATIC
     src/core/command.cpp
     src/core/config_file.cpp
     src/core/hotkey.cpp
+    src/core/hotkey_activation.cpp
     src/core/logger.cpp
     src/core/localization.cpp
     src/core/settings_document.cpp
@@ -144,6 +145,7 @@ configure_file(
 
 add_library(simpilot_keyboard STATIC
     src/infrastructure/keyboard/keyboard_manager.cpp
+    src/infrastructure/keyboard/hotkey_process_monitor.cpp
     src/infrastructure/keyboard/keyboard_capture_state.cpp
     src/infrastructure/keyboard/keyboard_input.cpp
 )
@@ -338,6 +340,19 @@ if(BUILD_TESTING)
     target_link_libraries(simpilot_keyboard_thread_lifecycle_test PRIVATE simpilot_keyboard)
     add_test(NAME simpilot_keyboard_thread_lifecycle_test
              COMMAND simpilot_keyboard_thread_lifecycle_test)
+
+    add_executable(simpilot_hotkey_activation_tests tests/hotkey_activation_tests.cpp)
+    target_compile_definitions(simpilot_hotkey_activation_tests PRIVATE
+        UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_hotkey_activation_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_hotkey_activation_tests PRIVATE simpilot_keyboard)
+    add_test(NAME simpilot_hotkey_activation_tests COMMAND simpilot_hotkey_activation_tests)
+    set_tests_properties(simpilot_hotkey_activation_tests PROPERTIES TIMEOUT 30)
+    add_executable(simpilot_hotkey_activation_native_probe tests/hotkey_activation_native_probe.cpp)
+    target_compile_definitions(simpilot_hotkey_activation_native_probe PRIVATE
+        UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_hotkey_activation_native_probe PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_hotkey_activation_native_probe PRIVATE simpilot_keyboard gdi32)
 
     add_executable(simpilot_keyboard_capture_state_tests
         tests/keyboard_capture_state_tests.cpp

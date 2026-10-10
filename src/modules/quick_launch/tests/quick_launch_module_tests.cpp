@@ -258,6 +258,19 @@ void editor_scrolling(const std::filesystem::path& root) {
             editor.set_dpi(dpi);
             editor.set_bounds(0, 0, scale(780), scale(400));
             TreeView_SelectItem(tree, application);
+            if (has_style(window, WS_VSCROLL | WS_HSCROLL)
+                || !has_style(viewport, WS_VSCROLL) || has_style(viewport, WS_HSCROLL)) {
+                RECT client{}, outer{}, contents{};
+                GetClientRect(viewport, &client);
+                GetWindowRect(viewport, &outer);
+                GetWindowRect(content, &contents);
+                std::cerr << "Scroll layout: requested DPI=" << dpi
+                    << ", window DPI=" << GetDpiForWindow(viewport)
+                    << ", viewport=" << outer.right - outer.left << 'x' << outer.bottom - outer.top
+                    << ", client=" << client.right << 'x' << client.bottom
+                    << ", content=" << contents.right - contents.left << 'x' << contents.bottom - contents.top
+                    << ", style=" << GetWindowLongPtrW(viewport, GWL_STYLE) << '\n';
+            }
             require(!has_style(window, WS_VSCROLL | WS_HSCROLL)
                 && has_style(viewport, WS_VSCROLL) && !has_style(viewport, WS_HSCROLL),
                 "Only long right-hand details scroll, with no redundant horizontal scrollbar");

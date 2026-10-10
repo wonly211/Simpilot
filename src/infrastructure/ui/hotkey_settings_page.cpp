@@ -32,11 +32,15 @@ bool confirm_hotkey_availability(HWND owner, const Localization& localization,
 }
 
 bool confirm_hotkey_replacement(HWND owner, const Localization& localization,
-    const HotKeyGesture& gesture, const HotkeyDraftBinding& conflict) {
+    const HotKeyGesture& gesture, const HotkeyDraftBinding& conflict,
+    const HotkeyActivationConditions& activation) {
     const auto label = gesture.display_text();
     const auto name = localization.text(conflict.label_key);
-    const auto message = std::vformat(localization.text("settings.conflict.builtin_duplicate"),
+    auto message = std::vformat(localization.text("settings.conflict.builtin_duplicate"),
                                      std::make_wformat_args(label, name));
+    const auto previous = activation_description(conflict.read().binding.activation, localization);
+    const auto next = activation_description(activation, localization);
+    message += std::vformat(localization.text("hotkey.activation.conflict"), std::make_wformat_args(previous, next));
     return MessageBoxW(owner, message.c_str(), localization.text("settings.title").data(),
                       MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2) == IDYES;
 }

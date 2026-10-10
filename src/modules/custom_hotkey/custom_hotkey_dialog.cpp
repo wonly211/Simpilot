@@ -26,6 +26,10 @@ constexpr int program_edit_identifier = 200;
 constexpr int program_browse_identifier = 201;
 constexpr int working_directory_browse_identifier = 202;
 constexpr int action_type_identifier = 203;
+constexpr int process_condition_identifier = 310;
+constexpr int condition_add_identifier = 311;
+constexpr int condition_remove_identifier = 312;
+constexpr int condition_list_identifier = 313;
 constexpr int save_identifier = 1;
 constexpr int cancel_identifier = 2;
 
@@ -235,7 +239,35 @@ void CustomHotKeyDialog::create_controls() {
     SendMessageW(visibility_combo_, CB_SETMINVISIBLE, 4, 0);
     SendMessageW(visibility_combo_, CB_SETCURSEL, 0, 0);
 
+    conditions_heading_ = CreateWindowW(L"STATIC", text("hotkey.activation.heading"), WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    constexpr const wchar_t* lock_names[]{L"Caps Lock", L"Num Lock", L"Scroll Lock"};
+    for (std::size_t i = 0; i < 3; ++i) {
+        lock_labels_[i] = CreateWindowW(L"STATIC", lock_names[i], WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+        lock_choices_[i] = CreateWindowW(WC_COMBOBOXW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
+            0, 0, 0, 0, window_, reinterpret_cast<HMENU>(320 + i), instance_, nullptr);
+        for (const auto key : {"hotkey.activation.any", "hotkey.activation.on", "hotkey.activation.off"})
+            add_combo_item(lock_choices_[i], text(key));
+        SendMessageW(lock_choices_[i], CB_SETCURSEL,
+            initial_ ? static_cast<WPARAM>(initial_->binding.activation.locks[i]) : 0, 0);
+    }
+    process_condition_ = CreateWindowW(L"BUTTON", text("hotkey.activation.running_any"),
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(process_condition_identifier)), instance_, nullptr);
+    condition_programs_ = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | WS_HSCROLL | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(condition_list_identifier)), instance_, nullptr);
+    condition_add_ = CreateWindowW(L"BUTTON", text("custom_hotkey.condition_add"), WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(condition_add_identifier)), instance_, nullptr);
+    condition_remove_ = CreateWindowW(L"BUTTON", text("settings.delete"), WS_CHILD | WS_VISIBLE | WS_TABSTOP,
+        0, 0, 0, 0, window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(condition_remove_identifier)), instance_, nullptr);
+    conditions_hint_ = CreateWindowW(L"STATIC", text("custom_hotkey.conditions_hint"), WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     if (initial_) {
+        condition_paths_ = initial_->binding.activation.programs;
+        SendMessageW(process_condition_, BM_SETCHECK,
+            initial_->binding.activation.require_running_program ? BST_CHECKED : BST_UNCHECKED, 0);
         SendMessageW(action_type_, CB_SETCURSEL,
             static_cast<WPARAM>(initial_->action), 0);
         SetWindowTextW(program_edit_, initial_->program_path.c_str());
@@ -258,8 +290,13 @@ void CustomHotKeyDialog::create_controls() {
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(
             static_cast<INT_PTR>(cancel_identifier)), instance_, nullptr);
     update_capture_button();
+    if (initial_) {
+        SetWindowTextW(window_, text("custom_hotkey.edit_window_title"));
+        SetWindowTextW(title_, text("custom_hotkey.edit_title"));
+    }
     update_fonts();
     update_action_controls();
+    refresh_condition_programs();
     update_save_state();
 }
 
@@ -279,6 +316,11 @@ void CustomHotKeyDialog::update_fonts() {
     set_font(title_, title_font_);
     set_font(trigger_heading_, section_font_);
     set_font(action_heading_, section_font_);
+    set_font(conditions_heading_, section_font_);
+    for (const auto control : lock_labels_) set_font(control, font_);
+    for (const auto control : lock_choices_) set_font(control, font_);
+    for (const auto control : {process_condition_, condition_programs_, condition_add_, condition_remove_, conditions_hint_})
+        set_font(control, font_);
     const std::array controls{
         trigger_type_, capture_button_, allow_modifiers_, action_type_, program_label_,
         program_edit_, program_browse_, arguments_label_, arguments_edit_,
@@ -286,7 +328,7 @@ void CustomHotKeyDialog::update_fonts() {
         identity_label_, identity_combo_, existing_label_, existing_combo_, visibility_label_,
         visibility_combo_, save_button_, cancel_button_};
     for (const auto control : controls) set_font(control, font_);
-    for (const auto control : {program_browse_, working_directory_browse_})
+    for (const auto control : {program_browse_, working_directory_browse_, condition_add_, condition_remove_})
         settings_visual_style::style_button(control);
     settings_visual_style::style_button(save_button_, settings_visual_style::ButtonStyle::primary);
     settings_visual_style::style_button(cancel_button_, settings_visual_style::ButtonStyle::quiet);
@@ -301,7 +343,7 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     form_.attach(window_, {save_button_, cancel_button_});
     const bool application = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 0;
     const auto margin = scale(28);
-    const int body_height = scale(application ? 590 : 394);
+    const int body_height = scale((application ? 590 : 394) + 334);
     const auto body_width = std::max(scale(696), width - (height - scale(72) < body_height
         ? GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_) : 0));
     const auto content_width = application ? body_width - margin * 2 : scale(640);
@@ -345,6 +387,19 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     place_combo(identity_label_, identity_combo_, 0);
     place_combo(existing_label_, existing_combo_, 1);
     place_combo(visibility_label_, visibility_combo_, 2);
+
+    const int conditions_y = scale(application ? 600 : 408);
+    MoveWindow(conditions_heading_, margin, conditions_y, content_width, scale(24), TRUE);
+    for (int i = 0; i < 3; ++i) {
+        const auto x = margin + i * (advanced_width + advanced_gap);
+        MoveWindow(lock_labels_[i], x, conditions_y + scale(34), advanced_width, label_height, TRUE);
+        MoveWindow(lock_choices_[i], x, conditions_y + scale(60), advanced_width, scale(180), TRUE);
+    }
+    MoveWindow(process_condition_, margin, conditions_y + scale(108), content_width, scale(28), TRUE);
+    MoveWindow(condition_programs_, margin, conditions_y + scale(144), content_width, scale(90), TRUE);
+    MoveWindow(condition_add_, margin, conditions_y + scale(242), scale(180), scale(32), TRUE);
+    MoveWindow(condition_remove_, margin + scale(188), conditions_y + scale(242), scale(100), scale(32), TRUE);
+    MoveWindow(conditions_hint_, margin, conditions_y + scale(284), content_width, scale(40), TRUE);
 
     MoveWindow(cancel_button_, width - margin - scale(184), height - scale(54),
                scale(88), scale(36), TRUE);
@@ -509,8 +564,59 @@ void CustomHotKeyDialog::update_save_state() {
     const auto target_exists = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 1
         ? std::filesystem::is_directory(target, error)
         : std::filesystem::is_regular_file(target, error);
-    const auto enabled = gesture_.has_value() && !capturing_ && target_exists;
+    const auto enabled = gesture_.has_value() && !capturing_ && target_exists && activation().valid();
     EnableWindow(save_button_, enabled ? TRUE : FALSE);
+}
+
+HotkeyActivationConditions CustomHotKeyDialog::activation() const {
+    HotkeyActivationConditions result;
+    for (std::size_t i = 0; i < 3; ++i)
+        result.locks[i] = static_cast<ToggleRequirement>(std::max<LRESULT>(0, SendMessageW(lock_choices_[i], CB_GETCURSEL, 0, 0)));
+    result.require_running_program = SendMessageW(process_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    result.programs = condition_paths_;
+    return result;
+}
+
+void CustomHotKeyDialog::refresh_condition_programs() {
+    const auto selected = SendMessageW(condition_programs_, LB_GETCURSEL, 0, 0);
+    SendMessageW(condition_programs_, LB_RESETCONTENT, 0, 0);
+    int extent = 0;
+    const auto dc = GetDC(condition_programs_);
+    const auto old_font = SelectObject(dc, font_);
+    for (const auto& path : condition_paths_) {
+        SendMessageW(condition_programs_, LB_ADDSTRING, 0, reinterpret_cast<LPARAM>(path.c_str()));
+        SIZE size{};
+        GetTextExtentPoint32W(dc, path.c_str(), static_cast<int>(path.size()), &size);
+        extent = std::max(extent, static_cast<int>(size.cx) + 16);
+    }
+    SelectObject(dc, old_font);
+    ReleaseDC(condition_programs_, dc);
+    SendMessageW(condition_programs_, LB_SETHORIZONTALEXTENT, extent, 0);
+    if (!condition_paths_.empty()) SendMessageW(condition_programs_, LB_SETCURSEL,
+        std::clamp<LRESULT>(selected, 0, static_cast<LRESULT>(condition_paths_.size() - 1)), 0);
+    const bool enabled = SendMessageW(process_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    EnableWindow(condition_programs_, enabled);
+    EnableWindow(condition_add_, enabled && condition_paths_.size() < 32);
+    EnableWindow(condition_remove_, enabled && !condition_paths_.empty());
+    update_save_state();
+}
+
+void CustomHotKeyDialog::browse_condition_program() {
+    if (condition_paths_.size() >= 32) return;
+    std::array<wchar_t, 32768> path{};
+    OPENFILENAMEW dialog{sizeof(dialog)};
+    dialog.hwndOwner = window_;
+    dialog.lpstrFilter = L"*.exe\0*.exe\0\0";
+    dialog.lpstrFile = path.data();
+    dialog.nMaxFile = static_cast<DWORD>(path.size());
+    dialog.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+    if (!GetOpenFileNameW(&dialog)) return;
+    const auto normalized = normalize_hotkey_program_path(path.data());
+    if (normalized.empty() || !normalized.ends_with(L".exe")) return;
+    if (std::ranges::none_of(condition_paths_, [&](const auto& prior) {
+            return normalize_hotkey_program_path(prior) == normalized;
+        })) condition_paths_.emplace_back(path.data());
+    refresh_condition_programs();
 }
 
 std::filesystem::path CustomHotKeyDialog::resolved_target() const {
@@ -525,6 +631,8 @@ void CustomHotKeyDialog::save() {
     CustomGlobalHotKey hotkey;
     hotkey.binding.gesture = gesture_;
     hotkey.binding.force_override = initial_ && initial_->binding.force_override;
+    hotkey.binding.activation = activation();
+    if (!hotkey.binding.activation.valid()) return;
     const auto action = SendMessageW(action_type_, CB_GETCURSEL, 0, 0);
     hotkey.action = action == 1 ? CustomHotKeyAction::open_folder
         : action == 2 ? CustomHotKeyAction::open_file
@@ -603,6 +711,7 @@ LRESULT CustomHotKeyDialog::handle_message(
             suggested->right - suggested->left, suggested->bottom - suggested->top,
             SWP_NOZORDER | SWP_NOACTIVATE);
         update_fonts();
+        refresh_condition_programs();
         RECT rectangle{};
         GetClientRect(window_, &rectangle);
         layout_controls(rectangle.right, rectangle.bottom);
@@ -614,6 +723,21 @@ LRESULT CustomHotKeyDialog::handle_message(
     }
     if (message == WM_COMMAND) {
         const auto identifier = LOWORD(wparam);
+        if (identifier == process_condition_identifier && HIWORD(wparam) == BN_CLICKED) {
+            refresh_condition_programs();
+            return 0;
+        }
+        if (identifier == condition_add_identifier && HIWORD(wparam) == BN_CLICKED) {
+            browse_condition_program();
+            return 0;
+        }
+        if (identifier == condition_remove_identifier && HIWORD(wparam) == BN_CLICKED) {
+            const auto index = SendMessageW(condition_programs_, LB_GETCURSEL, 0, 0);
+            if (index >= 0 && static_cast<std::size_t>(index) < condition_paths_.size())
+                condition_paths_.erase(condition_paths_.begin() + index);
+            refresh_condition_programs();
+            return 0;
+        }
         if (identifier == capture_identifier && HIWORD(wparam) == BN_CLICKED) {
             begin_capture();
             return 0;

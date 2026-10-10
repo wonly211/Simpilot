@@ -46,6 +46,9 @@ private:
     void update_action_controls();
     void browse_target();
     void browse_working_directory();
+    void browse_condition_program();
+    void refresh_condition_programs();
+    [[nodiscard]] HotkeyActivationConditions activation() const;
     void update_save_state();
     void save();
     [[nodiscard]] std::filesystem::path resolved_target() const;
@@ -95,6 +98,11 @@ private:
     HWND visibility_combo_ = nullptr;
     HWND save_button_ = nullptr;
     HWND cancel_button_ = nullptr;
+    HWND conditions_heading_ = nullptr, process_condition_ = nullptr,
+         condition_programs_ = nullptr, condition_add_ = nullptr, condition_remove_ = nullptr,
+         conditions_hint_ = nullptr;
+    std::array<HWND, 3> lock_labels_{}, lock_choices_{};
+    std::vector<std::wstring> condition_paths_;
 };
 
 } // namespace simpilot

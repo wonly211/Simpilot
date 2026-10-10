@@ -12,11 +12,28 @@ void inspect_custom_hotkey_backup(const SettingsSnapshot& snapshot, bool check_e
     if (text.empty() || text.find_first_not_of(L"0123456789") != text.npos) throw std::runtime_error("Invalid custom hotkey count");
     const auto count = std::stoul(text);
     const auto settings = CustomHotkeySettings::read(document);
-    if (count > 128 || settings.items.size() != count) throw std::runtime_error("Invalid custom hotkey rules");
+    const auto conditional_count = document.get(L"ConditionalGlobalHotKeyCount").value_or(L"0");
+    if (count > 128 || settings.items.size() != count + std::stoul(conditional_count)
+        || !settings.valid()) throw std::runtime_error("Invalid custom hotkey rules");
     for (unsigned long i = 1; i <= count; ++i)
         validate_hotkey_setting(document, L"CustomGlobalHotKey" + std::to_wstring(i));
-    if (check_environment) for (const auto& item : settings.items)
+    // Backups cannot resolve conflicts through the editor. Refuse a conditional
+    // action that would silently lose to a built-in contribution after restore.
+    for (const auto prefix : {L"OpenSettings", L"MainMenu", L"SecondMenu", L"EverythingSearch"}) {
+        auto builtin = read_hotkey_setting(document, prefix,
+            std::wstring_view(prefix) == L"MainMenu"
+                ? BuiltInHotKey{{HotKeyGesture{0, VK_OEM_3}, false}, true} : BuiltInHotKey{});
+        if (!builtin.binding.gesture) continue;
+        for (const auto& item : settings.items) {
+            if (item.binding.activation.conditional() && item.binding.gesture == builtin.binding.gesture)
+                throw std::runtime_error("Conditional hotkey conflicts with a built-in hotkey");
+        }
+    }
+    if (check_environment) for (const auto& item : settings.items) {
         if (std::filesystem::path(item.program_path).is_absolute() && !std::filesystem::exists(item.program_path)) warnings.push_back(item.program_path);
+        for (const auto& program : item.binding.activation.programs)
+            if (!std::filesystem::exists(program)) warnings.push_back(program);
+    }
 }
 std::unique_ptr<ISettingsPage> make_custom_hotkey_section(
     CustomHotkeySettings&, HotkeyRegistry&, KeyboardManager&,
@@ -52,7 +69,7 @@ public:
                     "settings.section.custom_hotkeys",
                     [this, i] { return BuiltInHotKey{draft_.items.at(i).binding, draft_.items.at(i).enabled}; },
                     [this, i](BuiltInHotKey value) {
-                        draft_.items[i].binding = value.binding;
+                        draft_.items[i].binding = std::move(value.binding);
                         draft_.items[i].enabled = value.enabled;
                     }, [this, i] { return i < draft_.items.size(); }, false});
             }
@@ -61,7 +78,7 @@ public:
         participant_ = participants_.add("custom_hotkey", 40, SettingsParticipant{
             .begin = [this] { draft_ = live_; },
             .dirty = [this] { return draft_ != live_; },
-            .validate = [this] { return draft_.items.size() <= 128; },
+            .validate = [this] { return draft_.valid(); },
             .prepare = [this] { prepared_ = draft_; applied_ = false; return true; },
             .apply = [this] { std::swap(live_, prepared_); applied_ = true; return true; },
             .write = [this](SettingsDocument& document) { draft_.write(document); },

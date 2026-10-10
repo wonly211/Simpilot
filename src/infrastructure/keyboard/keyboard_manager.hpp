@@ -4,6 +4,8 @@
 #include "simpilot/keyboard_input.hpp"
 #include "keyboard_capture_state.hpp"
 #include "keyboard_processing_stage.hpp"
+#include "conditional_hotkey_state.hpp"
+#include "hotkey_process_monitor.hpp"
 
 #include <Windows.h>
 
@@ -101,6 +103,8 @@ public:
     [[nodiscard]] bool register_standard(int identifier, const HotKeyGesture& gesture);
     void unregister_all() noexcept;
     [[nodiscard]] bool probe_available(const HotKeyGesture& gesture) const noexcept;
+    [[nodiscard]] bool activation_allows_dispatch(int identifier) noexcept;
+    void resync_activation_state() noexcept;
 
     [[nodiscard]] bool begin_capture(CaptureHandler handler) noexcept;
     void end_capture() noexcept;
@@ -125,6 +129,7 @@ private:
         int identifier = 0;
         HotKeyGesture gesture;
         bool accepted = false;
+        HotkeyActivationConditions activation;
     };
 
     struct MappingCaptureMailbox {
@@ -160,6 +165,8 @@ private:
     LRESULT handle_hook_window_message(
         UINT message, WPARAM wparam, LPARAM lparam) noexcept;
     void refresh_foreground_process() noexcept;
+    void sample_lock_state() noexcept;
+    void observe_lock_event(const KBDLLHOOKSTRUCT& event, WPARAM message, bool passed) noexcept;
 
     static LRESULT CALLBACK capture_window_procedure(
         HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -201,6 +208,7 @@ private:
     std::shared_ptr<IKeyboardProcessingStage> processing_stage_;
     std::vector<int> standard_identifiers_;
     std::vector<HotKeyGesture> used_gestures_;
+    std::vector<HotKeyBinding> registered_bindings_;
 
     // Keyboard-thread state. It is mutated only by the hook thread or by
     // synchronous control messages executed on that thread.
@@ -218,6 +226,11 @@ private:
     std::shared_ptr<IKeyboardProcessingStage> hook_stage_;
     std::wstring last_external_foreground_process_;
     MappingCaptureMailbox mapping_capture_mailbox_{};
+    ConditionalHotkeyState conditional_hotkeys_;
+    HotkeyProcessMonitor process_monitor_;
+    std::unique_ptr<HotkeyProcessSnapshot> process_snapshot_;
+    std::optional<unsigned> lock_state_;
+    std::array<bool, 3> lock_keys_down_{};
 };
 
 } // namespace simpilot

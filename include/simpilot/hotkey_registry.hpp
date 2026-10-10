@@ -56,7 +56,7 @@ public:
             const auto draft = value.draft;
             result.push_back({id, value.label_key,
                 [draft] { return *draft(); },
-                [draft](BuiltInHotKey next) { *draft() = next; }, std::move(active)});
+                [draft](BuiltInHotKey next) { *draft() = std::move(next); }, std::move(active)});
         });
         editable_drafts_.visit_guarded([&](const auto&, const auto& source, auto active) {
             for (auto item : source()) {
@@ -89,6 +89,7 @@ public:
             if (item.id == except || !item.active()) continue;
             const auto value = item.read();
             if (value.binding.gesture != candidate.binding.gesture) continue;
+            if (!activation_overlaps(value.binding.activation, candidate.binding.activation)) continue;
             conflicts.emplace_back(item, value);
         }
         for (const auto& [item, value] : conflicts) {
@@ -111,7 +112,7 @@ public:
         bool result = false;
         for (const auto& item : editable_drafts()) {
             const auto value = item.read();
-            result = result || (value.enabled && value.binding.gesture
+            result = result || (value.enabled && !value.binding.activation.conditional() && value.binding.gesture
                 && windows_letter_hotkey_index(*value.binding.gesture) == letter);
         }
         return result;
@@ -120,7 +121,7 @@ public:
     // Caller unregisters the previous backend registrations before refreshing.
     void refresh(const Register& register_binding, const DiagnosticSink& diagnose = {}) {
         dispatch_.clear();
-        std::vector<HotKeyGesture> used;
+        std::vector<HotKeyBinding> used;
         int identifier = 100;
         contributions_.visit_guarded([&](const auto& id, const auto& contribution, auto active) {
             auto current = contribution.current();
@@ -128,7 +129,11 @@ public:
             const auto gesture = *current.binding.gesture;
             const auto letter = windows_letter_hotkey_index(gesture);
             if ((letter && *letter == static_cast<std::size_t>(L'L' - L'A'))
-                || std::ranges::find(used, gesture) != used.end()
+                || !current.binding.activation.valid()
+                || std::ranges::any_of(used, [&](const auto& prior) {
+                    return prior.gesture == current.binding.gesture
+                        && activation_overlaps(prior.activation, current.binding.activation);
+                })
                 || identifier > 0xBFFF) {
                 if (diagnose) diagnose(id);
                 return;
@@ -139,7 +144,7 @@ public:
                 if (diagnose) diagnose(id);
                 return;
             }
-            used.push_back(gesture);
+            used.push_back(current.binding);
             dispatch_.emplace(assigned, [active = std::move(active),
                                         invoke = contribution.invoke](HWND owner) {
                 if (active()) invoke(owner);
@@ -159,7 +164,7 @@ public:
         bool result = false;
         contributions_.visit([&](const auto&, const auto& contribution) {
             const auto value = contribution.current();
-            result = result || (value.enabled && value.binding.gesture
+            result = result || (value.enabled && !value.binding.activation.conditional() && value.binding.gesture
                 && windows_letter_hotkey_index(*value.binding.gesture) == letter);
         });
         return result;
