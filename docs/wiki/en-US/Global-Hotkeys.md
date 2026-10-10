@@ -29,6 +29,19 @@ In the **Custom Global Hotkeys** section, select **Add** and then:
 
 You can select an existing custom item to edit or delete it, or use its switch to pause it without deleting its configuration. Custom global hotkeys do not open websites directly; add a website to the [Quick Launch Menu](Quick-Launch-Menu) instead.
 
+## Activation conditions for custom hotkeys
+
+In the custom-hotkey editor, set Caps Lock, Num Lock and Scroll Lock independently to **Any state**, **On** or **Off**. The default is unrestricted. Every selected lock-key requirement must match.
+
+Enable **Only while any of these programs is running** to associate up to 32 EXE files. Matching uses the full path, ignoring case, within the current Windows session. Background, minimized and windowless processes count; any one associated program is sufficient. Select the path again after moving a program. Newly started programs are normally detected on the next scan, about half a second later. Unknown or inaccessible process state does not activate a rule.
+
+When both kinds of conditions are configured, both must match. An inactive rule passes the keystroke through; independently configured mappings and Windows shortcut blocking still apply. Changing conditions while a key is held does not switch actions or retrigger it. A lock key used as the trigger is evaluated using its state before the press; a matched hotkey consumes that press.
+
+The same combination may open A with Num Lock on and B with Num Lock off. Reuse is permitted only for provably exclusive conditions. Different associated programs do not establish exclusivity, because both can run at once. The activation column and its tooltip describe each rule.
+
+Global backups include these conditions. Older versions skip conditional hotkeys, while unconditional hotkeys retain their previous storage format. The action's **When the program is already running** option remains a separate launch policy.
+
+
 ## Record a hotkey
 
 Select the record control, then press the desired key or key combination. The control displays the recorded result. Press `Esc` to cancel the current recording and keep the previous value.
@@ -41,7 +54,7 @@ During recording, Simpilot temporarily handles the keystrokes used for capture. 
 
 When settings are saved, Simpilot checks for conflicts with built-in hotkeys, other custom hotkeys, and combinations registered by Windows or other programs. It asks for confirmation before replacing an existing Simpilot assignment. Do not override a hotkey unless you understand what it currently does.
 
-An active exact `Win+letter` hotkey is linked to [Windows Hotkey Blocking](Windows-Hotkey-Blocking). Simpilot automatically blocks and locks the matching Windows shortcut so that Windows does not perform its usual action first. When the last active hotkey using that combination is disabled, cleared, or removed, this automatic lock is released. Any independent blocking choice that you made remains intact.
+An active built-in or unconditional custom `Win+letter` hotkey is linked to [Windows Hotkey Blocking](Windows-Hotkey-Blocking) and locks the corresponding switch. A conditional hotkey intercepts the combination only while its conditions match, without permanently locking that switch. Independent manual blocking still applies even when a conditional hotkey is inactive.
 
 ## Important limits
 

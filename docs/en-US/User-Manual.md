@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.11
+Applies to version: 1.0.12
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -260,6 +260,19 @@ Folder and file actions are handled directly by Windows and do not use applicati
 
 Use the switch in the custom hotkey list to pause an action without deleting it. Select an item to edit or delete it.
 
+### Activation conditions for custom hotkeys
+
+In the custom-hotkey editor, set Caps Lock, Num Lock and Scroll Lock independently to **Any state**, **On** or **Off**. The default is unrestricted. Every selected lock-key requirement must match.
+
+Enable **Only while any of these programs is running** to associate up to 32 EXE files. Matching uses the full path, ignoring case, within the current Windows session. Background, minimized and windowless processes count; any one associated program is sufficient. Select the path again after moving a program. Newly started programs are normally detected on the next scan, about half a second later. Unknown or inaccessible process state does not activate a rule.
+
+When both kinds of conditions are configured, both must match. An inactive rule passes the keystroke through; independently configured mappings and Windows shortcut blocking still apply. Changing conditions while a key is held does not switch actions or retrigger it. A lock key used as the trigger is evaluated using its state before the press; a matched hotkey consumes that press.
+
+The same combination may open A with Num Lock on and B with Num Lock off. Reuse is permitted only for provably exclusive conditions. Different associated programs do not establish exclusivity, because both can run at once. The activation column and its tooltip describe each rule.
+
+Global backups include these conditions. Older versions skip conditional hotkeys, while unconditional hotkeys retain their previous storage format. The action's **When the program is already running** option remains a separate launch policy.
+
+
 ### 6.4 Hotkey conflicts
 
 When saving, Simpilot checks whether the combination:
@@ -343,7 +356,7 @@ Open **Settings > Windows Hotkey Blocking** to select supported combinations fro
 
 ### 7.2 Integration with global hotkeys
 
-If an enabled built-in or custom hotkey is exactly `Win+letter`, Simpilot automatically enables and locks the matching blocking switch. This prevents Windows from acting first and gives the Simpilot action priority.
+If an enabled built-in or unconditional custom hotkey is exactly `Win+letter`, Simpilot automatically enables and locks the matching blocking switch. Conditional hotkeys intercept only when their conditions match, without permanently locking the switch. Independent manual blocking still applies when those conditions are false.
 
 When the final hotkey using that combination is disabled, cleared, or deleted, the automatic lock is removed. A separately selected manual blocking preference remains unchanged.
 

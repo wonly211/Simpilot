@@ -15,7 +15,7 @@ Blocking is exact. For example, blocking `Win+Z` does not affect `Shift+Win+Z`, 
 
 ## Link with global hotkeys
 
-When an enabled built-in or custom hotkey uses an exact `Win+letter` combination, Simpilot automatically blocks the matching Windows shortcut and gives the Simpilot action priority. The Settings page identifies the switch as being enabled by a global hotkey.
+When an enabled built-in or unconditional custom hotkey uses an exact `Win+letter` combination, Simpilot automatically blocks the matching Windows shortcut and locks its switch. Conditional hotkeys intercept only when their conditions match and do not permanently lock the switch. Independent manual blocking remains effective even when those conditions are false.
 
 If the last global hotkey using that combination is disabled, cleared, or deleted, the automatic link is removed. A blocking state that you had selected independently remains in place.
 

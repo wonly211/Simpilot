@@ -1,6 +1,8 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "custom_hotkey.condition_add": "添加关联程序…",
+    "custom_hotkey.conditions_hint": "最多添加 32 个程序，按完整路径匹配。启用程序条件后，请至少添加一个程序。所有已设置的锁定键条件必须同时满足。",
     "custom_hotkey.window_title": "简驭 | Simpilot - 添加全局热键",
     "custom_hotkey.edit_window_title": "简驭 | Simpilot - 编辑全局热键",
     "custom_hotkey.title": "添加新的全局热键",

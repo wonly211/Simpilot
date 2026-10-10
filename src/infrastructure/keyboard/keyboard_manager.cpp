@@ -29,6 +29,9 @@ constexpr UINT end_mapping_capture_message = WM_APP + 0x559;
 constexpr UINT mapping_capture_result_message = WM_APP + 0x55A;
 constexpr UINT query_foreground_process_message = WM_APP + 0x55B;
 constexpr UINT mapping_timer_id = 0x5A71;
+constexpr UINT activation_timer_id = 0x5A72;
+constexpr UINT query_activation_message = WM_APP + 0x55C;
+constexpr UINT resync_activation_message = WM_APP + 0x55D;
 
 UINT current_modifiers(const std::array<bool, 256>& keys) noexcept {
     UINT result = 0;
@@ -329,6 +332,7 @@ DWORD KeyboardManager::hook_thread_main() noexcept {
         return 5;
     }
     refresh_foreground_process();
+    sample_lock_state();
     SetEvent(hook_ready_event_);
 
     if (stop_requested_.load(std::memory_order_acquire)) {
@@ -404,14 +408,24 @@ bool KeyboardManager::set_processing_stage(
 bool KeyboardManager::register_binding(
     const int identifier, const HotKeyBinding& binding) {
     if (!binding.gesture) return true;
-    if (!binding.force_override) return register_standard(identifier, *binding.gesture);
+    if (binding.gesture->virtual_key == L'L' && (binding.gesture->modifiers & MOD_WIN)) return false;
+    if (!binding.activation.valid()) return false;
+    if (!binding.activation.conditional() && !binding.force_override) {
+        if (!register_standard(identifier, *binding.gesture)) return false;
+        registered_bindings_.push_back(binding);
+        return true;
+    }
     if (!running() || !hook_window_
-        || std::ranges::find(used_gestures_, *binding.gesture) != used_gestures_.end()) {
+        || std::ranges::any_of(registered_bindings_, [&](const auto& prior) {
+            return prior.gesture == binding.gesture && activation_overlaps(prior.activation, binding.activation);
+        })) {
         return false;
     }
+    if (!binding.force_override && !probe_available(*binding.gesture)) return false;
     RegistrationRequest request{
         .identifier = identifier,
         .gesture = *binding.gesture,
+        .activation = binding.activation,
     };
     DWORD_PTR result = 0;
     if (!send_control(
@@ -421,6 +435,7 @@ bool KeyboardManager::register_binding(
         return false;
     }
     used_gestures_.push_back(*binding.gesture);
+    registered_bindings_.push_back(binding);
     return true;
 }
 
@@ -442,6 +457,7 @@ void KeyboardManager::unregister_all() noexcept {
     }
     standard_identifiers_.clear();
     used_gestures_.clear();
+    registered_bindings_.clear();
     if (running() && hook_window_) (void)send_control(clear_registrations_message);
 }
 
@@ -454,6 +470,47 @@ bool KeyboardManager::probe_available(const HotKeyGesture& gesture) const noexce
     }
     UnregisterHotKey(target_window_, probe_identifier);
     return true;
+}
+
+bool KeyboardManager::activation_allows_dispatch(int identifier) noexcept {
+    DWORD_PTR allowed = 0;
+    return send_control(query_activation_message, static_cast<WPARAM>(identifier), 0, &allowed) && allowed != 0;
+}
+
+void KeyboardManager::resync_activation_state() noexcept {
+    if (running()) (void)send_control(resync_activation_message);
+}
+
+void KeyboardManager::sample_lock_state() noexcept {
+    // Read the toggled bits, not GetAsyncKeyState's physical-down bits. Between
+    // synchronizations, observe only events actually passed down the hook chain.
+    // Releases can happen while suspended or while the hook is stopped. Seed
+    // still-held keys as already down, and clear keys no longer held so the
+    // first complete press after resume is not mistaken for an old repeat.
+    for (UINT key = 0; key < pressed_keys_.size(); ++key) {
+        pressed_keys_[key] = (GetAsyncKeyState(static_cast<int>(key)) & 0x8000) != 0;
+        conditional_hotkeys_.captured(key, pressed_keys_[key]);
+    }
+    constexpr UINT keys[]{VK_CAPITAL, VK_NUMLOCK, VK_SCROLL};
+    unsigned value = 0;
+    for (unsigned i = 0; i < 3; ++i) {
+        if ((GetKeyState(static_cast<int>(keys[i])) & 1) != 0) value |= 1U << i;
+        lock_keys_down_[i] = pressed_keys_[keys[i]];
+    }
+    lock_state_ = value;
+}
+
+void KeyboardManager::observe_lock_event(const KBDLLHOOKSTRUCT& event, WPARAM message, bool passed) noexcept {
+    if (!passed) return;
+    constexpr UINT keys[]{VK_CAPITAL, VK_NUMLOCK, VK_SCROLL};
+    for (unsigned i = 0; i < 3; ++i) {
+        if (event.vkCode != keys[i]) continue;
+        if (message == WM_KEYUP || message == WM_SYSKEYUP) lock_keys_down_[i] = false;
+        else if (message == WM_KEYDOWN || message == WM_SYSKEYDOWN) {
+            if (!lock_keys_down_[i] && lock_state_) *lock_state_ ^= 1U << i;
+            lock_keys_down_[i] = true;
+        }
+    }
 }
 
 bool KeyboardManager::begin_capture(CaptureHandler handler) noexcept {
@@ -570,6 +627,10 @@ void KeyboardManager::release_hook_thread_resources() noexcept {
     if (owner_ == this) owner_ = nullptr;
     pressed_keys_.fill(false);
     forced_registrations_.clear();
+    process_monitor_.stop();
+    process_snapshot_.reset();
+    conditional_hotkeys_.reset();
+    lock_state_.reset();
     windows_override_mask_ = 0;
     windows_override_identifiers_.fill(0);
     windows_override_keys_down_.fill(false);
@@ -643,6 +704,19 @@ LRESULT KeyboardManager::handle_hook_window_message(
     if (message == add_registration_message) {
         auto* request = reinterpret_cast<RegistrationRequest*>(lparam);
         if (!request) return FALSE;
+        if (request->activation.conditional()) {
+            try {
+                auto activation = request->activation;
+                for (auto& path : activation.programs) path = normalize_hotkey_program_path(path);
+                if (activation.require_running_program) {
+                    if (!SetTimer(hook_window_, activation_timer_id, 50, nullptr)) return FALSE;
+                    process_monitor_.watch(activation.programs);
+                }
+                conditional_hotkeys_.registrations.push_back({request->identifier, request->gesture, std::move(activation)});
+                request->accepted = true;
+                return TRUE;
+            } catch (...) { return FALSE; }
+        }
         if (const auto index = windows_letter_hotkey_index(request->gesture)) {
             if (!is_supported_windows_letter_hotkey(request->gesture)) return FALSE;
             windows_override_mask_ |= std::uint32_t{1} << *index;
@@ -659,11 +733,14 @@ LRESULT KeyboardManager::handle_hook_window_message(
         return TRUE;
     }
     if (message == clear_registrations_message) {
+        KillTimer(hook_window_, activation_timer_id);
+        process_monitor_.stop();
+        process_snapshot_.reset();
+        conditional_hotkeys_.clear_registrations();
         (void)send_windows_transition(
             windows_hotkey_state_.restore_suppressed_windows());
         windows_hotkey_state_.reset();
         forced_registrations_.clear();
-        pressed_keys_.fill(false);
         windows_override_mask_ = 0;
         windows_override_identifiers_.fill(0);
         windows_override_keys_down_.fill(false);
@@ -714,6 +791,24 @@ LRESULT KeyboardManager::handle_hook_window_message(
         }
         request->accepted = true;
         return TRUE;
+    }
+    if (message == query_activation_message) {
+        for (const auto& registration : conditional_hotkeys_.registrations) {
+            if (registration.identifier == static_cast<int>(wparam)) {
+                return !registration.activation.require_running_program
+                    || (process_snapshot_ && process_snapshot_->matches(registration.activation.programs));
+            }
+        }
+        return TRUE; // Standard/unconditional hotkeys have no process gate.
+    }
+    if (message == resync_activation_message) {
+        sample_lock_state();
+        process_snapshot_.reset();
+        return TRUE;
+    }
+    if (message == WM_TIMER && wparam == activation_timer_id) {
+        if (auto next = process_monitor_.take_snapshot()) process_snapshot_ = std::move(next);
+        return 0;
     }
     if (message == WM_TIMER && wparam == mapping_timer_id) {
         refresh_foreground_process();
@@ -885,6 +980,35 @@ LRESULT KeyboardManager::handle_registered_hotkey(
         if (key_down) pressed_keys_[event.vkCode] = true;
         if (key_up) pressed_keys_[event.vkCode] = false;
     }
+    const auto conditional = conditional_hotkeys_.handle(event.vkCode, key_down,
+        current_modifiers(pressed_keys_), lock_state_, [this](const auto& registration) noexcept {
+            return process_snapshot_ && process_snapshot_->matches(registration.activation.programs);
+        });
+    if (conditional.invoke) {
+        const auto modifiers = current_modifiers(pressed_keys_);
+        const bool windows_letter = modifiers == MOD_WIN && event.vkCode >= L'A' && event.vkCode <= L'Z';
+        if ((modifiers & (MOD_ALT | MOD_WIN)) && !windows_letter) {
+            // Win+nonletter and Alt combinations also need menu cancellation.
+            // Use the same unassigned mask key as the Win-letter path rather
+            // than sending Ctrl+Break to the foreground application.
+            keybd_event(0xFF, 0, 0, simpilot_injected_event);
+            keybd_event(0xFF, 0, KEYEVENTF_KEYUP, simpilot_injected_event);
+        }
+        PostMessageW(target_window_, WM_HOTKEY, static_cast<WPARAM>(conditional.invoke),
+            MAKELPARAM(current_modifiers(pressed_keys_), event.vkCode));
+    }
+    if (conditional.consume) {
+        const auto conditional_mask = event.vkCode >= L'A' && event.vkCode <= L'Z'
+            ? (std::uint32_t{1} << (event.vkCode - L'A')) : 0;
+        const auto action = windows_hotkey_state_.handle(event.vkCode, key_down, key_up,
+            effective_windows_hotkey_mask(blocked_mask_, windows_override_mask_) | conditional_mask,
+            current_modifiers(pressed_keys_) == MOD_WIN);
+        if (!send_windows_transition(action)
+            && action.decision == WindowsHotKeyDecision::block_and_release_windows) {
+            windows_hotkey_state_.cancel_suppression(action.left_windows, action.right_windows);
+        }
+        return 1;
+    }
     if (windows_override_mask_ != 0 && event.vkCode >= L'A' && event.vkCode <= L'Z') {
         const auto index = static_cast<std::size_t>(event.vkCode - L'A');
         const auto identifier = windows_override_identifiers_[index];
@@ -995,20 +1119,37 @@ LRESULT CALLBACK KeyboardManager::keyboard_hook(
     auto* manager = owner_;
     if (code == HC_ACTION && manager) {
         auto& event = *reinterpret_cast<KBDLLHOOKSTRUCT*>(lparam);
-        if (event.dwExtraInfo == keyboard_target_injected_marker) {
-            return CallNextHookEx(manager->hook_, code, wparam, lparam);
+        const auto finish = [&](bool consumed) {
+            const auto result = consumed ? LRESULT{1} : CallNextHookEx(manager->hook_, code, wparam, lparam);
+            manager->observe_lock_event(event, wparam, result == 0);
+            if (event.dwExtraInfo != keyboard_target_injected_marker
+                && ((event.flags & LLKHF_INJECTED) == 0 || event.dwExtraInfo == keyboard_replay_injected_marker)
+                && (wparam == WM_KEYUP || wparam == WM_SYSKEYUP) && event.vkCode < manager->pressed_keys_.size()) {
+                manager->pressed_keys_[event.vkCode] = false;
+                manager->conditional_hotkeys_.captured(event.vkCode, false);
+            }
+            return result;
+        };
+        if (event.dwExtraInfo == keyboard_target_injected_marker) return finish(false);
+        if (manager->handle_capture_event(wparam, event) != 0) {
+            manager->conditional_hotkeys_.captured(event.vkCode, wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN);
+            return finish(true);
         }
-        if (manager->handle_capture_event(wparam, event) != 0) return 1;
         if (manager->hook_stage_) {
             const auto mapping_result = manager->hook_stage_->handle(
                 static_cast<UINT>(wparam), event);
             if (mapping_result.diagnostic || manager->hook_stage_->consume_diagnostic()) {
                 manager->mapping_diagnostic_pending_.store(true, std::memory_order_release);
             }
-            if (mapping_result.decision == MappingEventDecision::suppress) return 1;
+            if (mapping_result.decision == MappingEventDecision::suppress) {
+                manager->conditional_hotkeys_.captured(event.vkCode,
+                    wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN);
+                return finish(true);
+            }
         }
-        if (manager->handle_registered_hotkey(wparam, event) != 0) return 1;
-        if (manager->handle_key(wparam, event) != 0) return 1;
+        if (manager->handle_registered_hotkey(wparam, event) != 0) return finish(true);
+        if (manager->handle_key(wparam, event) != 0) return finish(true);
+        return finish(false);
     }
     return CallNextHookEx(manager ? manager->hook_ : nullptr, code, wparam, lparam);
 }

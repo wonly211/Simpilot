@@ -45,9 +45,9 @@ public:
         list_ = control(WC_LISTVIEWW, 4, WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL
             | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS);
         ListView_SetExtendedListViewStyle(list_,
-            LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP);
+            LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP | LVS_EX_INFOTIP);
         settings_visual_style::style_list_view(list_);
-        for (int i = 0; i < 4; ++i) {
+        for (int i = 0; i < 5; ++i) {
             wchar_t empty[] = L"";
             LVCOLUMNW column{.mask = LVCF_WIDTH | LVCF_SUBITEM | LVCF_TEXT,
                 .cx = 100, .pszText = empty, .iSubItem = i};
@@ -82,7 +82,8 @@ public:
         const int widths[]{scale(64), scale(164), scale(112)};
         for (int i = 0; i < 3; ++i) ListView_SetColumnWidth(list_, i, widths[i]);
         ListView_SetColumnWidth(list_, 3, std::max(scale(248),
-            available - widths[0] - widths[1] - widths[2]));
+            available - widths[0] - widths[1] - widths[2] - scale(220)));
+        ListView_SetColumnWidth(list_, 4, scale(220));
         for (auto control : {add_, edit_, remove_, list_}) {
             SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         }
@@ -106,8 +107,8 @@ public:
         SetWindowTextW(remove_, text("settings.delete"));
         constexpr std::string_view columns[]{"settings.global_hotkeys.column.enabled",
             "settings.global_hotkeys.column.hotkey", "settings.global_hotkeys.column.action",
-            "settings.global_hotkeys.column.target"};
-        for (int i = 0; i < 4; ++i) {
+            "settings.global_hotkeys.column.target", "hotkey.activation.column"};
+        for (int i = 0; i < 5; ++i) {
             LVCOLUMNW column{.mask = LVCF_TEXT, .pszText = const_cast<wchar_t*>(text(columns[i]))};
             ListView_SetColumn(list_, i, &column);
         }
@@ -149,6 +150,9 @@ private:
                 : item.action == CustomHotKeyAction::open_file ? "custom_hotkey.open_file"
                 : "custom_hotkey.open_application")));
             ListView_SetItemText(list_, index, 3, const_cast<wchar_t*>(item.program_path.c_str()));
+            auto conditions = activation_description(item.binding.activation, *localization_);
+            std::ranges::replace(conditions, L'\n', L' ');
+            ListView_SetItemText(list_, index, 4, conditions.data());
             if (selection == i) ListView_SetItemState(list_, index,
                 LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
         }
@@ -172,7 +176,8 @@ private:
         const auto target = index.value_or(draft_.items.size());
         const auto id = "custom_hotkey." + std::to_string(target);
         const auto applied = hotkeys_.replace_conflicts(id, binding, [&](const auto& conflict) {
-            return confirm_hotkey_replacement(window_, *localization_, *binding.binding.gesture, conflict);
+            return confirm_hotkey_replacement(window_, *localization_, *binding.binding.gesture, conflict,
+                                              binding.binding.activation);
         }, [&] {
             if (index) draft_.items[*index] = std::move(*candidate);
             else draft_.items.push_back(std::move(*candidate));
@@ -196,6 +201,13 @@ private:
         if (message == WM_NOTIFY) {
             const auto* notification = reinterpret_cast<NMHDR*>(lparam);
             if (notification && notification->hwndFrom == list_) {
+                if (notification->code == LVN_GETINFOTIPW) {
+                    auto* tip = reinterpret_cast<NMLVGETINFOTIPW*>(lparam);
+                    if (tip->iItem >= 0 && static_cast<std::size_t>(tip->iItem) < draft_.items.size()) {
+                        const auto value = activation_description(draft_.items[tip->iItem].binding.activation, *localization_);
+                        wcsncpy_s(tip->pszText, tip->cchTextMax, value.c_str(), _TRUNCATE);
+                    }
+                }
                 if (notification->code == NM_DBLCLK
                     && reinterpret_cast<NMITEMACTIVATE*>(lparam)->iSubItem != 0) edit(false);
                 if (notification->code == LVN_ITEMCHANGED && !refreshing_) {

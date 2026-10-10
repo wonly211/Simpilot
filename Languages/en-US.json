@@ -1,6 +1,13 @@
 {
   "locale": "en-US",
   "strings": {
+    "hotkey.activation.heading": "Activation conditions",
+    "hotkey.activation.any": "Any state",
+    "hotkey.activation.on": "On",
+    "hotkey.activation.off": "Off",
+    "hotkey.activation.running_any": "Only while any of these programs is running (including in the background)",
+    "hotkey.activation.column": "Activation conditions",
+    "hotkey.activation.conflict": "\n\nExisting conditions: {}\nNew conditions: {}",
     "ui.app_title": "简驭 | Simpilot",
     "ui.settings": "Settings...",
     "ui.about": "About 简驭 | Simpilot",

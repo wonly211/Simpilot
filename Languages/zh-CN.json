@@ -1,6 +1,13 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "hotkey.activation.heading": "激活条件",
+    "hotkey.activation.any": "不限制",
+    "hotkey.activation.on": "开启",
+    "hotkey.activation.off": "关闭",
+    "hotkey.activation.running_any": "仅当下列任一程序正在运行时生效（包括后台）",
+    "hotkey.activation.column": "激活条件",
+    "hotkey.activation.conflict": "\n\n现有条件：{}\n新条件：{}",
     "ui.app_title": "简驭 | Simpilot",
     "ui.settings": "设置...",
     "ui.about": "关于 简驭 | Simpilot",

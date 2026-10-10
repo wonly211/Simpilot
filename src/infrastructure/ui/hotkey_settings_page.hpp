@@ -14,5 +14,6 @@ std::unique_ptr<ISettingsPage> make_hotkey_settings_page(
 bool confirm_hotkey_availability(HWND owner, const Localization& localization,
     BuiltInHotKey& value, const std::function<bool(const HotKeyGesture&)>& available);
 bool confirm_hotkey_replacement(HWND owner, const Localization& localization,
-    const HotKeyGesture& gesture, const HotkeyDraftBinding& conflict);
+    const HotKeyGesture& gesture, const HotkeyDraftBinding& conflict,
+    const HotkeyActivationConditions& activation = {});
 } // namespace simpilot

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include "simpilot/hotkey_activation.hpp"
 
 #include <optional>
 #include <string>
@@ -20,6 +21,7 @@ struct HotKeyGesture {
 struct HotKeyBinding {
     std::optional<HotKeyGesture> gesture;
     bool force_override = false;
+    HotkeyActivationConditions activation;
 
     bool operator==(const HotKeyBinding&) const = default;
 };

@@ -180,7 +180,14 @@ bool MenuEditorWindow::dirty() const noexcept {
 }
 
 void MenuEditorWindow::set_dpi(UINT dpi) {
-    if (window_ && dpi != dpi_) SendMessageW(window_, WM_DPICHANGED, MAKEWPARAM(dpi, dpi), 0);
+    if (!window_ || dpi == 0 || dpi == dpi_) return;
+    const auto old_dpi = dpi_;
+    dpi_ = dpi;
+    if (splitter_x_ > 0 && old_dpi > 0) splitter_x_ = MulDiv(splitter_x_, dpi_, old_dpi);
+    update_fonts();
+    RECT rectangle{};
+    GetClientRect(window_, &rectangle);
+    layout_controls(rectangle.right, rectangle.bottom);
 }
 
 bool MenuEditorWindow::capture_source_snapshot(SourceSnapshot& snapshot) const noexcept {
@@ -1259,15 +1266,7 @@ LRESULT MenuEditorWindow::handle_message(
         return 0;
     }
     if (message == WM_DPICHANGED) {
-        const auto old_dpi = dpi_;
-        dpi_ = HIWORD(wparam);
-        if (splitter_x_ > 0 && old_dpi > 0) {
-            splitter_x_ = MulDiv(splitter_x_, dpi_, old_dpi);
-        }
-        update_fonts();
-        RECT rectangle{};
-        GetClientRect(window_, &rectangle);
-        layout_controls(rectangle.right, rectangle.bottom);
+        set_dpi(HIWORD(wparam));
         return 0;
     }
     if (message == WM_NOTIFY) {

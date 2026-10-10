@@ -1,6 +1,8 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "custom_hotkey.condition_add": "新增關聯程式…",
+    "custom_hotkey.conditions_hint": "最多新增 32 個程式，依完整路徑比對。啟用程式條件後，請至少新增一個程式。所有已設定的鎖定鍵條件必須同時滿足。",
     "custom_hotkey.window_title": "简驭 | Simpilot - 新增全域快速鍵",
     "custom_hotkey.edit_window_title": "简驭 | Simpilot - 編輯全域快速鍵",
     "custom_hotkey.title": "新增全域快速鍵",
