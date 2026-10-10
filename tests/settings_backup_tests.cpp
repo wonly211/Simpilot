@@ -1,5 +1,7 @@
 #include "simpilot/settings_backup.hpp"
 #include <Windows.h>
+#include <aclapi.h>
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -8,6 +10,47 @@
 using namespace simpilot;
 namespace fs = std::filesystem;
 namespace {
+// Only the per-test temporary directory is restricted. Preserve its original
+// ACL so the failed transaction can be retried after access is restored.
+class DenyDirectoryWrites final {
+public:
+    explicit DenyDirectoryWrites(const fs::path& path) : path_(path.wstring()) {
+        if (GetNamedSecurityInfoW(path_.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+                nullptr, nullptr, &original_acl_, nullptr, &original_) != ERROR_SUCCESS) {
+            throw std::runtime_error("Cannot read test directory permissions");
+        }
+        std::array<unsigned char, SECURITY_MAX_SID_SIZE> everyone{};
+        DWORD size = static_cast<DWORD>(everyone.size());
+        EXPLICIT_ACCESSW entry{};
+        entry.grfAccessPermissions = FILE_ADD_FILE | FILE_ADD_SUBDIRECTORY;
+        entry.grfAccessMode = DENY_ACCESS;
+        entry.grfInheritance = NO_INHERITANCE;
+        entry.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+        entry.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+        entry.Trustee.ptstrName = reinterpret_cast<wchar_t*>(everyone.data());
+        PACL restricted = nullptr;
+        const bool prepared = CreateWellKnownSid(WinWorldSid, nullptr, everyone.data(), &size)
+            && SetEntriesInAclW(1, &entry, original_acl_, &restricted) == ERROR_SUCCESS;
+        const bool applied = prepared && SetNamedSecurityInfoW(path_.data(), SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION, nullptr, nullptr, restricted, nullptr) == ERROR_SUCCESS;
+        if (restricted) LocalFree(restricted);
+        if (!applied) {
+            LocalFree(original_);
+            throw std::runtime_error("Cannot restrict test directory writes");
+        }
+    }
+    ~DenyDirectoryWrites() {
+        SetNamedSecurityInfoW(path_.data(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION,
+            nullptr, nullptr, original_acl_, nullptr);
+        LocalFree(original_);
+    }
+    DenyDirectoryWrites(const DenyDirectoryWrites&) = delete;
+    DenyDirectoryWrites& operator=(const DenyDirectoryWrites&) = delete;
+private:
+    std::wstring path_;
+    PACL original_acl_ = nullptr;
+    PSECURITY_DESCRIPTOR original_ = nullptr;
+};
 void require(bool value, const char* reason) { if (!value) throw std::runtime_error(reason); }
 template<class F> void rejects(F action, const char* reason) {
     bool rejected = false;
@@ -137,6 +180,33 @@ int wmain(int argc, wchar_t** argv) {
         rejects([&] { (void)SettingsBackup::capture(target, "test"); }, "unreadable configuration does not export defaults");
         CloseHandle(no_read);
         require(SettingsBackup::capture(target, "test").files == before.files, "read failure preserves original files");
+        SettingsBackup::stage(target, original);
+        {
+            DenyDirectoryWrites restricted(target / L"Backups");
+            rejects([&] { SettingsBackup::recover(target); }, "backup directory access denial stops restore");
+            require(!fs::exists(target / L"Backups/restore.journal"), "no commit starts without the automatic backup");
+            require(SettingsBackup::capture(target, "test").files == before.files, "backup failure leaves all configuration intact");
+        }
+        SettingsBackup::cancel_pending(target);
+        auto denied_change = original;
+        denied_change.files["Cache/RunIcon/a.custom.ico"].push_back(9);
+        SettingsBackup::stage(target, denied_change);
+        {
+            DenyDirectoryWrites restricted(target / L"Config");
+            rejects([&] { SettingsBackup::recover(target); }, "configuration directory access denial reports failure");
+            require(fs::exists(target / L"Backups/restore.journal"), "failed rollback retains its recovery record");
+        }
+        require(!SettingsBackup::recover(target), "retry rolls back rather than reapplying the pending restore");
+        require(SettingsBackup::capture(target, "test").files == before.files, "access restored permits complete rollback");
+        auto with_second_menu = before;
+        with_second_menu.files["Config/Simpilot2.ini"] = {'B', '|', 'b', '.', 'e', 'x', 'e', '\n'};
+        SettingsBackup::stage(target, with_second_menu);
+        SettingsBackup::recover(target);
+        SettingsBackup::stage(target, original);
+        crash_child(executable, target, L"Config/Simpilot2.ini");
+        require(!fs::exists(target / L"Config/Simpilot2.ini"), "subprocess interrupted after stale menu deletion");
+        require(!SettingsBackup::recover(target), "interrupted file deletion rolls back");
+        require(SettingsBackup::capture(target, "test").files == with_second_menu.files, "rollback restores deleted files as well as overwritten files");
         fs::remove_all(root);
         std::cout << "Backup, migration and interrupted recovery tests passed\n";
         return 0;

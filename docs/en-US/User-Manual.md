@@ -444,7 +444,7 @@ Menu configuration uses UTF-8. Most users should edit it through Settings; direc
 
 `program-cache.tsv` can be deleted after Simpilot exits; unresolved programs are searched again when needed. Simpilot keeps one `Simpilot.log` file and removes entries older than 90 days during startup.
 
-For migration or backup, exit Simpilot and copy the entire application directory. At minimum, retain `Config/`. If manually selected icons are used, also retain `Cache/RunIcon/`.
+Use the built-in global backup or folder migration described below. For a manual backup, exit Simpilot and copy the entire application directory, or retain `Config/`, `Cache/program-cache.tsv`, `Cache/RunIcon/`, and your custom `Language.lng`. Keep `Backups/` as well if you want to retain earlier recovery packages.
 
 ### Global backup, restore, and migration
 
