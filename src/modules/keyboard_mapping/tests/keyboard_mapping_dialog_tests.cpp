@@ -169,6 +169,20 @@ void application_editor() {
 
     const auto global = run(*saved, [](HWND dialog) { scope(dialog, 0); click(dialog, IDOK); });
     require(global && global->process_names.empty(), "Only explicit all-applications mode should create global scope");
+    const auto excluded = run(*saved, [](HWND dialog) {
+        scope(dialog, 2);
+        add(dialog, L"game.exe");
+        require(SendMessageW(control(dialog, 150), CB_GETCURSEL, 0, 0) == 2,
+            "Adding an excluded app must not switch to inclusion");
+        click(dialog, IDOK);
+    });
+    require(excluded && excluded->application_scope == ApplicationScope::excluded,
+        "Exclusion editor persists its mode");
+    require(!run(*excluded, [](HWND dialog) {
+        require(SendMessageW(control(dialog, 150), CB_GETCURSEL, 0, 0) == 2,
+            "Editing exclusion restores mode");
+        click(dialog, IDCANCEL);
+    }), "Cancel exclusion keeps original settings");
     require(!run(*saved, [](HWND dialog) { scope(dialog, 0); click(dialog, IDCANCEL); }),
         "Cancel must not commit the edited scope");
 }

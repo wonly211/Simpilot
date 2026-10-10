@@ -88,6 +88,10 @@
     "program_selection.version": "Version",
     "program_selection.modified": "Modified",
     "program_selection.select": "Select",
-    "program_selection.cancel": "Cancel"
+    "program_selection.cancel": "Cancel",
+    "settings.menu_size": "Text and icon size",
+    "settings.menu_size.small": "Small",
+    "settings.menu_size.medium": "Medium (default)",
+    "settings.menu_size.large": "Large"
   }
 }

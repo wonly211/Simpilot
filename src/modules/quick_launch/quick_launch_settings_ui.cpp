@@ -65,6 +65,11 @@ class UiState final : public QuickLaunchSettingsUi, public std::enable_shared_fr
                             SendMessageW(page->state_->theme_, CB_GETCURSEL, 0, 0));
                         page->state_->mark_dirty();
                     }
+                    if (LOWORD(wparam) == 12 && HIWORD(wparam) == CBN_SELCHANGE) {
+                        page->state_->draft_.menu_size = static_cast<MenuSize>(
+                            SendMessageW(page->state_->size_, CB_GETCURSEL, 0, 0));
+                        page->state_->mark_dirty();
+                    }
                 }
                 if (message == WM_NOTIFY) {
                     const auto* notification = reinterpret_cast<NMHDR*>(lparam);
@@ -217,7 +222,7 @@ private:
     settings_visual_style::PageTypography editor_typography_, icon_typography_;
     HINSTANCE instance_ = nullptr;
     HWND window_ = nullptr, editor_heading_ = nullptr,
-         theme_label_ = nullptr, theme_ = nullptr;
+         theme_label_ = nullptr, theme_ = nullptr, size_label_ = nullptr, size_ = nullptr;
     HWND menu_icon_heading_ = nullptr, menu_icon_list_ = nullptr,
          menu_icon_select_button_ = nullptr, menu_icon_restore_button_ = nullptr;
     HIMAGELIST menu_icon_images_ = nullptr;
@@ -287,6 +292,10 @@ void UiState::create_page(bool icons, HWND parent, const SettingsPageContext& co
             0, 0, 0, 0, parent, nullptr, instance_, nullptr);
         theme_ = CreateWindowW(WC_COMBOBOXW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
             0, 0, 0, 0, parent, reinterpret_cast<HMENU>(11), instance_, nullptr);
+        size_label_ = CreateWindowW(L"STATIC", L"", WS_CHILD | WS_VISIBLE,
+            0, 0, 0, 0, parent, nullptr, instance_, nullptr);
+        size_ = CreateWindowW(WC_COMBOBOXW, L"", WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST,
+            0, 0, 0, 0, parent, reinterpret_cast<HMENU>(12), instance_, nullptr);
         menu_editor_ = std::make_unique<MenuEditorWindow>(instance_, parent,
             std::string(localization_.language_code()), config_directory_ / L"Simpilot.ini",
             config_directory_ / L"Simpilot2.ini", diagnostic_sink_,
@@ -312,7 +321,10 @@ void UiState::layout_page(bool icons, int width, int height, UINT dpi, HFONT fon
         SendMessageW(theme_label_, WM_SETFONT, reinterpret_cast<WPARAM>(typography.section()), TRUE);
         const int theme_x = scale(136);
         place(theme_, theme_x, scale(52), std::min(scale(200), width - theme_x), scale(180));
-        menu_editor_->set_bounds(0, scale(100), width, std::max(1, height - scale(100)));
+        place(size_label_, 0, scale(101), scale(190), scale(24));
+        SendMessageW(size_label_, WM_SETFONT, reinterpret_cast<WPARAM>(typography.section()), TRUE);
+        place(size_, scale(206), scale(96), std::min(scale(200), width - scale(206)), scale(180));
+        menu_editor_->set_bounds(0, scale(144), width, std::max(1, height - scale(144)));
         return;
     }
     place(menu_icon_heading_, 0, 0, width, scale(36));
@@ -348,6 +360,11 @@ void UiState::refresh_language(const Localization& localization) {
         for (auto key : {"settings.system_theme", "settings.light_theme", "settings.dark_theme"})
             SendMessageW(theme_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(key)));
         SendMessageW(theme_, CB_SETCURSEL, static_cast<WPARAM>(draft_.menu_theme), 0);
+        SetWindowTextW(size_label_, text("settings.menu_size"));
+        SendMessageW(size_, CB_RESETCONTENT, 0, 0);
+        for (auto key : {"settings.menu_size.small", "settings.menu_size.medium", "settings.menu_size.large"})
+            SendMessageW(size_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(key)));
+        SendMessageW(size_, CB_SETCURSEL, static_cast<WPARAM>(draft_.menu_size), 0);
         menu_editor_->set_language(std::string(localization_.language_code()));
     }
     if (!menu_icon_list_) return;

@@ -1,4 +1,5 @@
 #pragma once
+#include "simpilot/settings_backup.hpp"
 #include "simpilot/app_module.hpp"
 #include "simpilot/settings_registry.hpp"
 #include "simpilot/hotkey_registry.hpp"
@@ -8,6 +9,7 @@
 #include "simpilot/popup_menu_host.hpp"
 
 namespace simpilot {
+void inspect_quick_launch_backup(const SettingsSnapshot&, bool, std::vector<std::wstring>&);
 std::unique_ptr<IAppModule> make_quick_launch_module(
     HINSTANCE instance, const std::filesystem::path& executable_directory,
     const SettingsDocument& document, const Localization& localization,

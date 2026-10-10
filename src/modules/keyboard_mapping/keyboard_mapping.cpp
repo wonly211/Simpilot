@@ -197,23 +197,21 @@ std::wstring_view process_stem(const std::wstring_view process_name) noexcept {
 std::optional<std::wstring> overlapping_process(
     const KeyboardMappingRule& left,
     const KeyboardMappingRule& right) {
-    if (left.process_names.empty()) {
-        return right.process_names.empty() ? std::wstring{} : right.process_names.front();
-    }
-    if (right.process_names.empty()) return left.process_names.front();
-    for (const auto& left_name : left.process_names) {
-        for (const auto& right_name : right.process_names) {
-            if (left.exact_match && right.exact_match) {
-                if (left_name == right_name) return left_name;
-            } else if (!right.exact_match
-                       && process_stem(left_name).starts_with(process_stem(right_name))) {
-                return left_name;
-            } else if (!left.exact_match
-                       && process_stem(right_name).starts_with(process_stem(left_name))) {
-                return right_name;
-            }
-        }
-    }
+    // Each name is an exact point or the open remainder of a prefix region.
+    // The empty region represents a known process outside all listed names.
+    std::set<std::pair<std::wstring, bool>> regions{{L"", false}};
+    for (const auto* rule : {&left, &right}) for (const auto& name : rule->process_names)
+        regions.emplace(name, rule->exact_match);
+    const auto active = [](const KeyboardMappingRule& rule, const auto& process, bool exact) {
+        if (mapping_application_scope(rule) == ApplicationScope::all) return true;
+        const auto listed = std::ranges::any_of(rule.process_names, [&](const auto& name) {
+            return rule.exact_match ? exact && process == name
+                : !process.empty() && process_stem(process).starts_with(process_stem(name));
+        });
+        return rule.application_scope == ApplicationScope::excluded ? !listed : listed;
+    };
+    for (const auto& [process, exact] : regions)
+        if (active(left, process, exact) && active(right, process, exact)) return process;
     return std::nullopt;
 }
 
@@ -223,6 +221,20 @@ std::wstring process_scope_token(const std::wstring& name, const bool exact) {
 }
 
 } // namespace
+
+ApplicationScope mapping_application_scope(const KeyboardMappingRule& rule) noexcept {
+    return rule.application_scope == ApplicationScope::excluded ? ApplicationScope::excluded
+        : rule.process_names.empty() ? ApplicationScope::all : ApplicationScope::included;
+}
+
+bool mapping_applies_to_process(const KeyboardMappingRule& rule, std::wstring_view process) noexcept {
+    if (mapping_application_scope(rule) == ApplicationScope::all) return true;
+    if (process.empty()) return false;
+    const bool listed = std::ranges::any_of(rule.process_names, [&](const auto& name) {
+        return rule.exact_match ? process == name : process_stem(process).starts_with(process_stem(name));
+    });
+    return rule.application_scope == ApplicationScope::excluded ? !listed : listed;
+}
 
 std::optional<std::vector<std::wstring>> normalize_mapping_process_names(
     const std::vector<std::wstring>& names) {
@@ -251,7 +263,8 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
     auto rules = input;
     for (std::size_t index = 0; index < rules.size(); ++index) {
         auto names = normalize_mapping_process_names(rules[index].process_names);
-        if (!names) {
+        if (!names || (rules[index].application_scope == ApplicationScope::excluded && names->empty())
+            || (rules[index].application_scope == ApplicationScope::all && !names->empty())) {
             errors.push_back({index, L"Use at most 32 nonempty executable base names."});
         } else {
             rules[index].process_names = std::move(*names);
@@ -359,18 +372,25 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
                     KeyboardMappingValidationKind::duplicate_source, process});
             }
         };
-        if (rule.process_names.empty()) register_scope({});
-        for (const auto& process : rule.process_names) register_scope(process);
+        if (rule.application_scope != ApplicationScope::excluded) {
+            if (rule.process_names.empty()) register_scope({});
+            for (const auto& process : rule.process_names) register_scope(process);
+        }
         sources.push_back(source);
         targets.push_back(output_token(output));
     }
 
     for (std::size_t left = 0; left < rules.size(); ++left) {
-        if (!rules[left].enabled) continue;
         for (std::size_t right = left + 1; right < rules.size(); ++right) {
-            if (!rules[right].enabled) continue;
             const auto process = overlapping_process(rules[left], rules[right]);
             if (!process) continue;
+            if (rules[left].application_scope == ApplicationScope::excluded
+                && rules[right].application_scope == ApplicationScope::excluded
+                && sources[left] == sources[right] && targets[left] != targets[right]) {
+                errors.push_back({right, L"Overlapping exclusion rules have different targets.",
+                    KeyboardMappingValidationKind::duplicate_source, *process});
+            }
+            if (!rules[left].enabled || !rules[right].enabled) continue;
             const auto modifier_remap_conflicts = [](
                 const KeyboardMappingRule& remap, const KeyboardMappingRule& shortcut) {
                 return remap.trigger.single_key
@@ -420,11 +440,12 @@ std::vector<KeyboardMappingValidationError> validate_keyboard_mappings(
         std::vector<bool> active(rules.size(), false);
         for (std::size_t index = 0; index < rules.size(); ++index) {
             const auto& rule = rules[index];
-            active[index] = rule.enabled && (rule.process_names.empty()
-                || std::ranges::any_of(rule.process_names, [&](const auto& name) {
+            const bool listed = std::ranges::any_of(rule.process_names, [&](const auto& name) {
                     return rule.exact_match ? exact && process == name
                         : !process.empty() && process_stem(process).starts_with(process_stem(name));
-                }));
+                });
+            active[index] = rule.enabled && (mapping_application_scope(rule) == ApplicationScope::all
+                || (rule.application_scope == ApplicationScope::excluded ? !listed : listed));
         }
         std::vector<int> visit(rules.size(), 0);
         const auto visit_rule = [&](const auto& self, const std::size_t index) -> bool {

@@ -1,6 +1,8 @@
 #include "general_settings_page.hpp"
 #include "settings_visual_style.hpp"
 #include "toggle_switch.hpp"
+#include "configuration_backup.hpp"
+#include "scrollable_form.hpp"
 #include <commctrl.h>
 namespace simpilot {
 namespace {
@@ -10,6 +12,8 @@ public:
     ~GeneralPage() override { if (window_) DestroyWindow(window_); }
     void create(const SettingsPageContext& context) override {
         changed_ = context.changed; change_language_ = context.change_language;
+        backup_ = context.backup;
+        configuration_directory_ = context.configuration_directory;
         WNDCLASSW wc{};
         wc.hInstance = context.instance; wc.lpfnWndProc = procedure;
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
@@ -31,8 +35,17 @@ public:
         language_label_ = control(L"STATIC", 0, SS_CENTERIMAGE);
         language_ = control(WC_COMBOBOXW, 12, WS_TABSTOP | CBS_DROPDOWNLIST);
         language_hint_ = control(L"STATIC", 0, SS_LEFT);
+        backup_heading_ = control(L"STATIC", 0, SS_LEFT);
+        backup_directory_ = control(L"EDIT", 0, ES_READONLY | ES_AUTOHSCROLL | WS_TABSTOP);
+        backup_hint_ = control(L"STATIC", 0, SS_LEFT);
+        export_ = control(L"BUTTON", 20, WS_TABSTOP | BS_PUSHBUTTON);
+        import_ = control(L"BUTTON", 21, WS_TABSTOP | BS_PUSHBUTTON);
+        migrate_ = control(L"BUTTON", 22, WS_TABSTOP | BS_PUSHBUTTON);
+        for (const auto button : {export_, import_, migrate_}) settings_visual_style::style_button(button);
+        SetWindowTextW(backup_directory_, configuration_directory_.c_str());
         SendMessageW(startup_, BM_SETCHECK, draft_.start_with_windows ? BST_CHECKED : BST_UNCHECKED, 0);
         refresh_language(context.localization);
+        form_.attach(window_);
     }
     void layout(RECT bounds, UINT dpi, HFONT font) override {
         bounds_ = bounds;
@@ -40,8 +53,9 @@ public:
         font_ = font;
         typography_.update(font, dpi);
         const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
-        const int width = std::min(scale(640), static_cast<int>(std::max(1L, bounds.right - bounds.left)));
-        MoveWindow(window_, bounds.left, bounds.top, width, bounds.bottom - bounds.top, TRUE);
+        const int viewport_width = std::min(scale(640), static_cast<int>(std::max(1L, bounds.right - bounds.left)));
+        const int width = std::max(scale(440), viewport_width - GetSystemMetricsForDpi(SM_CXVSCROLL, dpi));
+        MoveWindow(window_, bounds.left, bounds.top, viewport_width, bounds.bottom - bounds.top, TRUE);
         for (auto control : {startup_, startup_label_, language_label_, language_})
             SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.title()), TRUE);
@@ -81,6 +95,18 @@ public:
         SendMessageW(language_, CB_SETDROPPEDWIDTH, language_width, 0);
         MoveWindow(language_, width - language_width, separator_ + scale(16),
                    language_width, scale(220), TRUE);
+        const int backup_y = separator_ + scale(88);
+        for (const auto control : {backup_directory_, backup_hint_, export_, import_, migrate_})
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
+        SendMessageW(backup_heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.section()), TRUE);
+        MoveWindow(backup_heading_, 0, backup_y, width, scale(26), TRUE);
+        MoveWindow(backup_directory_, 0, backup_y + scale(34), width, scale(26), TRUE);
+        const int button_width = std::max(1, (width - scale(16)) / 3);
+        MoveWindow(export_, 0, backup_y + scale(72), button_width, scale(36), TRUE);
+        MoveWindow(import_, button_width + scale(8), backup_y + scale(72), button_width, scale(36), TRUE);
+        MoveWindow(migrate_, 2 * (button_width + scale(8)), backup_y + scale(72), button_width, scale(36), TRUE);
+        MoveWindow(backup_hint_, 0, backup_y + scale(122), width, scale(64), TRUE);
+        form_.layout(viewport_width, bounds.bottom - bounds.top, width, backup_y + scale(200));
         InvalidateRect(window_, nullptr, TRUE);
     }
     void show(bool visible) override { ShowWindow(window_, visible ? SW_SHOW : SW_HIDE); }
@@ -91,6 +117,11 @@ public:
         SetWindowTextW(startup_label_, localization.text("settings.startup").data());
         SetWindowTextW(language_label_, localization.text("settings.display_language").data());
         SetWindowTextW(language_hint_, localization.text("settings.language_immediate").data());
+        SetWindowTextW(backup_heading_, localization.text("backup.heading").data());
+        SetWindowTextW(backup_hint_, localization.text("backup.portable").data());
+        SetWindowTextW(export_, localization.text("backup.export").data());
+        SetWindowTextW(import_, localization.text("backup.import").data());
+        SetWindowTextW(migrate_, localization.text("backup.migrate").data());
         languages_ = localization.available_languages();
         SendMessageW(language_, CB_RESETCONTENT, 0, 0);
         for (std::size_t i = 0; i < languages_.size(); ++i) {
@@ -106,6 +137,11 @@ private:
         auto* page = reinterpret_cast<GeneralPage*>(GetWindowLongPtrW(window, GWLP_USERDATA));
         if (!page) return DefWindowProcW(window, message, wparam, lparam);
         try {
+            if (message == WM_COMMAND && HIWORD(wparam) == BN_CLICKED && page->backup_) {
+                if (LOWORD(wparam) == 20) { page->backup_(BackupAction::export_settings); return 0; }
+                if (LOWORD(wparam) == 21) { page->backup_(BackupAction::import_settings); return 0; }
+                if (LOWORD(wparam) == 22) { page->backup_(BackupAction::migrate_directory); return 0; }
+            }
             if (message == WM_COMMAND && LOWORD(wparam) == 10 && HIWORD(wparam) == BN_CLICKED) {
                 page->draft_.start_with_windows = SendMessageW(page->startup_, BM_GETCHECK, 0, 0) == BST_CHECKED;
                 if (page->changed_) page->changed_();
@@ -150,6 +186,11 @@ private:
     std::string current_language_;
     std::function<void()> changed_;
     std::function<bool(std::string)> change_language_;
+    std::function<void(BackupAction)> backup_;
+    std::filesystem::path configuration_directory_;
+    ScrollableForm form_;
+    HWND backup_heading_ = nullptr, backup_directory_ = nullptr, backup_hint_ = nullptr,
+        export_ = nullptr, import_ = nullptr, migrate_ = nullptr;
 };
 }
 std::unique_ptr<ISettingsPage> make_general_settings_page(AppSettings& draft) {

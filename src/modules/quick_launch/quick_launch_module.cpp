@@ -12,11 +12,32 @@
 #include "simpilot/command_executor.hpp"
 #include "simpilot/config_file.hpp"
 #include "simpilot/variable_expander.hpp"
+#include "simpilot/text_encoding.hpp"
+#include "simpilot/hotkey_settings_codec.hpp"
 #include <shellscalingapi.h>
 #include <algorithm>
 #include <format>
 
 namespace simpilot {
+void inspect_quick_launch_backup(const SettingsSnapshot& snapshot, bool check_environment, std::vector<std::wstring>& warnings) {
+    const auto settings = SettingsDocument::parse(snapshot.text("Config/Setting.ini"));
+    validate_hotkey_setting(settings, L"MainMenu");
+    validate_hotkey_setting(settings, L"SecondMenu");
+    if (const auto size = settings.get(L"MenuSize"); size && *size != L"0" && *size != L"1" && *size != L"2")
+        throw std::runtime_error("Invalid menu size");
+    for (const auto name : {"Config/Simpilot.ini", "Config/Simpilot2.ini"}) {
+        auto text = snapshot.text(name);
+        if (text.starts_with("\xEF\xBB\xBF")) text.erase(0, 3);
+        const auto decoded = decode_utf8(text);
+        if (!decoded) throw std::runtime_error("Menu configuration is not valid UTF-8");
+        auto menu = MenuParser::parse(*decoded);
+        for (const auto* entry : menu.entries()) {
+            if (entry->value.empty() || entry->display_name.empty()) throw std::runtime_error("Invalid menu entry");
+            if (check_environment) if (const auto command = ParsedCommand::try_parse(entry->value))
+                if (std::filesystem::path(command->executable).is_absolute() && !std::filesystem::exists(command->executable)) warnings.push_back(command->executable);
+        }
+    }
+}
 namespace {
 void ensure_default_configuration(const std::filesystem::path& configuration_file,
                                   const Localization& localization) {
@@ -393,7 +414,7 @@ void QuickLaunchModule::show_launch_menu(const int menu_number) {
     next_command_id_ = 1000;
     (void)MenuThemeController::apply(settings_.menu_theme);
     const auto cursor = current_cursor_position(window_);
-    launch_menu_renderer_.begin(settings_.menu_theme, effective_dpi_for_point(cursor));
+    launch_menu_renderer_.begin(settings_.menu_theme, effective_dpi_for_point(cursor), settings_.menu_size);
     const auto menu = CreatePopupMenu();
     add_menu_children(menu, *selected_document->root);
     if (menu_number == 1 && secondary_document_) {

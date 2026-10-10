@@ -7,11 +7,8 @@
 namespace simpilot {
 namespace {
 
-constexpr int menu_font_size = 15;
-constexpr int menu_icon_size = 24;
 constexpr int menu_left_padding = 10;
 constexpr int menu_icon_text_gap = 10;
-constexpr int menu_text_left = menu_left_padding + menu_icon_size + menu_icon_text_gap;
 constexpr int menu_right_padding = 16;
 constexpr int menu_submenu_padding = 28;
 constexpr int menu_min_row_height = 34;
@@ -48,15 +45,18 @@ LaunchMenuRenderer::~LaunchMenuRenderer() {
     end();
 }
 
-void LaunchMenuRenderer::begin(const MenuTheme theme, const UINT dpi) {
+void LaunchMenuRenderer::begin(const MenuTheme theme, const UINT dpi, const MenuSize size) {
     end();
     dpi_ = dpi == 0 ? 96 : dpi;
+    size_percent_ = size == MenuSize::Small ? 87 : size == MenuSize::Large ? 120 : 100;
+    font_size_ = size == MenuSize::Small ? 13 : size == MenuSize::Large ? 18 : 15;
+    icon_size_ = size == MenuSize::Small ? 20 : size == MenuSize::Large ? 32 : 24;
     dark_ = MenuThemeController::dark_mode_enabled(theme);
     HIGHCONTRASTW contrast{.cbSize = sizeof(contrast)};
     high_contrast_ = SystemParametersInfoW(
         SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0)
         && (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0;
-    font_ = CreateFontW(-scale(menu_font_size), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    font_ = CreateFontW(-MulDiv(font_size_, static_cast<int>(dpi_), 96), 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
         DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
         DEFAULT_PITCH | FF_DONTCARE, L"Segoe UI");
 }
@@ -134,11 +134,13 @@ bool LaunchMenuRenderer::measure(MEASUREITEMSTRUCT& measurement) const noexcept 
     const auto text_height = static_cast<int>(
         text_rectangle.bottom - text_rectangle.top);
     measurement.itemHeight = static_cast<UINT>(
-        std::max(scale(menu_min_row_height), text_height + scale(menu_vertical_padding)));
+        std::max({scale(menu_min_row_height), text_height + scale(menu_vertical_padding),
+            MulDiv(icon_size_, static_cast<int>(dpi_), 96) + scale(8)}));
     const auto right_padding = item->submenu ? menu_submenu_padding : menu_right_padding;
     measurement.itemWidth = static_cast<UINT>(
         std::min(static_cast<int>(text_rectangle.right - text_rectangle.left)
-            + scale(menu_text_left) + scale(right_padding), scale(menu_max_width)));
+            + scale(menu_left_padding + menu_icon_text_gap) + MulDiv(icon_size_, static_cast<int>(dpi_), 96)
+            + scale(right_padding), scale(menu_max_width)));
     return true;
 }
 
@@ -198,7 +200,7 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
         return true;
     }
 
-    const auto icon_size = scale(menu_icon_size);
+    const auto icon_size = MulDiv(icon_size_, static_cast<int>(dpi_), 96);
     const auto icon_x = drawing.rcItem.left + scale(menu_left_padding);
     const auto icon_y = drawing.rcItem.top
         + ((drawing.rcItem.bottom - drawing.rcItem.top) - icon_size) / 2;
@@ -212,7 +214,7 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
     const auto previous_text_color = SetTextColor(
         drawing.hDC, foreground_color(dark_, high_contrast_, selected, disabled));
     RECT text_rectangle = drawing.rcItem;
-    text_rectangle.left += scale(menu_text_left);
+    text_rectangle.left += scale(menu_left_padding + menu_icon_text_gap) + icon_size;
     text_rectangle.right -= scale(item->submenu ? menu_submenu_padding : menu_right_padding);
     DrawTextW(drawing.hDC, item->text.c_str(), static_cast<int>(item->text.size()),
               &text_rectangle, DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
@@ -226,7 +228,7 @@ bool LaunchMenuRenderer::draw(const DRAWITEMSTRUCT& drawing) const noexcept {
 }
 
 int LaunchMenuRenderer::scale(const int value) const noexcept {
-    return MulDiv(value, static_cast<int>(dpi_), 96);
+    return MulDiv(value * size_percent_, static_cast<int>(dpi_), 9600);
 }
 
 } // namespace simpilot

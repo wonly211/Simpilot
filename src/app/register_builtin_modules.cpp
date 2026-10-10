@@ -26,6 +26,24 @@
 
 namespace simpilot {
 
+std::vector<std::wstring> inspect_builtin_backup(const SettingsSnapshot& snapshot, bool check_environment) {
+    std::vector<std::wstring> warnings;
+    (void)snapshot; (void)check_environment;
+#if SIMPILOT_MODULE_KEYBOARD_MAPPING
+    inspect_keyboard_mapping_backup(snapshot);
+#endif
+#if SIMPILOT_MODULE_CUSTOM_HOTKEY
+    inspect_custom_hotkey_backup(snapshot, check_environment, warnings);
+#endif
+#if SIMPILOT_MODULE_QUICK_LAUNCH
+    inspect_quick_launch_backup(snapshot, check_environment, warnings);
+#endif
+#if SIMPILOT_MODULE_INPUT_METHOD
+    inspect_input_method_backup(snapshot, check_environment, warnings);
+#endif
+    return warnings;
+}
+
 void register_builtin_modules(
     [[maybe_unused]] ModuleRegistry& modules,
     [[maybe_unused]] HINSTANCE instance,

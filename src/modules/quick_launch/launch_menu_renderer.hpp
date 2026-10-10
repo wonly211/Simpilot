@@ -22,7 +22,7 @@ public:
     LaunchMenuRenderer(const LaunchMenuRenderer&) = delete;
     LaunchMenuRenderer& operator=(const LaunchMenuRenderer&) = delete;
 
-    void begin(MenuTheme theme, UINT dpi);
+    void begin(MenuTheme theme, UINT dpi, MenuSize size = MenuSize::Medium);
     void end() noexcept;
     [[nodiscard]] bool append(HMENU menu, UINT command_id, std::wstring_view text,
                               HICON icon, HMENU submenu = nullptr);
@@ -44,6 +44,9 @@ private:
     std::vector<std::unique_ptr<Item>> items_;
     HFONT font_ = nullptr;
     UINT dpi_ = 96;
+    int size_percent_ = 100;
+    int font_size_ = 15;
+    int icon_size_ = 24;
     bool dark_ = false;
     bool high_contrast_ = false;
 };

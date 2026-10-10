@@ -8,10 +8,12 @@
 #include "simpilot/settings_registry.hpp"
 #include "simpilot/hotkey_registry.hpp"
 #include "simpilot/popup_menu_host.hpp"
+#include "simpilot/settings_backup.hpp"
 
 namespace simpilot {
 
 class KeyboardManager;
+std::vector<std::wstring> inspect_builtin_backup(const SettingsSnapshot&, bool check_environment = false);
 void register_builtin_modules(
     ModuleRegistry& modules, HINSTANCE instance,
     const std::filesystem::path& executable_directory,

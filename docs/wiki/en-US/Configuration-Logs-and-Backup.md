@@ -61,3 +61,15 @@ After moving the entire program folder, reopen **Settings > General** and apply 
 - [Quick Launch Menu](Quick-Launch-Menu)
 - [Menu Icons and Themes](Menu-Icons-and-Themes)
 - [FAQ and Troubleshooting](FAQ-and-Troubleshooting)
+
+### Global backup, restore, and migration
+
+Use **Settings > General > Settings backup and migration** to view the configuration directory, **Export all settings**, **Import backup**, or **Migrate old folder**. A `.simpilot-backup` file includes saved module settings, both menus, menu icons, input-method history, program selections, and the external language pack. Unsaved drafts can be applied first or left out of the export.
+
+Import restores the entire managed configuration. Managed files absent from the backup, including a second menu, are removed. Before restoring, Simpilot saves the current configuration in `Backups/`, then restarts to load the restored settings. A failed restore rolls back; the next startup recovers interrupted operations. Invalid formats, checksums, or rules are reported instead of silently dropping settings. Automatic backups remain until you remove them.
+
+Starting in a directory with no configuration offers a fresh setup, migration from an old folder, or backup import. Versions 1.0.8, 1.0.9, and 1.0.10 can migrate directly without first gaining an export button. The source folder is unchanged. Other versions are checked against supported file formats.
+
+Portable storage is unchanged. Updating program files in the same folder keeps settings; extracting into a new folder does not automatically discover the previous folder. Unreadable or damaged settings are retained and reported, rather than overwritten by defaults.
+
+Backups exclude application binaries, Everything components, logs, and external programs or scripts referenced by menus. After moving between folders or computers, check relative paths, unavailable applications, and missing input methods. Simpilot does not install or download these dependencies. The current backup format supports up to 128 MiB and 8192 files.

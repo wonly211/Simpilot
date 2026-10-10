@@ -2,8 +2,22 @@
 #include "custom_hotkey_settings.hpp"
 #include "simpilot/variable_expander.hpp"
 #include "keyboard_manager.hpp"
+#include "simpilot/hotkey_settings_codec.hpp"
 
 namespace simpilot {
+
+void inspect_custom_hotkey_backup(const SettingsSnapshot& snapshot, bool check_environment, std::vector<std::wstring>& warnings) {
+    const auto document = SettingsDocument::parse(snapshot.text("Config/Setting.ini"));
+    const auto text = document.get(L"CustomGlobalHotKeyCount").value_or(L"0");
+    if (text.empty() || text.find_first_not_of(L"0123456789") != text.npos) throw std::runtime_error("Invalid custom hotkey count");
+    const auto count = std::stoul(text);
+    const auto settings = CustomHotkeySettings::read(document);
+    if (count > 128 || settings.items.size() != count) throw std::runtime_error("Invalid custom hotkey rules");
+    for (unsigned long i = 1; i <= count; ++i)
+        validate_hotkey_setting(document, L"CustomGlobalHotKey" + std::to_wstring(i));
+    if (check_environment) for (const auto& item : settings.items)
+        if (std::filesystem::path(item.program_path).is_absolute() && !std::filesystem::exists(item.program_path)) warnings.push_back(item.program_path);
+}
 std::unique_ptr<ISettingsPage> make_custom_hotkey_section(
     CustomHotkeySettings&, HotkeyRegistry&, KeyboardManager&,
     const std::filesystem::path&, std::function<void(std::wstring_view)>);

@@ -8,6 +8,8 @@
 
 namespace simpilot {
 
+enum class BackupAction;
+
 struct SettingsPageContext {
     HINSTANCE instance;
     HWND parent;
@@ -16,6 +18,8 @@ struct SettingsPageContext {
     const Localization& localization;
     std::function<void()> changed;
     std::function<bool(std::string)> change_language;
+    std::filesystem::path configuration_directory;
+    std::function<void(BackupAction)> backup;
 };
 
 class ISettingsPage {

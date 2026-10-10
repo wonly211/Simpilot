@@ -4,6 +4,8 @@
 
 namespace simpilot {
 
+enum class ApplicationScope { all, included, excluded };
+
 struct KeyboardMappingRule {
     KeyboardTrigger trigger{};
     KeyboardOutput output{};
@@ -11,11 +13,16 @@ struct KeyboardMappingRule {
     std::wstring purpose;
     // Empty means all applications; otherwise any listed foreground basename.
     std::vector<std::wstring> process_names;
+    // An empty inclusion list retains the legacy all-applications meaning.
+    ApplicationScope application_scope = ApplicationScope::included;
     bool exact_match = true;
     bool enabled = true;
 
     bool operator==(const KeyboardMappingRule&) const = default;
 };
+
+[[nodiscard]] ApplicationScope mapping_application_scope(const KeyboardMappingRule&) noexcept;
+[[nodiscard]] bool mapping_applies_to_process(const KeyboardMappingRule&, std::wstring_view) noexcept;
 
 inline constexpr std::size_t maximum_keyboard_mappings = 128;
 inline constexpr std::size_t maximum_mapping_applications = 32;

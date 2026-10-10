@@ -263,9 +263,54 @@ void user_rule_limit_does_not_count_expanded_apps() {
 }
 }
 
+void exclusion_scopes() {
+    auto excluded = mapping(VK_F13, VK_F14, {L"game.exe", L"remote.exe"});
+    excluded.application_scope = ApplicationScope::excluded;
+    require(validate_keyboard_mappings({excluded}).empty(), "two excluded programs accepted");
+    for (const auto app : {L"game.exe", L"remote.exe", L""})
+        require(!mapping_applies_to_process(excluded, app), "each exclusion and unknown foreground fail closed");
+    require(mapping_applies_to_process(excluded, L"editor.exe"), "other programs included");
+    auto ini = SettingsDocument::parse("UnknownFutureKey=kept\n");
+    KeyboardMappingSettings{true, {excluded}}.write(ini);
+    require(ini.get(L"KeyboardMapping1Process") == L":exclude-app:", "old readers reject exclusion guard");
+    require(KeyboardMappingSettings::read(ini).rules == std::vector{excluded}, "exclusions round trip");
+    ini.set(L"KeyboardMappings", L"KeyboardMapping1Scope", L"future-mode");
+    require(KeyboardMappingSettings::read(ini).rules.empty(), "unknown scope never becomes global or inclusion");
+    auto empty = excluded; empty.process_names.clear();
+    require(!validate_keyboard_mappings({empty}).empty(), "empty exclusion rejected");
+    auto prefix = excluded; prefix.exact_match = false;
+    require(!mapping_applies_to_process(prefix, L"game-helper.exe"), "prefix exclusion applies to helpers");
+    auto conflicting = excluded; conflicting.output.action = mapping(VK_F13, VK_F15).output.action;
+    require(!validate_keyboard_mappings({excluded, conflicting}).empty(), "overlapping exclusions with different targets rejected");
+    auto reverse = mapping(VK_F14, VK_F13, {L"game.exe"});
+    require(validate_keyboard_mappings({excluded, reverse}).empty(), "disjoint exclusion and inclusion are not a cycle");
+    reverse.process_names = {L"editor.exe"};
+    require(!validate_keyboard_mappings({excluded, reverse}).empty(), "cycle outside exclusion is detected");
+    auto reverse_excluded = reverse; reverse_excluded.application_scope = ApplicationScope::excluded;
+    require(!validate_keyboard_mappings({excluded, reverse_excluded}).empty(), "cycle outside every named app is detected");
+    std::vector<INPUT> injected;
+    KeyboardMappingEngine engine([&](const INPUT* inputs, UINT count) {
+        injected.insert(injected.end(), inputs, inputs + count); return count;
+    });
+    auto global = mapping(VK_F13, VK_F15);
+    auto included = mapping(VK_F13, VK_F16, {L"editor.exe"});
+    require(engine.replace_rules(true, {global, excluded, included}), "scope priorities can coexist");
+    for (const auto& [app, target] : std::vector<std::pair<std::wstring, PhysicalKey>>{
+        {L"game.exe", global.output.action}, {L"other.exe", excluded.output.action}, {L"editor.exe", included.output.action}}) {
+        injected.clear(); engine.set_foreground_process(app);
+        (void)engine.handle(WM_KEYDOWN, event(excluded.trigger.action));
+        engine.set_foreground_process(L"remote.exe");
+        (void)engine.handle(WM_KEYUP, event(excluded.trigger.action));
+        require(injected.size() == 2 && injected.front().ki.wScan == target.scan_code
+            && injected.back().ki.wScan == target.scan_code && (injected.back().ki.dwFlags & KEYEVENTF_KEYUP),
+            "priority and release after foreground switch preserve selected target");
+    }
+}
+
 int main() {
     try {
         normalization_and_limits();
+        exclusion_scopes();
         configuration_migration_and_fail_closed_loading();
         intersections_and_cycles();
         matching_priority_and_key_lifetimes();

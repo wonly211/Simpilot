@@ -192,6 +192,17 @@ std::unique_ptr<IAppModule> make_module(
 
 namespace simpilot {
 
+void inspect_input_method_backup(const SettingsSnapshot& snapshot, bool check_environment, std::vector<std::wstring>& warnings) {
+    const auto settings = input_method::Settings::read(SettingsDocument::parse(snapshot.text("Config/Setting.ini")));
+    (void)input_method::History::read(SettingsDocument::parse(snapshot.text("Config/InputMethodHistory.ini")));
+    if (!check_environment) return;
+    const auto profiles = input_method::make_backend()->enumerate();
+    for (const auto& rule : settings.rules) {
+        if (!std::filesystem::exists(rule.executable_path)) warnings.push_back(rule.executable_path);
+        if (!rule.profile_id.empty() && !input_method::find_profile(profiles, rule.profile_id)) warnings.push_back(rule.profile_id);
+    }
+}
+
 std::unique_ptr<IAppModule> make_input_method_module(
     HINSTANCE, std::filesystem::path config_directory,
     const Localization&, UiDispatcher& dispatcher,

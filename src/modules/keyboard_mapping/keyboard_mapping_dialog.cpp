@@ -264,7 +264,7 @@ void KeyboardMappingDialog::create_controls() {
     process_label_ = create_static(text("settings.keyboard_mappings.process"),
                                    SS_CENTERIMAGE);
     process_scope_ = create_combo(process_scope_identifier);
-    for (const auto key : {"settings.keyboard_mappings.global", "settings.keyboard_mappings.specified"}) {
+    for (const auto key : {"settings.keyboard_mappings.global", "settings.keyboard_mappings.specified", "settings.keyboard_mappings.excluded"}) {
         SendMessageW(process_scope_, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(text(key)));
     }
     process_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"",
@@ -319,7 +319,8 @@ void KeyboardMappingDialog::create_controls() {
         SendMessageW(exact_match_, BM_SETCHECK, BST_CHECKED, 0);
         SendMessageW(enabled_, BM_SETCHECK, BST_CHECKED, 0);
     }
-    SendMessageW(process_scope_, CB_SETCURSEL, process_names_.empty() ? 0 : 1, 0);
+    SendMessageW(process_scope_, CB_SETCURSEL,
+        initial_ && initial_->application_scope == ApplicationScope::excluded ? 2 : process_names_.empty() ? 0 : 1, 0);
     sync_controls_from_model();
     update_fonts();
     refresh_process_list();
@@ -773,7 +774,8 @@ bool KeyboardMappingDialog::add_process(std::wstring name) {
         process_names_.push_back(process);
         std::ranges::sort(process_names_);
     }
-    SendMessageW(process_scope_, CB_SETCURSEL, 1, 0);
+    if (SendMessageW(process_scope_, CB_GETCURSEL, 0, 0) != 2)
+        SendMessageW(process_scope_, CB_SETCURSEL, 1, 0);
     refresh_process_list();
     const auto selection = std::ranges::find(process_names_, process) - process_names_.begin();
     SendMessageW(process_list_, LB_SETCURSEL, static_cast<WPARAM>(selection), 0);
@@ -806,7 +808,7 @@ void KeyboardMappingDialog::refresh_process_list() {
 }
 
 void KeyboardMappingDialog::update_process_controls() {
-    const bool specified = SendMessageW(process_scope_, CB_GETCURSEL, 0, 0) == 1;
+    const bool specified = SendMessageW(process_scope_, CB_GETCURSEL, 0, 0) > 0;
     for (const auto control : {process_edit_, process_list_, process_add_,
                               process_browse_, process_foreground_, exact_match_}) {
         EnableWindow(control, specified);
@@ -859,7 +861,8 @@ void KeyboardMappingDialog::save() {
     candidate.trigger = draft.trigger;
     candidate.output = draft.output;
     candidate.purpose = trim(control_text(purpose_edit_));
-    if (SendMessageW(process_scope_, CB_GETCURSEL, 0, 0) == 1) {
+    const auto scope = SendMessageW(process_scope_, CB_GETCURSEL, 0, 0);
+    if (scope > 0) {
         const auto pending = trim(control_text(process_edit_));
         if (!pending.empty() && !add_process(pending)) return;
         if (process_names_.empty()) {
@@ -867,6 +870,7 @@ void KeyboardMappingDialog::save() {
             return;
         }
         candidate.process_names = process_names_;
+        if (scope == 2) candidate.application_scope = ApplicationScope::excluded;
     }
     candidate.exact_match = SendMessageW(exact_match_, BM_GETCHECK, 0, 0)
         == BST_CHECKED;

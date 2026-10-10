@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.10
+Applies to version: 1.0.11
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -46,9 +46,9 @@ Compare the result with the matching `.sha256` file. Current packages are not di
 
 ### 1.3 What happens on first launch
 
-Simpilot does not open a conventional main window. It places an icon in the Windows notification area. If the icon is not immediately visible, check the taskbar's hidden-icons area.
+In a new directory without saved configuration, Simpilot first offers **Start fresh**, **Migrate from an older folder**, or **Import backup**. After setup it places an icon in the Windows notification area. If the icon is not immediately visible, check the taskbar's hidden-icons area. Existing settings are reused; unreadable or damaged files are preserved and reported for repair.
 
-On first launch, Simpilot creates `Config/Simpilot.ini` with example entries such as Notepad and Calculator. The default interface language is Simplified Chinese, and the default hotkey for the quick-launch menu is the backtick key, usually below `Esc` and to the left of `1`.
+Choosing **Start fresh** creates `Config/Simpilot.ini` with example entries such as Notepad and Calculator. The default interface language is Simplified Chinese, and the default hotkey for the quick-launch menu is the backtick key, usually below `Esc` and to the left of `1`.
 
 Simpilot also checks the default Everything instance and its database. If a usable instance is already available, it is reused. Otherwise, Simpilot attempts to start the bundled `Everything/Everything.exe`. Everything being unavailable does not prevent Simpilot from starting, but Everything Search and discovery of programs configured without a complete path may be unavailable.
 
@@ -142,6 +142,10 @@ Theme options are under **Settings > Quick Launch Menu**.
 - **Dark** always uses a dark menu.
 
 This setting affects Simpilot menus only; it does not modify the Windows system theme. The new theme is used the next time a menu opens after the setting is applied.
+
+### 4.5 Menu text and icon size
+
+Under **Settings > Quick Launch Menu**, choose **Text and icon size: Small / Medium (default) / Large**. Medium preserves the previous appearance. Text, icons, row heights, and spacing change together and retain monitor DPI scaling. After Apply or Save, the next main, second, or nested menu uses the selected size. This option does not resize the tray context menu or other settings windows.
 
 ## 5. Edit the quick-launch menu
 
@@ -279,7 +283,7 @@ Open **Settings > Keyboard Mappings**. The page switch controls all saved mappin
 - A modifier mapped to another modifier cannot coexist with a source shortcut containing that same source modifier. Saving rejects these conflicting rules. Existing tap behavior for modifiers mapped to ordinary keys or shortcuts is unchanged.
 - **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
 - `Num Lock` can be recorded or selected from the primary-key list as a source or target. Mapping `F12` to `Num Lock` toggles its state each time you press and release `F12`. Existing target mappings recorded as `VK 0x90` work without being recorded again.
-- Choose **All applications** or **Specific applications**. Each rule can list up to 32 applications and applies when any listed app is in the foreground. Add executable names individually, browse for an EXE, or use **Add foreground app**. Names are normalized and deduplicated, and entries can be removed individually. An empty specific-app list cannot be saved.
+- Choose **All applications**, **Specific applications**, or **Except specified apps**. Each rule can list up to 32 applications. Specific-app rules run when any listed app is in the foreground; exclusion rules run outside the list. Add executable names individually, browse for an EXE, or use **Add foreground app**. Names are normalized and deduplicated, and entries can be removed individually. An empty specific-app or exclusion list cannot be saved.
 - **Exact application match** is enabled by default. Turning it off applies case-insensitive prefix matching to every name in the list. Matching uses the EXE basename, including when browsing for a file; it does not distinguish paths, windows, or web pages. The same source may have different targets in different apps. Overlapping duplicate sources are reported before saving, with the editor kept open.
 - Existing single-app and global settings remain compatible. Versions v1.0.9 and earlier skip new multi-app rules instead of treating them as global. Back up `Config/` before downgrading: saving settings in an older version may discard these rules. This feature does not add switchable scenario profiles.
 - **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
@@ -289,6 +293,14 @@ key sequence. Windows defines F23 as `VK_F23` (`0x86`); the interface displays e
 and distinguishes main/numpad Enter and physically distinct OEM keys.
 
 Mappings are active only while Simpilot runs, and active target keys are released on shutdown. Windows UIPI, elevation boundaries, or the secure desktop may block injection; a normally running Simpilot process cannot guarantee input delivery to a higher-privilege window.
+
+#### Excluding applications
+
+Application scope offers **All applications**, **Only specified apps**, and **Except specified apps**. An exclusion list accepts up to 32 EXE basenames; matching any name disables that rule. Empty exclusion lists cannot be saved. Exclusion affects only the current rule; other matching rules can still run. Exclusion rules do not run when the foreground process cannot be identified.
+
+For the same trigger, included applications take precedence over exclusion rules, which take precedence over global rules. Existing exact and longest-prefix priorities remain for inclusion lists. Overlapping exclusion rules cannot give the same source different targets. Disabling exact matching applies basename-prefix matching to the whole list.
+
+Version 1.0.10 and earlier skip exclusion rules rather than invert them or treat them as global. Saving in an older version can remove new rules. Export a backup before downgrading; restoring the complete backup requires a version that supports its format.
 
 ### 6.6 Application input methods
 
@@ -433,6 +445,18 @@ Menu configuration uses UTF-8. Most users should edit it through Settings; direc
 `program-cache.tsv` can be deleted after Simpilot exits; unresolved programs are searched again when needed. Simpilot keeps one `Simpilot.log` file and removes entries older than 90 days during startup.
 
 For migration or backup, exit Simpilot and copy the entire application directory. At minimum, retain `Config/`. If manually selected icons are used, also retain `Cache/RunIcon/`.
+
+### Global backup, restore, and migration
+
+Use **Settings > General > Settings backup and migration** to view the configuration directory, **Export all settings**, **Import backup**, or **Migrate old folder**. A `.simpilot-backup` file includes saved module settings, both menus, menu icons, input-method history, program selections, and the external language pack. Unsaved drafts can be applied first or left out of the export.
+
+Import restores the entire managed configuration. Managed files absent from the backup, including a second menu, are removed. Before restoring, Simpilot saves the current configuration in `Backups/`, then restarts to load the restored settings. A failed restore rolls back; the next startup recovers interrupted operations. Invalid formats, checksums, or rules are reported instead of silently dropping settings. Automatic backups remain until you remove them.
+
+Starting in a directory with no configuration offers a fresh setup, migration from an old folder, or backup import. Versions 1.0.8, 1.0.9, and 1.0.10 can migrate directly without first gaining an export button. The source folder is unchanged. Other versions are checked against supported file formats.
+
+Portable storage is unchanged. Updating program files in the same folder keeps settings; extracting into a new folder does not automatically discover the previous folder. Unreadable or damaged settings are retained and reported, rather than overwritten by defaults.
+
+Backups exclude application binaries, Everything components, logs, and external programs or scripts referenced by menus. After moving between folders or computers, check relative paths, unavailable applications, and missing input methods. Simpilot does not install or download these dependencies. The current backup format supports up to 128 MiB and 8192 files.
 
 ## 11. Troubleshooting
 

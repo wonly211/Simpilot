@@ -1,6 +1,7 @@
 #include "settings_window.hpp"
 #include "settings_visual_style.hpp"
 #include "resource.h"
+#include "configuration_backup.hpp"
 #include <commctrl.h>
 #include <algorithm>
 
@@ -8,20 +9,21 @@ namespace simpilot {
 bool SettingsWindow::show_modal(HINSTANCE instance, HWND owner, std::string language,
     const std::filesystem::path& configuration, const SettingsRegistry& pages,
     const SettingsParticipantRegistry& participants, SettingsSession::Commit commit,
-    LanguageChangeSink language_change, DiagnosticSink diagnose) {
+    LanguageChangeSink language_change, DiagnosticSink diagnose, BackupSink backup) {
     SettingsWindow window(instance, owner, std::move(language), configuration, pages, participants,
-        std::move(commit), std::move(language_change), std::move(diagnose));
+        std::move(commit), std::move(language_change), std::move(diagnose), std::move(backup));
     return window.run();
 }
 SettingsWindow::SettingsWindow(HINSTANCE instance, HWND owner, std::string language,
     const std::filesystem::path& configuration, const SettingsRegistry& pages,
     const SettingsParticipantRegistry& participants, SettingsSession::Commit commit,
-    LanguageChangeSink language_change, DiagnosticSink diagnose)
+    LanguageChangeSink language_change, DiagnosticSink diagnose, BackupSink backup)
     : instance_(instance), owner_(owner), localization_(std::move(language)), registry_(pages),
       session_(participants, SettingsDocument::load(configuration), [diagnose](std::string_view message) {
           if (diagnose) diagnose(std::wstring(message.begin(), message.end()));
       }), commit_(std::move(commit)), language_change_(std::move(language_change)),
-      diagnose_(std::move(diagnose)) {}
+      diagnose_(std::move(diagnose)), backup_(std::move(backup)),
+      configuration_directory_(configuration.parent_path()) {}
 SettingsWindow::~SettingsWindow() {
     if (window_) DestroyWindow(window_);
     pages_.clear();
@@ -121,7 +123,8 @@ void SettingsWindow::create_controls() {
         auto page = contribution.create();
         if (!page) throw std::runtime_error("Settings page factory returned null");
         page->create({instance_, window_, dpi_, font_, localization_, [this] { changed(); },
-            [this](std::string language) { return change_language(std::move(language)); }});
+            [this](std::string language) { return change_language(std::move(language)); },
+            configuration_directory_, [this](BackupAction action) { backup(action); }});
         pages_.push_back({contribution.title_key, std::move(page)});
     });
     // Native dialog navigation follows sibling order, including contributed page children.
@@ -146,6 +149,30 @@ void SettingsWindow::update_font() {
     SendMessageW(brand_icon_, STM_SETICON, reinterpret_cast<WPARAM>(icon), 0);
     layout();
     if (old) DeleteObject(old);
+}
+void SettingsWindow::backup(BackupAction action) {
+    if (!backup_) return;
+    if (session_.dirty()) {
+        const bool exporting = action == BackupAction::export_settings;
+        const TASKDIALOG_BUTTON buttons[]{
+            {100, localization_.text(exporting ? "backup.apply_export" : "backup.apply_import").data()},
+            {101, localization_.text(exporting ? "backup.saved_export" : "backup.discard_import").data()}};
+        TASKDIALOGCONFIG dialog{sizeof(dialog)};
+        dialog.hwndParent = window_;
+        dialog.pszWindowTitle = localization_.text("ui.app_title").data();
+        dialog.pszMainInstruction = localization_.text("settings.pending_changes").data();
+        dialog.dwFlags = TDF_USE_COMMAND_LINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SIZE_TO_CONTENT;
+        dialog.dwCommonButtons = TDCBF_CANCEL_BUTTON;
+        dialog.cButtons = static_cast<UINT>(std::size(buttons)); dialog.pButtons = buttons;
+        int selected = IDCANCEL;
+        if (FAILED(TaskDialogIndirect(&dialog, &selected, nullptr, nullptr)) || selected == IDCANCEL) return;
+        if (selected == 100 && !apply()) return;
+    }
+    if (backup_(window_, action)) {
+        session_.cancel();
+        DestroyWindow(window_);
+        PostQuitMessage(restore_restart_exit_code);
+    }
 }
 void SettingsWindow::layout() {
     if (!window_) return;

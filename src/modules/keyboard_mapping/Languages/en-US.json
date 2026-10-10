@@ -24,7 +24,7 @@
     "settings.keyboard_mappings.record_target": "Record target",
     "settings.keyboard_mappings.process": "Applies to",
     "settings.keyboard_mappings.use_foreground": "Add foreground app",
-    "settings.keyboard_mappings.specified": "Specific applications",
+    "settings.keyboard_mappings.specified": "Only specified apps",
     "settings.keyboard_mappings.add_process": "Add",
     "settings.keyboard_mappings.remove_process": "Remove selected",
     "settings.keyboard_mappings.browse_process": "Browse…",
@@ -115,6 +115,7 @@
     "settings.keyboard_mappings.key.launch_mail": "Launch Mail",
     "settings.keyboard_mappings.key.launch_media": "Launch Media",
     "settings.keyboard_mappings.key.launch_app1": "Launch App 1",
-    "settings.keyboard_mappings.key.launch_app2": "Launch App 2"
+    "settings.keyboard_mappings.key.launch_app2": "Launch App 2",
+    "settings.keyboard_mappings.excluded": "Except specified apps"
   }
 }

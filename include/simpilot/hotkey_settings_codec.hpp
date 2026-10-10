@@ -3,8 +3,27 @@
 #include "simpilot/settings_document.hpp"
 #include <algorithm>
 #include <cwctype>
+#include <stdexcept>
 
 namespace simpilot {
+// Import validation is strict; the regular reader remains compatible with old files.
+inline void validate_hotkey_setting(const SettingsDocument& document, const std::wstring& prefix) {
+    const auto value = document.get(prefix + L"Code");
+    if (!value || value->empty()) return; // An explicitly cleared binding is valid.
+    const auto comma = value->find(L',');
+    const auto number = [](std::wstring text) {
+        const auto first = text.find_first_not_of(L" \t");
+        if (first == text.npos) throw std::runtime_error("Invalid hotkey code");
+        text = text.substr(first, text.find_last_not_of(L" \t") - first + 1);
+        if (text.find_first_not_of(L"0123456789") != text.npos) throw std::runtime_error("Invalid hotkey code");
+        return std::stoul(text);
+    };
+    if (comma == value->npos) throw std::runtime_error("Invalid hotkey code");
+    const auto modifiers = number(value->substr(0, comma));
+    const auto key = number(value->substr(comma + 1));
+    if (modifiers > (MOD_CONTROL | MOD_ALT | MOD_SHIFT | MOD_WIN) || !key || key > 0xff
+        || ((modifiers & MOD_WIN) && key == L'L')) throw std::runtime_error("Unsupported hotkey code");
+}
 inline bool settings_boolean(const SettingsDocument& document, const std::wstring& key, bool fallback) {
     auto value = document.get(key);
     if (!value) return fallback;

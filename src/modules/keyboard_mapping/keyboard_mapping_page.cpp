@@ -379,6 +379,8 @@ void MappingSettingsPage::refresh_keyboard_mapping_list(
             process.append(name);
         }
         if (process.empty()) process = text("settings.keyboard_mappings.global");
+        else if (mapping.application_scope == ApplicationScope::excluded)
+            process = std::wstring(text("settings.keyboard_mappings.excluded")) + L": " + process;
         ListView_SetItemText(keyboard_mapping_list_, row, 1,
                              const_cast<wchar_t*>(purpose.c_str()));
         ListView_SetItemText(keyboard_mapping_list_, row, 2,
