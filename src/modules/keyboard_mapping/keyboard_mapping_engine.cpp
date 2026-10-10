@@ -187,6 +187,12 @@ bool KeyboardMappingEngine::replace_rules(
                 item.process_name = process;
                 compiled.push_back(std::move(item));
             };
+            if (rule.application_scope == ApplicationScope::excluded) {
+                auto normalized = rule;
+                normalized.process_names = *names;
+                compiled.push_back({std::move(normalized), {}});
+                continue;
+            }
             if (names->empty()) append({});
             for (const auto& process : *names) append(process);
         }
@@ -228,6 +234,11 @@ bool KeyboardMappingEngine::rule_precedes(
     const CompiledRule& current) noexcept {
     const auto candidate_scoped = !candidate.process_name.empty();
     const auto current_scoped = !current.process_name.empty();
+    const auto rank = [](const CompiledRule& rule) {
+        return !rule.process_name.empty() ? 2
+            : rule.rule.application_scope == ApplicationScope::excluded ? 1 : 0;
+    };
+    if (rank(candidate) != rank(current)) return rank(candidate) > rank(current);
     if (candidate_scoped != current_scoped) return candidate_scoped;
 
     // exact_match has no observable meaning for a global rule because there
@@ -304,6 +315,8 @@ bool KeyboardMappingEngine::all_pressed_are_source(
 bool KeyboardMappingEngine::matches_rule(
     const CompiledRule& rule, const bool require_complete) const noexcept {
     if (!rule.rule.enabled) return false;
+    if (rule.rule.application_scope == ApplicationScope::excluded
+        && !mapping_applies_to_process(rule.rule, foreground_process_)) return false;
     if (!rule.process_name.empty()) {
         if (foreground_process_.empty()) return false;
         if (rule.rule.exact_match) {

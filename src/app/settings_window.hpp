@@ -6,13 +6,14 @@ class SettingsWindow final {
 public:
     using DiagnosticSink = std::function<void(std::wstring_view)>;
     using LanguageChangeSink = std::function<bool(std::string)>;
+    using BackupSink = std::function<bool(HWND, BackupAction)>;
     static bool show_modal(HINSTANCE, HWND, std::string language,
         const std::filesystem::path&, const SettingsRegistry&, const SettingsParticipantRegistry&,
-        SettingsSession::Commit, LanguageChangeSink = {}, DiagnosticSink = {});
+        SettingsSession::Commit, LanguageChangeSink = {}, DiagnosticSink = {}, BackupSink = {});
 private:
     SettingsWindow(HINSTANCE, HWND, std::string, const std::filesystem::path&,
         const SettingsRegistry&, const SettingsParticipantRegistry&, SettingsSession::Commit,
-        LanguageChangeSink, DiagnosticSink);
+        LanguageChangeSink, DiagnosticSink, BackupSink);
     ~SettingsWindow();
     bool run();
     void create_controls();
@@ -22,6 +23,7 @@ private:
     bool change_language(std::string);
     void select_page();
     bool apply();
+    void backup(BackupAction);
     bool request_close();
     void changed();
     void paint_background(HDC dc);
@@ -45,6 +47,8 @@ private:
     SettingsSession::Commit commit_;
     LanguageChangeSink language_change_;
     DiagnosticSink diagnose_;
+    BackupSink backup_;
+    std::filesystem::path configuration_directory_;
     struct Page { std::string title; std::unique_ptr<ISettingsPage> instance; };
     std::vector<Page> pages_;
 };

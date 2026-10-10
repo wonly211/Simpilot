@@ -6,6 +6,7 @@
 #include "general_settings_page.hpp"
 #include "hotkey_settings_page.hpp"
 #include "register_builtin_modules.hpp"
+#include "configuration_backup.hpp"
 
 #include "simpilot/localization.hpp"
 
@@ -346,7 +347,10 @@ void TrayApplication::show_settings() {
             [this](const SettingsDocument& document) {
                 return document.save(config_directory_ / L"Setting.ini");
             }, [this](std::string language) { return set_language(std::move(language)); },
-            [this](std::wstring_view message) { logger_.write(message); });
+            [this](std::wstring_view message) { logger_.write(message); },
+            [this](HWND owner, BackupAction action) {
+                return configuration_backup_action(owner, config_directory_.parent_path(), localization_, action);
+            });
     } catch (...) {
         logger_.write(L"settings window could not be opened");
         MessageBoxW(window_, localization_.text("ui.settings_save_failed").data(),

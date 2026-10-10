@@ -4,5 +4,6 @@
 /Config/
 /Cache/
 /Log/
+/Backups/
 *.user
 *.suo

@@ -28,3 +28,7 @@ Deleting `Cache/RunIcon/` rebuilds automatic caches but also removes custom icon
 The quick-launch menu and tray right-click menu can use **Follow Windows**, **Light**, or **Dark**. Settings and editor windows always use their own light interface and are not affected by this menu-theme selection.
 
 For menu structure and launch entries, see [Quick Launch Menu](Quick-Launch-Menu). For cache handling and backup, see [Configuration, Logs, and Backup](Configuration-Logs-and-Backup).
+
+### Menu text and icon size
+
+Under **Settings > Quick Launch Menu**, choose **Text and icon size: Small / Medium (default) / Large**. Medium preserves the previous appearance. Text, icons, row heights, and spacing change together and retain monitor DPI scaling. After Apply or Save, the next main, second, or nested menu uses the selected size. This option does not resize the tray context menu or other settings windows.

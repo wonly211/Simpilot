@@ -88,6 +88,10 @@
     "program_selection.version": "版本",
     "program_selection.modified": "修改時間",
     "program_selection.select": "選擇",
-    "program_selection.cancel": "取消"
+    "program_selection.cancel": "取消",
+    "settings.menu_size": "文字與圖示大小",
+    "settings.menu_size.small": "小",
+    "settings.menu_size.medium": "中（預設）",
+    "settings.menu_size.large": "大"
   }
 }

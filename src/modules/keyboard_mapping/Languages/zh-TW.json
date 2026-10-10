@@ -24,7 +24,7 @@
     "settings.keyboard_mappings.record_target": "錄製目標按鍵",
     "settings.keyboard_mappings.process": "適用應用程式",
     "settings.keyboard_mappings.use_foreground": "追加前景應用程式",
-    "settings.keyboard_mappings.specified": "指定應用程式",
+    "settings.keyboard_mappings.specified": "僅指定應用程式",
     "settings.keyboard_mappings.add_process": "新增",
     "settings.keyboard_mappings.remove_process": "移除選取項目",
     "settings.keyboard_mappings.browse_process": "瀏覽…",
@@ -115,6 +115,7 @@
     "settings.keyboard_mappings.key.launch_mail": "開啟郵件",
     "settings.keyboard_mappings.key.launch_media": "開啟媒體",
     "settings.keyboard_mappings.key.launch_app1": "開啟應用程式 1",
-    "settings.keyboard_mappings.key.launch_app2": "開啟應用程式 2"
+    "settings.keyboard_mappings.key.launch_app2": "開啟應用程式 2",
+    "settings.keyboard_mappings.excluded": "排除指定應用程式"
   }
 }

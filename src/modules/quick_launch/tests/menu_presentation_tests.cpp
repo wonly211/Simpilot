@@ -190,6 +190,38 @@ MEASUREITEMSTRUCT measure_item(const simpilot::LaunchMenuRenderer& renderer,
     return measurement;
 }
 
+void check_menu_sizes(const HICON icon) {
+    using namespace simpilot;
+    for (const auto dpi : {96u, 120u, 144u, 192u}) {
+        UINT previous_height = 0, previous_width = 0;
+        for (const auto size : {MenuSize::Small, MenuSize::Medium, MenuSize::Large}) {
+            QuickLaunchSettings settings;
+            settings.menu_size = size;
+            auto document = SettingsDocument::parse("FutureOption=keep\n");
+            settings.write(document);
+            require(QuickLaunchSettings::read(document) == settings, "Menu size persists without changing other settings");
+            for (const auto theme : {MenuTheme::light, MenuTheme::dark, MenuTheme::system}) {
+                LaunchMenuRenderer renderer;
+                renderer.begin(theme, dpi, size);
+                const auto menu = CreatePopupMenu();
+                require(renderer.append(menu, 100, L"中文菜单 Large text with an icon", icon), "Append size sample");
+                const auto measurement = measure_item(renderer, menu, 0);
+                const int icon_dip = size == MenuSize::Small ? 20 : size == MenuSize::Large ? 32 : 24;
+                require(measurement.itemHeight > static_cast<UINT>(MulDiv(icon_dip, dpi, 96)), "Icons fit inside every row at every DPI");
+                if (theme == MenuTheme::light) {
+                    require(measurement.itemHeight > previous_height && measurement.itemWidth > previous_width,
+                        "Each size grows text, icon slot and layout together");
+                    previous_height = measurement.itemHeight; previous_width = measurement.itemWidth;
+                }
+                DestroyMenu(menu);
+            }
+        }
+    }
+    require(QuickLaunchSettings::read(SettingsDocument{}).menu_size == MenuSize::Medium, "Legacy settings retain medium appearance");
+    require(QuickLaunchSettings::read(SettingsDocument::parse("MenuSize=999\n")).menu_size == MenuSize::Medium,
+        "Unknown menu sizes fall back to medium");
+}
+
 void check_menu_geometry(const HICON icon) {
     for (const auto dpi : {96u, 144u, 192u}) {
         const auto scale = [dpi](const int dip) { return MulDiv(dip, dpi, 96); };
@@ -348,6 +380,7 @@ int wmain() {
             require(application_icon != nullptr,
                     "Load an application icon from its executable");
             check_menu_geometry(application_icon);
+            check_menu_sizes(application_icon);
 
             const auto target = executable_path().wstring();
             const auto custom_key = simpilot::MenuIconCache::custom_key_for(application);

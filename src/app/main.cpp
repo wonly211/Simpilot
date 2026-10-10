@@ -1,4 +1,5 @@
 #include "tray_application.hpp"
+#include "configuration_backup.hpp"
 
 #include <Windows.h>
 
@@ -25,10 +26,21 @@ std::filesystem::path current_executable_path() {
 
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR command_line, int) {
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
     const auto executable = current_executable_path();
+    const std::wstring arguments(command_line ? command_line : L"");
+    if (arguments.starts_with(L"--restore-wait ")) {
+        try {
+            const auto process_id = std::stoul(arguments.substr(15));
+            if (const auto process = OpenProcess(SYNCHRONIZE, FALSE, process_id)) {
+                const auto waited = WaitForSingleObject(process, 60000);
+                CloseHandle(process);
+                if (waited != WAIT_OBJECT_0) return 1;
+            }
+        } catch (...) { return 1; }
+    }
     HANDLE single_instance = CreateMutexW(nullptr, TRUE, L"Local\\Simpilot");
     if (!single_instance) return 1;
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
@@ -44,8 +56,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         return 0;
     }
 
-    simpilot::TrayApplication application(instance, executable);
-    const auto result = application.run();
+    int result = 1;
+    if (simpilot::prepare_configuration(instance, executable)) {
+        simpilot::TrayApplication application(instance, executable);
+        result = application.run();
+    }
+    if (result == simpilot::restore_restart_exit_code && !simpilot::restart_for_restore(executable)) {
+        const simpilot::Localization localization(GetUserDefaultUILanguage() == 0x0409 ? "en-US" : "zh-CN");
+        MessageBoxW(nullptr, localization.text("backup.restart_failed").data(), L"Simpilot", MB_OK | MB_ICONERROR);
+    }
     CloseHandle(single_instance);
     return result;
 }

@@ -69,3 +69,11 @@ reported in `Log/Simpilot.log`.
 - [Global Hotkeys](Global-Hotkeys)
 - [Windows Hotkey Blocking](Windows-Hotkey-Blocking)
 - [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)
+
+### Excluding applications
+
+Application scope offers **All applications**, **Only specified apps**, and **Except specified apps**. An exclusion list accepts up to 32 EXE basenames; matching any name disables that rule. Empty exclusion lists cannot be saved. Exclusion affects only the current rule; other matching rules can still run. Exclusion rules do not run when the foreground process cannot be identified.
+
+For the same trigger, included applications take precedence over exclusion rules, which take precedence over global rules. Existing exact and longest-prefix priorities remain for inclusion lists. Overlapping exclusion rules cannot give the same source different targets. Disabling exact matching applies basename-prefix matching to the whole list.
+
+Version 1.0.10 and earlier skip exclusion rules rather than invert them or treat them as global. Saving in an older version can remove new rules. Export a backup before downgrading; restoring the complete backup requires a version that supports its format.

@@ -3,10 +3,12 @@
 #include "simpilot/app_module.hpp"
 #include "simpilot/settings_registry.hpp"
 #include "keyboard_mapping.hpp"
+#include "simpilot/settings_backup.hpp"
 
 namespace simpilot {
 
 class KeyboardManager;
+void inspect_keyboard_mapping_backup(const SettingsSnapshot&);
 
 struct KeyboardMappingSettings {
     bool enabled = true;

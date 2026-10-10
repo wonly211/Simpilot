@@ -6,6 +6,7 @@
 #include "simpilot/hotkey_registry.hpp"
 #include "simpilot/tray_menu_registry.hpp"
 #include "settings_page_test_support.hpp"
+#include "configuration_backup.hpp"
 
 #include <array>
 #include <iostream>
@@ -208,6 +209,16 @@ bool reject_commit = true;
 int callback_step = 0;
 std::string error_text;
 std::filesystem::path settings_path;
+int backup_actions_seen = 0;
+HWND descendant(HWND window, int id) {
+    struct Query { int id; HWND found = nullptr; } query{id};
+    EnumChildWindows(window, [](HWND child, LPARAM data) -> BOOL {
+        auto& query = *reinterpret_cast<Query*>(data);
+        if (GetDlgCtrlID(child) == query.id) { query.found = child; return FALSE; }
+        return TRUE;
+    }, reinterpret_cast<LPARAM>(&query));
+    return query.found;
+}
 
 BOOL CALLBACK find_settings(HWND window, LPARAM parameter) {
     wchar_t class_name[128]{};
@@ -243,8 +254,14 @@ void CALLBACK exercise_window(HWND, UINT, UINT_PTR timer, DWORD) {
             SendMessageW(window, WM_DPICHANGED, MAKEWPARAM(144, 144),
                          reinterpret_cast<LPARAM>(&bounds));
             const auto general = FindWindowExW(window, nullptr, L"Simpilot.GeneralSettingsPage", nullptr);
-            const auto languages = GetDlgItem(general, 12);
+            const auto languages = descendant(general, 12);
             require(languages != nullptr, "General page owns language control");
+            for (const auto id : {20, 21, 22}) {
+                const auto button = descendant(general, id);
+                require(button != nullptr, "All backup actions exist in the portable settings page");
+                SendMessageW(button, BM_CLICK, 0, 0);
+            }
+            require(backup_actions_seen == 3, "Backup actions reach the settings host");
             active_module->page->edit(true);
             for (int index = 0; index < 3; ++index) {
                 SendMessageW(languages, CB_SETCURSEL, index, 0);
@@ -311,6 +328,7 @@ int main() {
             [&] { return simpilot::make_hotkey_settings_page(hotkeys, keyboard, {}, {}); }});
         for (int iteration = 0; iteration < 2; ++iteration) {
             callback_step = 0;
+            backup_actions_seen = 0;
             reject_commit = true;
             module.live = false;
             module.page = nullptr;
@@ -325,6 +343,10 @@ int main() {
                     auto document = simpilot::SettingsDocument::load(settings_path);
                     document.set(L"General", L"Language", std::wstring(language.begin(), language.end()));
                     return document.save(settings_path);
+                }, {}, [](HWND owner, simpilot::BackupAction) {
+                    require(owner != nullptr, "Backup dialogs have a settings owner");
+                    ++backup_actions_seen;
+                    return false;
                 });
             KillTimer(nullptr, timer);
             require(!failed, error_text.c_str());

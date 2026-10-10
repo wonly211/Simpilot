@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 1.0.10 LANGUAGES CXX)
+project(Simpilot VERSION 1.0.11 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -28,6 +28,7 @@ add_library(simpilot_core STATIC
     src/core/logger.cpp
     src/core/localization.cpp
     src/core/settings_document.cpp
+    src/core/settings_backup.cpp
     src/core/text_encoding.cpp
     src/core/variable_expander.cpp
 )
@@ -36,7 +37,7 @@ target_include_directories(simpilot_core PRIVATE resources)
 target_include_directories(simpilot_core SYSTEM PRIVATE third_party)
 target_compile_definitions(simpilot_core PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(simpilot_core PRIVATE /W4 /permissive- /utf-8 /EHsc)
-target_link_libraries(simpilot_core PUBLIC advapi32 Cabinet shell32 ole32 user32 version)
+target_link_libraries(simpilot_core PUBLIC advapi32 bcrypt Cabinet shell32 ole32 user32 version)
 
 add_library(simpilot_module_support STATIC
     src/app/module_registry.cpp
@@ -174,6 +175,7 @@ add_executable(simpilot WIN32
     "${CMAKE_CURRENT_BINARY_DIR}/SimpilotVersion.rc"
     src/app/about_window.cpp
     src/app/general_settings_page.cpp
+    src/app/configuration_backup.cpp
     src/app/main.cpp
     src/app/register_builtin_modules.cpp
     src/app/settings_window.cpp
@@ -238,6 +240,21 @@ foreach(resource IN LISTS SIMPILOT_LANGUAGE_RESOURCE_FILES)
     endif()
 endforeach()
 if(BUILD_TESTING)
+    add_executable(simpilot_settings_backup_tests tests/settings_backup_tests.cpp)
+    target_link_libraries(simpilot_settings_backup_tests PRIVATE simpilot_core)
+    target_compile_definitions(simpilot_settings_backup_tests PRIVATE UNICODE _UNICODE NOMINMAX)
+    target_compile_options(simpilot_settings_backup_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    add_test(NAME simpilot_settings_backup_tests COMMAND simpilot_settings_backup_tests)
+    add_executable(simpilot_configuration_migration_tests
+        tests/configuration_migration_tests.cpp src/app/configuration_backup.cpp src/app/register_builtin_modules.cpp
+        "${PROJECT_BINARY_DIR}/BuiltinLanguagePack.rc" "${PROJECT_BINARY_DIR}/Simpilot.manifest")
+    target_include_directories(simpilot_configuration_migration_tests PRIVATE src/app resources)
+    target_compile_definitions(simpilot_configuration_migration_tests PRIVATE $<TARGET_PROPERTY:simpilot,COMPILE_DEFINITIONS>)
+    target_compile_options(simpilot_configuration_migration_tests PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_configuration_migration_tests PRIVATE $<TARGET_PROPERTY:simpilot,LINK_LIBRARIES>)
+    add_dependencies(simpilot_configuration_migration_tests simpilot_builtin_language_pack)
+    add_test(NAME simpilot_configuration_migration_tests COMMAND simpilot_configuration_migration_tests)
+    set_tests_properties(simpilot_configuration_migration_tests PROPERTIES TIMEOUT 20)
     find_program(SIMPILOT_POWERSHELL NAMES pwsh powershell REQUIRED)
     add_test(NAME simpilot_module_boundaries
         COMMAND "${SIMPILOT_POWERSHELL}" -NoProfile -File
@@ -272,6 +289,7 @@ if(BUILD_TESTING)
     target_link_libraries(simpilot_settings_module_tests PRIVATE
         simpilot_keyboard simpilot_module_support simpilot_win32_ui simpilot_hotkey_ui comctl32 comdlg32 gdi32 shcore)
     add_dependencies(simpilot_settings_module_tests simpilot_builtin_language_pack)
+    target_sources(simpilot_settings_module_tests PRIVATE "${PROJECT_BINARY_DIR}/Simpilot.manifest")
     add_test(NAME simpilot_settings_module_tests COMMAND simpilot_settings_module_tests)
     set_tests_properties(simpilot_settings_module_tests PROPERTIES TIMEOUT 15)
     add_executable(simpilot_core_tests
