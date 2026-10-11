@@ -75,6 +75,7 @@ private:
     HFONT section_font_ = nullptr;
     HFONT title_font_ = nullptr;
     HWND title_ = nullptr;
+    HWND name_label_ = nullptr, name_edit_ = nullptr;
     HWND trigger_heading_ = nullptr;
     HWND trigger_type_ = nullptr;
     HWND capture_button_ = nullptr;
@@ -101,6 +102,8 @@ private:
     HWND conditions_heading_ = nullptr, process_condition_ = nullptr,
          condition_programs_ = nullptr, condition_add_ = nullptr, condition_remove_ = nullptr,
          conditions_hint_ = nullptr;
+    HWND foreground_condition_ = nullptr, priority_condition_ = nullptr, priority_edit_ = nullptr,
+         priority_hint_ = nullptr, single_key_hint_ = nullptr;
     std::array<HWND, 3> lock_labels_{}, lock_choices_{};
     std::vector<std::wstring> condition_paths_;
 };

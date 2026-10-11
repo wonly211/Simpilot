@@ -9,6 +9,7 @@ namespace simpilot {
 enum class CustomHotKeyAction { open_application = 0, open_folder = 1, open_file = 2 };
 struct CustomGlobalHotKey {
     HotKeyBinding binding;
+    std::wstring name;
     CustomHotKeyAction action = CustomHotKeyAction::open_application;
     std::wstring program_path;
     std::wstring arguments;

@@ -9,7 +9,7 @@
 namespace simpilot {
 
 bool HotkeyActivationConditions::conditional() const noexcept {
-    return require_running_program || std::ranges::any_of(locks,
+    return require_running_program || require_foreground_program || priority.has_value() || std::ranges::any_of(locks,
         [](auto value) { return value != ToggleRequirement::any; });
 }
 
@@ -48,7 +48,9 @@ std::wstring normalize_hotkey_program_path(std::wstring_view path) {
 
 bool HotkeyActivationConditions::valid() const {
     if (!allowed_lock_states() || programs.size() > 32
-        || (require_running_program && programs.empty())) return false;
+        || ((require_running_program || require_foreground_program) && programs.empty())
+        || (require_running_program && require_foreground_program)
+        || (priority && *priority > 999)) return false;
     std::set<std::wstring> identities;
     for (const auto& program : programs) {
         const auto normalized = normalize_hotkey_program_path(program);
@@ -62,10 +64,22 @@ bool HotkeyActivationConditions::valid() const {
 }
 
 bool activation_overlaps(const HotkeyActivationConditions& left,
-                         const HotkeyActivationConditions& right) noexcept {
+                         const HotkeyActivationConditions& right) {
     // Positive process requirements cannot establish mutual exclusion: both
     // programs may run at once, even if they live at different paths.
-    return (left.allowed_lock_states() & right.allowed_lock_states()) != 0;
+    if (!(left.allowed_lock_states() & right.allowed_lock_states())) return false;
+    if (left.require_foreground_program && right.require_foreground_program) {
+        for (const auto& a : left.programs) for (const auto& b : right.programs)
+            if (normalize_hotkey_program_path(a) == normalize_hotkey_program_path(b)) return true;
+        return false;
+    }
+    return true;
+}
+
+bool activation_conflicts(const HotkeyActivationConditions& left,
+                          const HotkeyActivationConditions& right) {
+    return activation_overlaps(left, right)
+        && !(left.priority && right.priority && left.priority != right.priority);
 }
 
 std::wstring activation_description(const HotkeyActivationConditions& conditions,
@@ -82,8 +96,12 @@ std::wstring activation_description(const HotkeyActivationConditions& conditions
         append(std::wstring(names[i]) + L": " + std::wstring(localization.text(
             conditions.locks[i] == ToggleRequirement::on ? "hotkey.activation.on" : "hotkey.activation.off")));
     }
-    if (conditions.require_running_program) {
-        append(localization.text("hotkey.activation.running_any"));
+    if (conditions.priority) {
+        append(std::wstring(localization.text("hotkey.activation.priority")) + L": " + std::to_wstring(*conditions.priority));
+    }
+    if (conditions.require_running_program || conditions.require_foreground_program) {
+        append(localization.text(conditions.require_foreground_program
+            ? "hotkey.activation.foreground_any" : "hotkey.activation.running_any"));
         for (const auto& program : conditions.programs) { result += L"\n"; result += program; }
     }
     return result;

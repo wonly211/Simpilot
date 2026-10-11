@@ -1,6 +1,12 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "custom_hotkey.name": "名稱／備註（選填，最多 128 個字元）",
+    "custom_hotkey.name.column": "名稱／備註",
+    "custom_hotkey.use_priority": "明確設定同鍵場景優先順序（0–999）",
+    "custom_hotkey.priority_hint": "重疊規則都須設定不同優先順序，數值大的優先。每次只執行一個動作；預設動作須另行新增並設定較低優先順序。",
+    "custom_hotkey.priority_confirm": "以下規則的條件可能同時成立，將只執行優先順序較高的一條。\n\n現有規則：{}\n{}\n\n新規則：{}\n{}\n\n是否保留兩條規則？",
+    "custom_hotkey.single_key_hint": "單個字母／數字在條件成立時會被熱鍵占用，無法同時輸入該字元。建議使用功能鍵或組合鍵。",
     "custom_hotkey.condition_add": "新增關聯程式…",
     "custom_hotkey.conditions_hint": "最多新增 32 個程式，依完整路徑比對。啟用程式條件後，請至少新增一個程式。所有已設定的鎖定鍵條件必須同時滿足。",
     "custom_hotkey.window_title": "简驭 | Simpilot - 新增全域快速鍵",

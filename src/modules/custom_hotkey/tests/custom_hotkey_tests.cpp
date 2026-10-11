@@ -170,10 +170,86 @@ void conditional_codec_tests() {
     require(document.get(L"Keep") == L"value" && document.get(L"ConditionalGlobalHotKey1Future") == L"keep",
         "Unknown fields retained");
 }
+void scenario_codec_tests() {
+    simpilot::CustomGlobalHotKey a;
+    a.name = L"办公—搜索";
+    a.program_path = L"C:\\Apps\\target.exe";
+    a.binding.gesture = simpilot::HotKeyGesture{MOD_CONTROL, VK_F24};
+    a.binding.activation.require_foreground_program = true;
+    a.binding.activation.programs = {L"C:\\Apps\\editor.exe"};
+    a.binding.activation.priority = 100;
+    auto b = a;
+    b.name = a.name; // Duplicate labels are descriptive, not rule identities.
+    b.binding.activation.priority = 25;
+    b.binding.activation.require_foreground_program = false;
+    b.binding.activation.require_running_program = true;
+    auto fallback = a;
+    fallback.name.clear();
+    fallback.binding.activation = {};
+    fallback.binding.activation.priority = 0;
+    simpilot::CustomHotkeySettings settings{{a, b, fallback}};
+    require(settings.valid(), "Ranked foreground, background and default scenarios coexist");
+    auto document = simpilot::SettingsDocument::parse("[Future]\nUnowned=yes\nConditionalGlobalHotKey1FutureField=keep\n");
+    settings.write(document);
+    require(document.get(L"ConditionalGlobalHotKeyVersion") == L"2"
+        && document.get(L"CustomGlobalHotKeyCount") == L"0", "Scenario actions never leak into legacy unconditional records");
+    require(simpilot::CustomHotkeySettings::read(document) == settings, "Names, modes, priority and order survive reload");
+    const auto reject = [&](std::wstring_view key, std::wstring_view value) {
+        auto changed = document;
+        try { changed.set(L"CustomGlobalHotkeys", key, value);
+            (void)simpilot::CustomHotkeySettings::read(changed); return false; } catch (...) { return true; }
+    };
+    require(reject(L"ConditionalGlobalHotKey1Priority", L"1000"), "Priority bounds validated during import");
+    require(reject(L"ConditionalGlobalHotKey1Priority", L"25"), "Tied overlapping scenarios rejected");
+    require(reject(L"ConditionalGlobalHotKey1UsePriority", L"0"), "Removing explicit precedence reintroduces conflict");
+    require(reject(L"ConditionalGlobalHotKey1RequireRunning", L"1"), "Mixed process modes rejected");
+    require(reject(L"ConditionalGlobalHotKey1Name", std::wstring(129, L'x')), "Overlong names rejected");
+    require(reject(L"ConditionalGlobalHotKey1Name", L"line\nfield=1"), "Names cannot inject INI lines");
+    require(reject(L"ConditionalGlobalHotKeyVersion", L"1"), "Scenario records cannot be downgraded to old semantics");
+    require(reject(L"ConditionalGlobalHotKeyVersion", L"3"), "Unknown formats rejected");
+    for (const auto suffix : {L"RequireForeground", L"Priority", L"UsePriority"}) {
+        auto changed = document;
+        changed.erase(L"ConditionalGlobalHotKey1" + std::wstring(suffix));
+        bool rejected = false;
+        try { (void)simpilot::CustomHotkeySettings::read(changed); } catch (...) { rejected = true; }
+        require(rejected, "Incomplete v2 scenario fields never become unconditional");
+    }
+    const auto root = std::filesystem::temp_directory_path() /
+        (L"Simpilot-scenario-backup-" + std::to_wstring(GetCurrentProcessId()) + L"-" + std::to_wstring(GetTickCount64()));
+    std::filesystem::create_directories(root / L"Config");
+    struct Cleanup { std::filesystem::path path; ~Cleanup() { std::error_code error; std::filesystem::remove_all(path, error); } } cleanup{root};
+    const auto bytes = document.serialize();
+    simpilot::SettingsSnapshot snapshot;
+    snapshot.files["Config/Setting.ini"] = {bytes.begin(), bytes.end()};
+    std::vector<std::wstring> warnings;
+    simpilot::inspect_custom_hotkey_backup(snapshot, true, warnings);
+    require(!warnings.empty(), "Missing scenario program paths are preserved with warnings");
+    simpilot::SettingsBackup::write(snapshot, root / L"scenarios.simpilot-backup");
+    const auto validator = [](const auto& value) { std::vector<std::wstring> ignored; simpilot::inspect_custom_hotkey_backup(value, false, ignored); };
+    const auto restored = simpilot::SettingsBackup::read(root / L"scenarios.simpilot-backup");
+    auto original = document;
+    original.set(L"General", L"Language", L"en-US");
+    require(original.save(root / L"Config/Setting.ini"), "Prepare scenario restoration target");
+    simpilot::SettingsBackup::stage(root, restored, validator);
+    require(simpilot::SettingsBackup::recover(root, validator), "Restore scenario transaction");
+    const auto reloaded = simpilot::SettingsDocument::load(root / L"Config/Setting.ini");
+    require(simpilot::CustomHotkeySettings::read(reloaded) == settings, "Global restore preserves complete scenario rules and labels");
+    settings.items = {fallback};
+    settings.items[0].binding.activation = {};
+    settings.items[0].name = L"普通规则";
+    settings.write(document);
+    require(document.get(L"ConditionalGlobalHotKeyVersion") == L"1"
+        && !document.get(L"ConditionalGlobalHotKey1Priority")
+        && !document.get(L"ConditionalGlobalHotKey1RequireForeground")
+        && document.get(L"CustomGlobalHotKey1Name") == L"普通规则", "Removing scenarios restores compatible format and clears owned fields");
+    require(document.get(L"Unowned") == L"yes" && document.get(L"ConditionalGlobalHotKey1FutureField") == L"keep",
+        "Scenario saves preserve unrelated future fields");
+}
+
 void module_tests() {
     const auto document = simpilot::SettingsDocument::parse(
         "[CustomGlobalHotkeys]\nCustomGlobalHotKeyCount=1\nCustomGlobalHotKey1Code=3,88\n"
-        "CustomGlobalHotKey1Program=C:\\Windows\\notepad.exe\nCustomGlobalHotKey1Enabled=1\n");
+        "CustomGlobalHotKey1Program=C:\\Windows\\notepad.exe\nCustomGlobalHotKey1Enabled=1\nCustomGlobalHotKey1Name=Workspace search\n");
     simpilot::SettingsParticipantRegistry participants;
     simpilot::HotkeyRegistry hotkeys;
     simpilot::KeyboardManager keyboard;
@@ -205,6 +281,7 @@ void module_tests() {
     conditional.binding.activation.locks[0] = simpilot::ToggleRequirement::off;
     conditional.binding.activation.require_running_program = true;
     conditional.binding.activation.programs = {L"C:\\Apps\\scene.exe"};
+    conditional.binding.activation.priority = 25;
     drafts[0].write(conditional);
     const auto runtime_conditions = [&] {
         simpilot::HotkeyActivationConditions result;
@@ -216,7 +293,9 @@ void module_tests() {
     require(session.dirty() && drafts[0].read() == conditional, "Failed save retains the conditional draft");
     require(session.apply([](const auto& value) {
         return value.get(L"CustomGlobalHotKeyCount") == L"0"
-            && value.get(L"ConditionalGlobalHotKeyCount") == L"1";
+            && value.get(L"ConditionalGlobalHotKeyCount") == L"1"
+            && value.get(L"ConditionalGlobalHotKey1Name") == L"Workspace search"
+            && value.get(L"ConditionalGlobalHotKeyVersion") == L"2";
     }) && runtime_conditions() == conditional.binding.activation, "Successful apply publishes condition state");
 
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_STANDARD_CLASSES | ICC_LISTVIEW_CLASSES};
@@ -240,13 +319,16 @@ void module_tests() {
         page->layout({0, 0, MulDiv(760, dpi, 96), MulDiv(600, dpi, 96)}, dpi,
             static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
         const auto list = GetDlgItem(section, 4);
-        for (int column = 0; column < 5; ++column) {
+        for (int column = 0; column < 6; ++column) {
             HDITEMW header{.mask = HDI_FORMAT};
             require(Header_GetItem(ListView_GetHeader(list), column, &header)
                 && (header.fmt & HDF_STRING), "Every custom hotkey header draws its title");
         }
         require(ListView_GetColumnWidth(list, 0) == MulDiv(64, dpi, 96),
             "Custom enable column matches the shared sliding switch width");
+        wchar_t displayed_name[128]{};
+        ListView_GetItemText(list, 0, 2, displayed_name, 128);
+        require(std::wstring_view(displayed_name) == L"Workspace search", "Rule name is visible in the hotkey list");
         RECT client{}, button{}, heading{};
         GetClientRect(section, &client);
         GetWindowRect(GetDlgItem(section, 1), &button);
@@ -375,6 +457,26 @@ void CALLBACK exercise_dialog(HWND, UINT, UINT_PTR timer, DWORD) {
             require(font.lfHeight == -MulDiv(14, dialog_dpi, 96), "Condition font follows DPI changes");
         }
         require(IsWindowEnabled(save), "Valid conditions allow save");
+        const auto foreground = descendant(window, 314);
+        const auto priority = descendant(window, 315);
+        const auto priority_edit = descendant(window, 316);
+        const auto name = descendant(window, 317);
+        require(foreground && priority && priority_edit && name, "Scenario and name controls exist");
+        SetWindowTextW(name, L"工作—搜索");
+        if (!dialog_empty_programs) {
+            SendMessageW(foreground, BM_SETCHECK, BST_CHECKED, 0);
+            SendMessageW(window, WM_COMMAND, MAKEWPARAM(314, BN_CLICKED), reinterpret_cast<LPARAM>(foreground));
+            require(SendMessageW(condition, BM_GETCHECK, 0, 0) == BST_UNCHECKED,
+                "Foreground selection switches off the background mode");
+        }
+        SendMessageW(priority, BM_SETCHECK, BST_CHECKED, 0);
+        SendMessageW(window, WM_COMMAND, MAKEWPARAM(315, BN_CLICKED), reinterpret_cast<LPARAM>(priority));
+        SetWindowTextW(priority_edit, L"");
+        require(!IsWindowEnabled(save), "Enabled empty priority cannot be saved");
+        SetWindowTextW(priority_edit, L"1000");
+        require(!IsWindowEnabled(save), "Out-of-range priority cannot be saved");
+        SetWindowTextW(priority_edit, L"125");
+        require(IsWindowEnabled(save), "Named foreground scenario and explicit precedence can be saved");
         SendMessageW(window, WM_COMMAND, MAKEWPARAM(1, BN_CLICKED), reinterpret_cast<LPARAM>(save));
     } catch (const std::exception& error) {
         dialog_failure = error.what();
@@ -403,7 +505,9 @@ void dialog_tests() {
         if (!dialog_failure.empty()) throw std::runtime_error(dialog_failure);
         require(result && result->binding.activation.allowed_lock_states() == (1U << 2)
             && result->binding.activation.programs == initial.binding.activation.programs
-            && result->binding.activation.require_running_program == !dialog_empty_programs,
+            && !result->binding.activation.require_running_program
+            && result->binding.activation.require_foreground_program == !dialog_empty_programs
+            && result->binding.activation.priority == 125U && result->name == L"工作—搜索",
             "Native dialog preserves conditions through save in all languages and DPIs");
     }
 }
@@ -432,6 +536,7 @@ int main(int argc, char** argv) {
         }
         codec_tests();
         conditional_codec_tests();
+        scenario_codec_tests();
         switch_image_tests();
         module_tests();
         dialog_tests();

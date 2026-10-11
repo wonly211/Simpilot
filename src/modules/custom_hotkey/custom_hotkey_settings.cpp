@@ -5,6 +5,10 @@
 
 namespace simpilot {
 namespace {
+bool valid_name(std::wstring_view name) {
+    return name.size() <= 128 && std::ranges::none_of(name,
+        [](wchar_t character) { return character < 32 || character == 127; });
+}
 unsigned number(const SettingsDocument& document, const std::wstring& key,
                 unsigned fallback, unsigned maximum) {
     const auto value = document.get(key);
@@ -28,6 +32,8 @@ static CustomHotkeySettings read_collection(const SettingsDocument& document,
         const auto prefix = stem + std::to_wstring(i);
         if (!document.get(prefix + L"Enabled")) continue;
         CustomGlobalHotKey item;
+        item.name = document.get(prefix + L"Name").value_or(L"");
+        if (!valid_name(item.name)) throw std::runtime_error("Invalid custom hotkey name");
         const auto stored_code = document.get(prefix + L"Code");
         const auto code = stored_code.value_or(L"");
         const auto comma = code.find(L',');
@@ -66,7 +72,7 @@ static void write_collection(const CustomHotkeySettings& settings, SettingsDocum
                              const std::wstring& stem) {
     constexpr std::wstring_view suffixes[]{L"Code", L"Force", L"Action", L"Program",
         L"Arguments", L"WorkingDirectory", L"RunAsAdministrator", L"ExistingProcessAction",
-        L"Visibility", L"Enabled", L"Order"};
+        L"Visibility", L"Enabled", L"Order", L"Name"};
     document.erase_numbered(stem, suffixes);
     document.set(L"CustomGlobalHotkeys", stem + L"Count", std::to_wstring(settings.items.size()));
     for (std::size_t i = 0; i < settings.items.size(); ++i) {
@@ -81,6 +87,7 @@ static void write_collection(const CustomHotkeySettings& settings, SettingsDocum
         set(L"Force", item.binding.force_override ? L"1" : L"0");
         set(L"Action", std::to_wstring(static_cast<int>(item.action)));
         set(L"Program", item.program_path);
+        set(L"Name", item.name);
         set(L"Arguments", item.arguments);
         set(L"WorkingDirectory", item.working_directory);
         set(L"RunAsAdministrator", item.run_as_administrator ? L"1" : L"0");
@@ -107,8 +114,8 @@ constexpr std::wstring_view lock_suffixes[]{L"CapsLock", L"NumLock", L"ScrollLoc
 CustomHotkeySettings CustomHotkeySettings::read(const SettingsDocument& document) {
     auto result = read_collection(document, L"CustomGlobalHotKey");
     const auto count = strict_number(document, L"ConditionalGlobalHotKeyCount", 128, 0);
-    const auto version = strict_number(document, L"ConditionalGlobalHotKeyVersion", 1, 0);
-    if ((document.get(L"ConditionalGlobalHotKeyCount") && version != 1)
+    const auto version = strict_number(document, L"ConditionalGlobalHotKeyVersion", 2, 0);
+    if ((document.get(L"ConditionalGlobalHotKeyCount") && version != 1 && version != 2)
         || (document.get(L"ConditionalGlobalHotKeyVersion")
             && (!version || !document.get(L"ConditionalGlobalHotKeyCount"))))
         throw std::runtime_error("Unsupported conditional hotkey version");
@@ -137,6 +144,15 @@ CustomHotkeySettings CustomHotkeySettings::read(const SettingsDocument& document
             activation.locks[lock] = static_cast<ToggleRequirement>(
                 strict_number(document, prefix + std::wstring(lock_suffixes[lock]), 2));
         activation.require_running_program = strict_number(document, prefix + L"RequireRunning", 1) != 0;
+        if (version == 2) {
+            activation.require_foreground_program = strict_number(document, prefix + L"RequireForeground", 1) != 0;
+            if (strict_number(document, prefix + L"UsePriority", 1))
+                activation.priority = strict_number(document, prefix + L"Priority", 999);
+            else (void)strict_number(document, prefix + L"Priority", 999);
+        } else if (document.get(prefix + L"RequireForeground") || document.get(prefix + L"UsePriority")
+                   || document.get(prefix + L"Priority")) {
+            throw std::runtime_error("Scenario fields require conditional hotkey format 2");
+        }
         const auto programs = strict_number(document, prefix + L"ProgramCount", 32);
         for (unsigned program = 1; program <= programs; ++program) {
             activation.programs.push_back(document.get(prefix + L"RelatedProgram" + std::to_wstring(program)).value_or(L""));
@@ -160,11 +176,11 @@ CustomHotkeySettings CustomHotkeySettings::read(const SettingsDocument& document
 bool CustomHotkeySettings::valid() const {
     if (items.size() > 128) return false;
     for (std::size_t i = 0; i < items.size(); ++i) {
-        if (!items[i].binding.activation.valid()) return false;
+        if (!items[i].binding.activation.valid() || !valid_name(items[i].name)) return false;
         if (!items[i].binding.gesture) continue;
         for (std::size_t j = 0; j < i; ++j) {
             if (items[i].binding.gesture == items[j].binding.gesture
-                && activation_overlaps(items[i].binding.activation, items[j].binding.activation)) return false;
+                && activation_conflicts(items[i].binding.activation, items[j].binding.activation)) return false;
         }
     }
     return true;
@@ -173,15 +189,19 @@ bool CustomHotkeySettings::valid() const {
 void CustomHotkeySettings::write(SettingsDocument& document) const {
     CustomHotkeySettings legacy, conditional;
     for (const auto& item : items) {
-        if (!item.binding.activation.valid()) throw std::runtime_error("Invalid hotkey activation conditions");
+        if (!item.binding.activation.valid() || !valid_name(item.name)) throw std::runtime_error("Invalid hotkey activation conditions or name");
         // Keep dormant program selections too, without exposing them to an old reader.
         (item.binding.activation.conditional() || !item.binding.activation.programs.empty()
             ? conditional : legacy).items.push_back(item);
     }
     write_collection(legacy, document, L"CustomGlobalHotKey");
     write_collection(conditional, document, L"ConditionalGlobalHotKey");
-    document.set(L"CustomGlobalHotkeys", L"ConditionalGlobalHotKeyVersion", L"1");
-    constexpr std::wstring_view suffixes[]{L"CapsLock", L"NumLock", L"ScrollLock", L"RequireRunning", L"ProgramCount"};
+    const bool scenarios = std::ranges::any_of(items, [](const auto& item) {
+        return item.binding.activation.require_foreground_program || item.binding.activation.priority.has_value();
+    });
+    document.set(L"CustomGlobalHotkeys", L"ConditionalGlobalHotKeyVersion", scenarios ? L"2" : L"1");
+    constexpr std::wstring_view suffixes[]{L"CapsLock", L"NumLock", L"ScrollLock", L"RequireRunning", L"ProgramCount",
+        L"RequireForeground", L"UsePriority", L"Priority"};
     document.erase_numbered(L"ConditionalGlobalHotKey", suffixes);
     for (unsigned i = 1; i <= 32; ++i) {
         const auto suffix = L"RelatedProgram" + std::to_wstring(i);
@@ -202,6 +222,11 @@ void CustomHotkeySettings::write(SettingsDocument& document) const {
         for (std::size_t lock = 0; lock < 3; ++lock)
             set(lock_suffixes[lock], std::to_wstring(static_cast<unsigned>(activation.locks[lock])));
         set(L"RequireRunning", activation.require_running_program ? L"1" : L"0");
+        if (scenarios) {
+            set(L"RequireForeground", activation.require_foreground_program ? L"1" : L"0");
+            set(L"UsePriority", activation.priority ? L"1" : L"0");
+            set(L"Priority", std::to_wstring(activation.priority.value_or(0)));
+        }
         set(L"ProgramCount", std::to_wstring(activation.programs.size()));
         for (std::size_t program = 0; program < activation.programs.size(); ++program)
             set(L"RelatedProgram" + std::to_wstring(program + 1), activation.programs[program]);

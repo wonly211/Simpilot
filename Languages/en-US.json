@@ -2,6 +2,8 @@
   "locale": "en-US",
   "strings": {
     "hotkey.activation.heading": "Activation conditions",
+    "hotkey.activation.foreground_any": "Only while any of these programs is in the foreground",
+    "hotkey.activation.priority": "Priority",
     "hotkey.activation.any": "Any state",
     "hotkey.activation.on": "On",
     "hotkey.activation.off": "Off",

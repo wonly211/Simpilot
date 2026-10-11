@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(Simpilot VERSION 1.0.12 LANGUAGES CXX)
+project(Simpilot VERSION 1.0.13 LANGUAGES CXX)
 
 if(NOT WIN32)
     message(FATAL_ERROR "Simpilot targets Windows 10/11.")
@@ -353,6 +353,11 @@ if(BUILD_TESTING)
         UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
     target_compile_options(simpilot_hotkey_activation_native_probe PRIVATE /W4 /permissive- /utf-8 /EHsc)
     target_link_libraries(simpilot_hotkey_activation_native_probe PRIVATE simpilot_keyboard gdi32)
+    add_executable(simpilot_hotkey_scenarios_native_probe tests/hotkey_scenarios_native_probe.cpp)
+    target_compile_definitions(simpilot_hotkey_scenarios_native_probe PRIVATE
+        UNICODE _UNICODE NOMINMAX WINVER=0x0A00 _WIN32_WINNT=0x0A00)
+    target_compile_options(simpilot_hotkey_scenarios_native_probe PRIVATE /W4 /permissive- /utf-8 /EHsc)
+    target_link_libraries(simpilot_hotkey_scenarios_native_probe PRIVATE simpilot_keyboard)
 
     add_executable(simpilot_keyboard_capture_state_tests
         tests/keyboard_capture_state_tests.cpp

@@ -417,7 +417,7 @@ bool KeyboardManager::register_binding(
     }
     if (!running() || !hook_window_
         || std::ranges::any_of(registered_bindings_, [&](const auto& prior) {
-            return prior.gesture == binding.gesture && activation_overlaps(prior.activation, binding.activation);
+            return prior.gesture == binding.gesture && activation_conflicts(prior.activation, binding.activation);
         })) {
         return false;
     }
@@ -708,7 +708,7 @@ LRESULT KeyboardManager::handle_hook_window_message(
             try {
                 auto activation = request->activation;
                 for (auto& path : activation.programs) path = normalize_hotkey_program_path(path);
-                if (activation.require_running_program) {
+                if (activation.require_running_program || activation.require_foreground_program) {
                     if (!SetTimer(hook_window_, activation_timer_id, 50, nullptr)) return FALSE;
                     process_monitor_.watch(activation.programs);
                 }
@@ -793,10 +793,11 @@ LRESULT KeyboardManager::handle_hook_window_message(
         return TRUE;
     }
     if (message == query_activation_message) {
-        for (const auto& registration : conditional_hotkeys_.registrations) {
+        for (auto& registration : conditional_hotkeys_.registrations) {
             if (registration.identifier == static_cast<int>(wparam)) {
-                return !registration.activation.require_running_program
-                    || (process_snapshot_ && process_snapshot_->matches(registration.activation.programs));
+                if (!(registration.activation.require_running_program || registration.activation.require_foreground_program)) return TRUE;
+                auto process = registration.take_queued_process();
+                return process && WaitForSingleObject(process->handle, 0) == WAIT_TIMEOUT;
             }
         }
         return TRUE; // Standard/unconditional hotkeys have no process gate.
@@ -980,9 +981,20 @@ LRESULT KeyboardManager::handle_registered_hotkey(
         if (key_down) pressed_keys_[event.vkCode] = true;
         if (key_up) pressed_keys_[event.vkCode] = false;
     }
+    // All candidates in this press see the same foreground identity.
+    DWORD activation_foreground_identifier = 0;
+    if (key_down) {
+        const auto window = GetForegroundWindow();
+        if (window) (void)GetWindowThreadProcessId(window, &activation_foreground_identifier);
+    }
     const auto conditional = conditional_hotkeys_.handle(event.vkCode, key_down,
-        current_modifiers(pressed_keys_), lock_state_, [this](const auto& registration) noexcept {
-            return process_snapshot_ && process_snapshot_->matches(registration.activation.programs);
+        current_modifiers(pressed_keys_), lock_state_, [this, activation_foreground_identifier](auto& registration) noexcept {
+            registration.pending_process.reset();
+            if (!process_snapshot_) return false;
+            if (registration.activation.require_foreground_program && !activation_foreground_identifier) return false;
+            registration.pending_process = process_snapshot_->matching_process(registration.activation.programs,
+                registration.activation.require_foreground_program ? activation_foreground_identifier : 0);
+            return bool(registration.pending_process);
         });
     if (conditional.invoke) {
         const auto modifiers = current_modifiers(pressed_keys_);
@@ -994,8 +1006,15 @@ LRESULT KeyboardManager::handle_registered_hotkey(
             keybd_event(0xFF, 0, 0, simpilot_injected_event);
             keybd_event(0xFF, 0, KEYEVENTF_KEYUP, simpilot_injected_event);
         }
-        PostMessageW(target_window_, WM_HOTKEY, static_cast<WPARAM>(conditional.invoke),
-            MAKELPARAM(current_modifiers(pressed_keys_), event.vkCode));
+        const auto selected = std::ranges::find(conditional_hotkeys_.registrations,
+            conditional.invoke, &ConditionalHotkeyRegistration::identifier);
+        const bool gated = selected != conditional_hotkeys_.registrations.end()
+            && (selected->activation.require_running_program || selected->activation.require_foreground_program);
+        if (!gated || selected->queue_process()) {
+            if (!PostMessageW(target_window_, WM_HOTKEY, static_cast<WPARAM>(conditional.invoke),
+                MAKELPARAM(current_modifiers(pressed_keys_), event.vkCode)) && gated)
+                selected->cancel_queued_process();
+        }
     }
     if (conditional.consume) {
         const auto conditional_mask = event.vkCode >= L'A' && event.vkCode <= L'Z'

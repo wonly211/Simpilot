@@ -71,7 +71,8 @@ public:
                     [this, i](BuiltInHotKey value) {
                         draft_.items[i].binding = std::move(value.binding);
                         draft_.items[i].enabled = value.enabled;
-                    }, [this, i] { return i < draft_.items.size(); }, false});
+                    }, [this, i] { return i < draft_.items.size(); }, false,
+                    draft_.items[i].name.empty() ? draft_.items[i].program_path : draft_.items[i].name});
             }
             return result;
         });
