@@ -13,15 +13,28 @@ struct CloseHandleDeleter {
 using OwnedHandle = std::unique_ptr<void, CloseHandleDeleter>;
 }
 
-bool HotkeyProcessSnapshot::matches(const std::vector<std::wstring>& paths,
-                                    ULONGLONG now) const noexcept {
+std::shared_ptr<const HotkeyProcess> HotkeyProcessSnapshot::matching_process(
+    const std::vector<std::wstring>& paths, DWORD foreground_identifier, ULONGLONG now) const noexcept {
     // A stalled/failed monitor must not leave indefinitely active conditions.
-    if (!valid || now < captured || now - captured > 1500) return false;
+    if (!valid || now < captured || now - captured > 1500) return {};
     for (const auto& process : processes) {
-        if (std::ranges::find(paths, process->path) != paths.end()
-            && WaitForSingleObject(process->handle, 0) == WAIT_TIMEOUT) return true;
+        if ((!foreground_identifier || foreground_identifier == process->identifier)
+            && std::ranges::find(paths, process->path) != paths.end()
+            && WaitForSingleObject(process->handle, 0) == WAIT_TIMEOUT) return process;
     }
-    return false;
+    return {};
+}
+
+bool HotkeyProcessSnapshot::matches(const std::vector<std::wstring>& paths, ULONGLONG now) const noexcept {
+    return bool(matching_process(paths, 0, now));
+}
+
+bool HotkeyProcessSnapshot::matches_foreground(const std::vector<std::wstring>& paths,
+                                              HWND window, ULONGLONG now) const noexcept {
+    if (!window || !valid || now < captured || now - captured > 1500) return false;
+    DWORD identifier = 0;
+    if (!GetWindowThreadProcessId(window, &identifier) || !identifier) return false;
+    return bool(matching_process(paths, identifier, now));
 }
 
 std::unique_ptr<HotkeyProcessSnapshot> HotkeyProcessMonitor::enumerate(
@@ -52,7 +65,7 @@ std::unique_ptr<HotkeyProcessSnapshot> HotkeyProcessMonitor::enumerate(
         path.resize(size);
         path = normalize_hotkey_program_path(path);
         if (std::ranges::find(paths, path) != paths.end()) {
-            auto item = std::make_unique<HotkeyProcess>(std::move(path), process.get());
+            auto item = std::make_shared<HotkeyProcess>(std::move(path), process.get());
             process.release();
             result->processes.push_back(std::move(item));
         }

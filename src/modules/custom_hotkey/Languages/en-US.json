@@ -1,6 +1,12 @@
 {
   "locale": "en-US",
   "strings": {
+    "custom_hotkey.name": "Name / note (optional, up to 128 characters)",
+    "custom_hotkey.name.column": "Name / note",
+    "custom_hotkey.use_priority": "Set explicit same-key priority (0–999)",
+    "custom_hotkey.priority_hint": "Overlapping rules must both have different priorities; the higher value wins. Only one action runs per press. Add any default action separately at a lower priority.",
+    "custom_hotkey.priority_confirm": "These conditions may match at the same time. Only the rule with the higher priority will run.\n\nExisting rule: {}\n{}\n\nNew rule: {}\n{}\n\nKeep both rules?",
+    "custom_hotkey.single_key_hint": "A single letter or digit is consumed while its conditions match, so it will not type that character. Consider a function key or a key combination.",
     "custom_hotkey.condition_add": "Add program…",
     "custom_hotkey.conditions_hint": "Up to 32 programs, matched by full path. Add at least one program when the program condition is enabled. All selected lock-key conditions must also match.",
     "custom_hotkey.window_title": "简驭 | Simpilot - Add global hotkey",

@@ -1,6 +1,8 @@
 {
   "locale": "zh-TW",
   "strings": {
+    "hotkey.activation.foreground_any": "僅當下列任一程式位於前景時生效",
+    "hotkey.activation.priority": "優先順序",
     "hotkey.activation.heading": "啟用條件",
     "hotkey.activation.any": "不限制",
     "hotkey.activation.on": "開啟",

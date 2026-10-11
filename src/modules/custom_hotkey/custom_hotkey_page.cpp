@@ -5,6 +5,7 @@
 #include "toggle_switch.hpp"
 #include <commctrl.h>
 #include <array>
+#include <format>
 
 namespace simpilot {
 namespace {
@@ -47,7 +48,7 @@ public:
         ListView_SetExtendedListViewStyle(list_,
             LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP | LVS_EX_INFOTIP);
         settings_visual_style::style_list_view(list_);
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 6; ++i) {
             wchar_t empty[] = L"";
             LVCOLUMNW column{.mask = LVCF_WIDTH | LVCF_SUBITEM | LVCF_TEXT,
                 .cx = 100, .pszText = empty, .iSubItem = i};
@@ -79,11 +80,11 @@ public:
         RECT list_client{};
         GetClientRect(list_, &list_client);
         const int available = std::max(1L, list_client.right - scale(4));
-        const int widths[]{scale(64), scale(164), scale(112)};
-        for (int i = 0; i < 3; ++i) ListView_SetColumnWidth(list_, i, widths[i]);
-        ListView_SetColumnWidth(list_, 3, std::max(scale(248),
-            available - widths[0] - widths[1] - widths[2] - scale(220)));
-        ListView_SetColumnWidth(list_, 4, scale(220));
+        const int widths[]{scale(64), scale(164), scale(180), scale(112)};
+        for (int i = 0; i < 4; ++i) ListView_SetColumnWidth(list_, i, widths[i]);
+        ListView_SetColumnWidth(list_, 4, std::max(scale(248),
+            available - widths[0] - widths[1] - widths[2] - widths[3] - scale(260)));
+        ListView_SetColumnWidth(list_, 5, scale(260));
         for (auto control : {add_, edit_, remove_, list_}) {
             SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
         }
@@ -106,9 +107,9 @@ public:
         SetWindowTextW(edit_, text("settings.edit"));
         SetWindowTextW(remove_, text("settings.delete"));
         constexpr std::string_view columns[]{"settings.global_hotkeys.column.enabled",
-            "settings.global_hotkeys.column.hotkey", "settings.global_hotkeys.column.action",
+            "settings.global_hotkeys.column.hotkey", "custom_hotkey.name.column", "settings.global_hotkeys.column.action",
             "settings.global_hotkeys.column.target", "hotkey.activation.column"};
-        for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 6; ++i) {
             LVCOLUMNW column{.mask = LVCF_TEXT, .pszText = const_cast<wchar_t*>(text(columns[i]))};
             ListView_SetColumn(list_, i, &column);
         }
@@ -145,14 +146,15 @@ private:
             ListView_SetCheckState(list_, index, item.enabled);
             auto gesture = item.binding.gesture ? item.binding.gesture->display_text() : std::wstring{};
             ListView_SetItemText(list_, index, 1, gesture.data());
-            ListView_SetItemText(list_, index, 2, const_cast<wchar_t*>(text(
+            ListView_SetItemText(list_, index, 2, const_cast<wchar_t*>(item.name.c_str()));
+            ListView_SetItemText(list_, index, 3, const_cast<wchar_t*>(text(
                 item.action == CustomHotKeyAction::open_folder ? "custom_hotkey.open_folder"
                 : item.action == CustomHotKeyAction::open_file ? "custom_hotkey.open_file"
                 : "custom_hotkey.open_application")));
-            ListView_SetItemText(list_, index, 3, const_cast<wchar_t*>(item.program_path.c_str()));
+            ListView_SetItemText(list_, index, 4, const_cast<wchar_t*>(item.program_path.c_str()));
             auto conditions = activation_description(item.binding.activation, *localization_);
             std::ranges::replace(conditions, L'\n', L' ');
-            ListView_SetItemText(list_, index, 4, conditions.data());
+            ListView_SetItemText(list_, index, 5, conditions.data());
             if (selection == i) ListView_SetItemState(list_, index,
                 LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
         }
@@ -160,17 +162,40 @@ private:
         buttons();
     }
     void edit(bool add) {
+        const auto revision = hotkeys_.draft_revision();
+        const auto editing_bindings = hotkeys_.editable_drafts();
+        const auto still_editable = [&] {
+            return revision == hotkeys_.draft_revision()
+                && std::ranges::all_of(editing_bindings, [](const auto& item) { return item.active(); });
+        };
         const auto index = add ? std::optional<std::size_t>{} : selected();
         if ((!add && !index) || (add && draft_.items.size() >= 128)) return;
         auto candidate = CustomHotKeyDialog::show_modal(instance_, window_,
             std::string(localization_->language_code()), keyboard_, directory_,
             index ? &draft_.items[*index] : nullptr, diagnose_);
-        if (!candidate || !candidate->binding.gesture) return;
+        if (!candidate || !candidate->binding.gesture || !still_editable()) return;
         auto binding = BuiltInHotKey{candidate->binding, candidate->enabled};
         if ((!index || draft_.items[*index].binding.gesture != binding.binding.gesture)
             && !confirm_hotkey_availability(window_, *localization_, binding,
                 [this](const auto& gesture) { return keyboard_.probe_available(gesture); })) return;
+        if (!still_editable()) return;
         candidate->binding = binding.binding;
+        // Explicitly acknowledge overlapping scenarios before mutating drafts.
+        for (const auto& other : hotkeys_.editable_drafts()) {
+            if ((index && other.id == "custom_hotkey." + std::to_string(*index)) || !other.active()) continue;
+            const auto previous = other.read();
+            if (previous.binding.gesture != candidate->binding.gesture
+                || !activation_overlaps(previous.binding.activation, candidate->binding.activation)
+                || activation_conflicts(previous.binding.activation, candidate->binding.activation)) continue;
+            const auto prior_name = other.display_name.empty() ? std::wstring(text(other.label_key)) : other.display_name;
+            const auto next_name = candidate->name.empty() ? candidate->program_path : candidate->name;
+            const auto prior_condition = activation_description(previous.binding.activation, *localization_);
+            const auto next_condition = activation_description(candidate->binding.activation, *localization_);
+            const auto message = std::vformat(localization_->text("custom_hotkey.priority_confirm"),
+                std::make_wformat_args(prior_name, prior_condition, next_name, next_condition));
+            if (MessageBoxW(window_, message.c_str(), text("settings.title"),
+                MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES || !still_editable()) return;
+        }
         // Allocate before any other owner's draft is cleared.
         if (add) draft_.items.reserve(draft_.items.size() + 1);
         const auto target = index.value_or(draft_.items.size());
@@ -204,7 +229,9 @@ private:
                 if (notification->code == LVN_GETINFOTIPW) {
                     auto* tip = reinterpret_cast<NMLVGETINFOTIPW*>(lparam);
                     if (tip->iItem >= 0 && static_cast<std::size_t>(tip->iItem) < draft_.items.size()) {
-                        const auto value = activation_description(draft_.items[tip->iItem].binding.activation, *localization_);
+                        const auto& item = draft_.items[tip->iItem];
+                        const auto value = (item.name.empty() ? L"" : item.name + L"\n")
+                            + item.program_path + L"\n" + activation_description(item.binding.activation, *localization_);
                         wcsncpy_s(tip->pszText, tip->cchTextMax, value.c_str(), _TRUNCATE);
                     }
                 }

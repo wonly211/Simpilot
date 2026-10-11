@@ -24,6 +24,7 @@ struct HotkeyDraftBinding {
     std::function<void(BuiltInHotKey)> write;
     std::function<bool()> active;
     bool common_row = true;
+    std::wstring display_name;
 };
 
 class HotkeyRegistry final {
@@ -49,6 +50,7 @@ public:
         ++draft_revision_;
         draft_observers_.visit([](const auto&, const auto& notify) { notify(); });
     }
+    [[nodiscard]] std::size_t draft_revision() const noexcept { return draft_revision_; }
     [[nodiscard]] std::vector<HotkeyDraftBinding> editable_drafts() const {
         std::vector<HotkeyDraftBinding> result;
         contributions_.visit_guarded([&](const auto& id, const auto& value, auto active) {
@@ -89,7 +91,7 @@ public:
             if (item.id == except || !item.active()) continue;
             const auto value = item.read();
             if (value.binding.gesture != candidate.binding.gesture) continue;
-            if (!activation_overlaps(value.binding.activation, candidate.binding.activation)) continue;
+            if (!activation_conflicts(value.binding.activation, candidate.binding.activation)) continue;
             conflicts.emplace_back(item, value);
         }
         for (const auto& [item, value] : conflicts) {
@@ -132,7 +134,7 @@ public:
                 || !current.binding.activation.valid()
                 || std::ranges::any_of(used, [&](const auto& prior) {
                     return prior.gesture == current.binding.gesture
-                        && activation_overlaps(prior.activation, current.binding.activation);
+                        && activation_conflicts(prior.activation, current.binding.activation);
                 })
                 || identifier > 0xBFFF) {
                 if (diagnose) diagnose(id);

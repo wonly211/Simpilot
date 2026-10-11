@@ -1,13 +1,37 @@
 #pragma once
 #include "simpilot/hotkey.hpp"
 #include <array>
+#include <memory>
 #include <vector>
 
 namespace simpilot {
+struct HotkeyProcess;
 struct ConditionalHotkeyRegistration {
     int identifier = 0;
     HotKeyGesture gesture;
     HotkeyActivationConditions activation;
+    // Retain the exact process instance selected at first down, across snapshot updates.
+    std::shared_ptr<const HotkeyProcess> pending_process;
+    // Bounded FIFO: separate complete presses may queue before UI dispatch.
+    // No allocation in the low-level hook; overload fails closed.
+    std::array<std::shared_ptr<const HotkeyProcess>, 32> queued_processes{};
+    std::size_t queue_head = 0;
+    std::size_t queue_size = 0;
+    bool queue_process() noexcept {
+        if (queue_size == queued_processes.size()) return false;
+        queued_processes[(queue_head + queue_size++) % queued_processes.size()] = std::move(pending_process);
+        return true;
+    }
+    void cancel_queued_process() noexcept {
+        if (queue_size) queued_processes[(queue_head + --queue_size) % queued_processes.size()].reset();
+    }
+    std::shared_ptr<const HotkeyProcess> take_queued_process() noexcept {
+        if (!queue_size) return {};
+        auto result = std::move(queued_processes[queue_head]);
+        queue_head = (queue_head + 1) % queued_processes.size();
+        --queue_size;
+        return result;
+    }
 };
 struct ConditionalHotkeyDecision {
     int invoke = 0;
@@ -31,13 +55,19 @@ public:
         }
         if (press.down) return {0, press.consume};
         press.down = true;
-        for (const auto& registration : registrations) {
+        const ConditionalHotkeyRegistration* selected = nullptr;
+        for (auto& registration : registrations) {
             if (registration.gesture.virtual_key != key || registration.gesture.modifiers != modifiers) continue;
             const auto mask = registration.activation.allowed_lock_states();
             if (mask != 0xff && (!locks || *locks > 7 || !(mask & (1U << *locks)))) continue;
-            if (registration.activation.require_running_program && !process_matches(registration)) continue;
+            if ((registration.activation.require_running_program || registration.activation.require_foreground_program)
+                && !process_matches(registration)) continue;
+            if (!selected || registration.activation.priority.value_or(0) > selected->activation.priority.value_or(0))
+                selected = &registration;
+        }
+        if (selected) {
             press.consume = true;
-            return {registration.identifier, true};
+            return {selected->identifier, true};
         }
         return {};
     }

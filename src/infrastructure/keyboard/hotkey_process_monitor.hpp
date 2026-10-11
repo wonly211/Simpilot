@@ -13,7 +13,8 @@ namespace simpilot {
 struct HotkeyProcess {
     std::wstring path;
     HANDLE handle = nullptr;
-    HotkeyProcess(std::wstring value, HANDLE process) : path(std::move(value)), handle(process) {}
+    DWORD identifier = 0;
+    HotkeyProcess(std::wstring value, HANDLE process) : path(std::move(value)), handle(process), identifier(GetProcessId(process)) {}
     ~HotkeyProcess() { if (handle) CloseHandle(handle); }
     HotkeyProcess(const HotkeyProcess&) = delete;
     HotkeyProcess& operator=(const HotkeyProcess&) = delete;
@@ -22,9 +23,15 @@ struct HotkeyProcess {
 struct HotkeyProcessSnapshot {
     ULONGLONG captured = 0;
     bool valid = false;
-    std::vector<std::unique_ptr<HotkeyProcess>> processes;
+    std::vector<std::shared_ptr<HotkeyProcess>> processes;
+    [[nodiscard]] std::shared_ptr<const HotkeyProcess> matching_process(
+        const std::vector<std::wstring>& normalized_paths, DWORD foreground_identifier = 0,
+        ULONGLONG now = GetTickCount64()) const noexcept;
     [[nodiscard]] bool matches(const std::vector<std::wstring>& normalized_paths,
                                ULONGLONG now = GetTickCount64()) const noexcept;
+    [[nodiscard]] bool matches_foreground(const std::vector<std::wstring>& normalized_paths,
+                                         HWND window = GetForegroundWindow(),
+                                         ULONGLONG now = GetTickCount64()) const noexcept;
 };
 
 // Enumeration and handle acquisition run on a worker. Snapshots are handed

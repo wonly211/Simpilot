@@ -2,6 +2,8 @@
   "locale": "zh-CN",
   "strings": {
     "hotkey.activation.heading": "激活条件",
+    "hotkey.activation.foreground_any": "仅当下列任一程序处于前台时生效",
+    "hotkey.activation.priority": "优先级",
     "hotkey.activation.any": "不限制",
     "hotkey.activation.on": "开启",
     "hotkey.activation.off": "关闭",

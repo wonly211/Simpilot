@@ -35,7 +35,8 @@ bool confirm_hotkey_replacement(HWND owner, const Localization& localization,
     const HotKeyGesture& gesture, const HotkeyDraftBinding& conflict,
     const HotkeyActivationConditions& activation) {
     const auto label = gesture.display_text();
-    const auto name = localization.text(conflict.label_key);
+    const auto name = conflict.display_name.empty()
+        ? std::wstring(localization.text(conflict.label_key)) : conflict.display_name;
     auto message = std::vformat(localization.text("settings.conflict.builtin_duplicate"),
                                      std::make_wformat_args(label, name));
     const auto previous = activation_description(conflict.read().binding.activation, localization);

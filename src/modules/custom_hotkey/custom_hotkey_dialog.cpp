@@ -30,6 +30,10 @@ constexpr int process_condition_identifier = 310;
 constexpr int condition_add_identifier = 311;
 constexpr int condition_remove_identifier = 312;
 constexpr int condition_list_identifier = 313;
+constexpr int foreground_condition_identifier = 314;
+constexpr int priority_condition_identifier = 315;
+constexpr int priority_edit_identifier = 316;
+constexpr int name_identifier = 317;
 constexpr int save_identifier = 1;
 constexpr int cancel_identifier = 2;
 
@@ -155,6 +159,12 @@ void CustomHotKeyDialog::create_controls() {
     dpi_ = GetDpiForWindow(window_);
     title_ = CreateWindowW(L"STATIC", text("custom_hotkey.title"), WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    name_label_ = CreateWindowW(L"STATIC", text("custom_hotkey.name"), WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    name_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", initial_ ? initial_->name.c_str() : L"",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_AUTOHSCROLL, 0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(name_identifier)), instance_, nullptr);
+    SendMessageW(name_edit_, EM_LIMITTEXT, 128, 0);
     trigger_heading_ = CreateWindowW(L"STATIC", text("custom_hotkey.trigger_heading"), WS_CHILD | WS_VISIBLE,
         0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     trigger_type_ = CreateWindowW(L"STATIC", text("custom_hotkey.trigger_type"),
@@ -255,6 +265,20 @@ void CustomHotKeyDialog::create_controls() {
     process_condition_ = CreateWindowW(L"BUTTON", text("hotkey.activation.running_any"),
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 0, 0, window_,
         reinterpret_cast<HMENU>(static_cast<INT_PTR>(process_condition_identifier)), instance_, nullptr);
+    foreground_condition_ = CreateWindowW(L"BUTTON", text("hotkey.activation.foreground_any"),
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(foreground_condition_identifier)), instance_, nullptr);
+    priority_condition_ = CreateWindowW(L"BUTTON", text("custom_hotkey.use_priority"),
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_AUTOCHECKBOX, 0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(priority_condition_identifier)), instance_, nullptr);
+    priority_edit_ = CreateWindowExW(WS_EX_STATICEDGE, L"EDIT", L"0",
+        WS_CHILD | WS_VISIBLE | WS_TABSTOP | ES_NUMBER | ES_AUTOHSCROLL, 0, 0, 0, 0, window_,
+        reinterpret_cast<HMENU>(static_cast<INT_PTR>(priority_edit_identifier)), instance_, nullptr);
+    SendMessageW(priority_edit_, EM_LIMITTEXT, 3, 0);
+    priority_hint_ = CreateWindowW(L"STATIC", text("custom_hotkey.priority_hint"), WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
+    single_key_hint_ = CreateWindowW(L"STATIC", text("custom_hotkey.single_key_hint"), WS_CHILD | WS_VISIBLE,
+        0, 0, 0, 0, window_, nullptr, instance_, nullptr);
     condition_programs_ = CreateWindowExW(WS_EX_CLIENTEDGE, L"LISTBOX", L"",
         WS_CHILD | WS_VISIBLE | WS_TABSTOP | WS_VSCROLL | WS_HSCROLL | LBS_NOTIFY | LBS_NOINTEGRALHEIGHT,
         0, 0, 0, 0, window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(condition_list_identifier)), instance_, nullptr);
@@ -268,6 +292,11 @@ void CustomHotKeyDialog::create_controls() {
         condition_paths_ = initial_->binding.activation.programs;
         SendMessageW(process_condition_, BM_SETCHECK,
             initial_->binding.activation.require_running_program ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(foreground_condition_, BM_SETCHECK,
+            initial_->binding.activation.require_foreground_program ? BST_CHECKED : BST_UNCHECKED, 0);
+        SendMessageW(priority_condition_, BM_SETCHECK,
+            initial_->binding.activation.priority ? BST_CHECKED : BST_UNCHECKED, 0);
+        SetWindowTextW(priority_edit_, std::to_wstring(initial_->binding.activation.priority.value_or(0)).c_str());
         SendMessageW(action_type_, CB_SETCURSEL,
             static_cast<WPARAM>(initial_->action), 0);
         SetWindowTextW(program_edit_, initial_->program_path.c_str());
@@ -319,7 +348,8 @@ void CustomHotKeyDialog::update_fonts() {
     set_font(conditions_heading_, section_font_);
     for (const auto control : lock_labels_) set_font(control, font_);
     for (const auto control : lock_choices_) set_font(control, font_);
-    for (const auto control : {process_condition_, condition_programs_, condition_add_, condition_remove_, conditions_hint_})
+    for (const auto control : {process_condition_, foreground_condition_, priority_condition_, priority_edit_,
+        priority_hint_, single_key_hint_, name_label_, name_edit_, condition_programs_, condition_add_, condition_remove_, conditions_hint_})
         set_font(control, font_);
     const std::array controls{
         trigger_type_, capture_button_, allow_modifiers_, action_type_, program_label_,
@@ -343,7 +373,7 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     form_.attach(window_, {save_button_, cancel_button_});
     const bool application = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 0;
     const auto margin = scale(28);
-    const int body_height = scale((application ? 590 : 394) + 334);
+    const int body_height = scale((application ? 590 : 394) + 334 + 276);
     const auto body_width = std::max(scale(696), width - (height - scale(72) < body_height
         ? GetSystemMetricsForDpi(SM_CXVSCROLL, dpi_) : 0));
     const auto content_width = application ? body_width - margin * 2 : scale(640);
@@ -354,14 +384,16 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     const auto field_gap = scale(8);
 
     MoveWindow(title_, margin, scale(28), content_width, scale(32), TRUE);
-    MoveWindow(trigger_heading_, margin, scale(82), content_width, scale(28), TRUE);
-    MoveWindow(trigger_type_, margin, scale(116), content_width, scale(20), TRUE);
-    MoveWindow(capture_button_, margin, scale(140), std::min(content_width, scale(468)), scale(36), TRUE);
-    MoveWindow(allow_modifiers_, margin, scale(184), content_width, scale(32), TRUE);
-    MoveWindow(divider_, margin, scale(232), content_width, scale(1), TRUE);
+    MoveWindow(name_label_, margin, scale(76), content_width, label_height, TRUE);
+    MoveWindow(name_edit_, margin, scale(102), content_width, control_height, TRUE);
+    MoveWindow(trigger_heading_, margin, scale(154), content_width, scale(28), TRUE);
+    MoveWindow(trigger_type_, margin, scale(188), content_width, scale(20), TRUE);
+    MoveWindow(capture_button_, margin, scale(212), std::min(content_width, scale(468)), scale(36), TRUE);
+    MoveWindow(allow_modifiers_, margin, scale(256), content_width, scale(32), TRUE);
+    MoveWindow(divider_, margin, scale(304), content_width, scale(1), TRUE);
 
-    MoveWindow(action_heading_, margin, scale(250), content_width, scale(28), TRUE);
-    MoveWindow(action_type_, margin, scale(278), std::min(content_width, scale(320)), scale(180), TRUE);
+    MoveWindow(action_heading_, margin, scale(322), content_width, scale(28), TRUE);
+    MoveWindow(action_type_, margin, scale(350), std::min(content_width, scale(320)), scale(180), TRUE);
     auto place_edit = [&](const HWND label, const HWND edit, const HWND browse, int& y) {
         MoveWindow(label, margin, y, content_width, label_height, TRUE);
         y += scale(26);
@@ -371,14 +403,14 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
                                browse_width, control_height, TRUE);
         y += scale(48);
     };
-    auto y = scale(326);
+    auto y = scale(398);
     place_edit(program_label_, program_edit_, program_browse_, y);
     place_edit(arguments_label_, arguments_edit_, nullptr, y);
     place_edit(working_directory_label_, working_directory_edit_, working_directory_browse_, y);
 
     const auto advanced_gap = scale(16);
     const auto advanced_width = (content_width - advanced_gap * 2) / 3;
-    const auto advanced_y = scale(532);
+    const auto advanced_y = scale(604);
     const auto place_combo = [&](const HWND label, const HWND combo, const int column) {
         const auto x = margin + column * (advanced_width + advanced_gap);
         MoveWindow(label, x, advanced_y, advanced_width, label_height, TRUE);
@@ -388,7 +420,7 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
     place_combo(existing_label_, existing_combo_, 1);
     place_combo(visibility_label_, visibility_combo_, 2);
 
-    const int conditions_y = scale(application ? 600 : 408);
+    const int conditions_y = scale(application ? 672 : 480);
     MoveWindow(conditions_heading_, margin, conditions_y, content_width, scale(24), TRUE);
     for (int i = 0; i < 3; ++i) {
         const auto x = margin + i * (advanced_width + advanced_gap);
@@ -396,10 +428,15 @@ void CustomHotKeyDialog::layout_controls(const int width, const int height) {
         MoveWindow(lock_choices_[i], x, conditions_y + scale(60), advanced_width, scale(180), TRUE);
     }
     MoveWindow(process_condition_, margin, conditions_y + scale(108), content_width, scale(28), TRUE);
-    MoveWindow(condition_programs_, margin, conditions_y + scale(144), content_width, scale(90), TRUE);
-    MoveWindow(condition_add_, margin, conditions_y + scale(242), scale(180), scale(32), TRUE);
-    MoveWindow(condition_remove_, margin + scale(188), conditions_y + scale(242), scale(100), scale(32), TRUE);
-    MoveWindow(conditions_hint_, margin, conditions_y + scale(284), content_width, scale(40), TRUE);
+    MoveWindow(foreground_condition_, margin, conditions_y + scale(142), content_width, scale(28), TRUE);
+    MoveWindow(condition_programs_, margin, conditions_y + scale(180), content_width, scale(90), TRUE);
+    MoveWindow(condition_add_, margin, conditions_y + scale(278), scale(180), scale(32), TRUE);
+    MoveWindow(condition_remove_, margin + scale(188), conditions_y + scale(278), scale(100), scale(32), TRUE);
+    MoveWindow(conditions_hint_, margin, conditions_y + scale(318), content_width, scale(48), TRUE);
+    MoveWindow(priority_condition_, margin, conditions_y + scale(374), content_width - scale(120), scale(32), TRUE);
+    MoveWindow(priority_edit_, margin + content_width - scale(112), conditions_y + scale(374), scale(112), scale(32), TRUE);
+    MoveWindow(priority_hint_, margin, conditions_y + scale(416), content_width, scale(48), TRUE);
+    MoveWindow(single_key_hint_, margin, conditions_y + scale(470), content_width, scale(48), TRUE);
 
     MoveWindow(cancel_button_, width - margin - scale(184), height - scale(54),
                scale(88), scale(36), TRUE);
@@ -564,8 +601,16 @@ void CustomHotKeyDialog::update_save_state() {
     const auto target_exists = SendMessageW(action_type_, CB_GETCURSEL, 0, 0) == 1
         ? std::filesystem::is_directory(target, error)
         : std::filesystem::is_regular_file(target, error);
-    const auto enabled = gesture_.has_value() && !capturing_ && target_exists && activation().valid();
+    const auto name = control_text(name_edit_);
+    const bool name_valid = name.size() <= 128 && std::ranges::none_of(name,
+        [](wchar_t character) { return character < 32 || character == 127; });
+    const auto enabled = gesture_.has_value() && !capturing_ && target_exists && activation().valid() && name_valid;
     EnableWindow(save_button_, enabled ? TRUE : FALSE);
+    EnableWindow(priority_edit_, SendMessageW(priority_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED);
+    const bool single_character = gesture_ && gesture_->modifiers == 0
+        && ((gesture_->virtual_key >= L'A' && gesture_->virtual_key <= L'Z')
+            || (gesture_->virtual_key >= L'0' && gesture_->virtual_key <= L'9'));
+    ShowWindow(single_key_hint_, single_character ? SW_SHOW : SW_HIDE);
 }
 
 HotkeyActivationConditions CustomHotKeyDialog::activation() const {
@@ -573,6 +618,14 @@ HotkeyActivationConditions CustomHotKeyDialog::activation() const {
     for (std::size_t i = 0; i < 3; ++i)
         result.locks[i] = static_cast<ToggleRequirement>(std::max<LRESULT>(0, SendMessageW(lock_choices_[i], CB_GETCURSEL, 0, 0)));
     result.require_running_program = SendMessageW(process_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    result.require_foreground_program = SendMessageW(foreground_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    if (SendMessageW(priority_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED) {
+        const auto value = control_text(priority_edit_);
+        result.priority = 1000;
+        if (!value.empty() && value.find_first_not_of(L"0123456789") == value.npos) {
+            try { result.priority = std::stoul(value); } catch (...) {}
+        }
+    }
     result.programs = condition_paths_;
     return result;
 }
@@ -594,7 +647,8 @@ void CustomHotKeyDialog::refresh_condition_programs() {
     SendMessageW(condition_programs_, LB_SETHORIZONTALEXTENT, extent, 0);
     if (!condition_paths_.empty()) SendMessageW(condition_programs_, LB_SETCURSEL,
         std::clamp<LRESULT>(selected, 0, static_cast<LRESULT>(condition_paths_.size() - 1)), 0);
-    const bool enabled = SendMessageW(process_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
+    const bool enabled = SendMessageW(process_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED
+        || SendMessageW(foreground_condition_, BM_GETCHECK, 0, 0) == BST_CHECKED;
     EnableWindow(condition_programs_, enabled);
     EnableWindow(condition_add_, enabled && condition_paths_.size() < 32);
     EnableWindow(condition_remove_, enabled && !condition_paths_.empty());
@@ -629,10 +683,12 @@ std::filesystem::path CustomHotKeyDialog::resolved_target() const {
 void CustomHotKeyDialog::save() {
     if (!gesture_) return;
     CustomGlobalHotKey hotkey;
+    hotkey.name = control_text(name_edit_);
     hotkey.binding.gesture = gesture_;
     hotkey.binding.force_override = initial_ && initial_->binding.force_override;
     hotkey.binding.activation = activation();
-    if (!hotkey.binding.activation.valid()) return;
+    if (!hotkey.binding.activation.valid() || hotkey.name.size() > 128
+        || std::ranges::any_of(hotkey.name, [](wchar_t character) { return character < 32 || character == 127; })) return;
     const auto action = SendMessageW(action_type_, CB_GETCURSEL, 0, 0);
     hotkey.action = action == 1 ? CustomHotKeyAction::open_folder
         : action == 2 ? CustomHotKeyAction::open_file
@@ -723,8 +779,18 @@ LRESULT CustomHotKeyDialog::handle_message(
     }
     if (message == WM_COMMAND) {
         const auto identifier = LOWORD(wparam);
-        if (identifier == process_condition_identifier && HIWORD(wparam) == BN_CLICKED) {
+        if ((identifier == process_condition_identifier || identifier == foreground_condition_identifier)
+            && HIWORD(wparam) == BN_CLICKED) {
+            const auto selected = identifier == process_condition_identifier ? process_condition_ : foreground_condition_;
+            const auto other = identifier == process_condition_identifier ? foreground_condition_ : process_condition_;
+            if (SendMessageW(selected, BM_GETCHECK, 0, 0) == BST_CHECKED)
+                SendMessageW(other, BM_SETCHECK, BST_UNCHECKED, 0);
             refresh_condition_programs();
+            return 0;
+        }
+        if ((identifier == priority_condition_identifier && HIWORD(wparam) == BN_CLICKED)
+            || ((identifier == priority_edit_identifier || identifier == name_identifier) && HIWORD(wparam) == EN_CHANGE)) {
+            update_save_state();
             return 0;
         }
         if (identifier == condition_add_identifier && HIWORD(wparam) == BN_CLICKED) {

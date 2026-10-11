@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.12
+Applies to version: 1.0.13
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -268,9 +268,17 @@ Enable **Only while any of these programs is running** to associate up to 32 EXE
 
 When both kinds of conditions are configured, both must match. An inactive rule passes the keystroke through; independently configured mappings and Windows shortcut blocking still apply. Changing conditions while a key is held does not switch actions or retrigger it. A lock key used as the trigger is evaluated using its state before the press; a matched hotkey consumes that press.
 
-The same combination may open A with Num Lock on and B with Num Lock off. Reuse is permitted only for provably exclusive conditions. Different associated programs do not establish exclusivity, because both can run at once. The activation column and its tooltip describe each rule.
+Each rule accepts an optional **Name / note**, up to 128 characters. Names may be empty or duplicated. They appear in the list, tooltip and conflict confirmation, and do not affect activation.
 
-Global backups include these conditions. Older versions skip conditional hotkeys, while unconditional hotkeys retain their previous storage format. The action's **When the program is already running** option remains a separate launch policy.
+Alternatively, select **Only while any of these programs is in the foreground**. Foreground and running/background modes are mutually exclusive options sharing the same list of up to 32 full EXE paths. Unknown foreground identity does not activate a rule. Lock-key requirements still apply.
+
+A single key or combination can have multiple scenarios: Num Lock on/off may open A/B, or editor/browser foreground contexts may select different actions. Foreground lists with no shared executable identity are exclusive and can reuse the key directly.
+
+Background programs can run simultaneously, and foreground/background scenarios can overlap. To keep overlapping rules, enable **explicit same-key priority** on every overlapping rule and assign different values from 0 to 999. Only the matching rule with the highest value executes; saving requires confirmation. Equal or partly implicit priorities still require conflict resolution rather than depending on list order.
+
+No matching scenario passes the keystroke through. Add any default action separately with no lock/program restrictions and an explicit lower priority, for example scenario 100 and default 0. The first down fixes the action until release; holds and mid-press changes never retrigger it. A matched single letter such as F will not type that character; the editor warns about this. Consider function keys or combinations.
+
+Global backups include names, conditions and priorities. Rules using only previous conditions retain format 1; foreground conditions or priority use format 2 of the separate conditional collection. Unconditional rules retain legacy storage. v1.0.12 refuses format 2 rather than ignoring conditions and activating unsafe actions. Export a backup before downgrading and restore your pre-upgrade configuration. The action's **When the program is already running** option remains a separate launch policy.
 
 
 ### 6.4 Hotkey conflicts

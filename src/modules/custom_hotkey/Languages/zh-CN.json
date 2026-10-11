@@ -1,6 +1,12 @@
 {
   "locale": "zh-CN",
   "strings": {
+    "custom_hotkey.name": "名称／备注（可选，最多 128 个字符）",
+    "custom_hotkey.name.column": "名称／备注",
+    "custom_hotkey.use_priority": "显式设置同键场景优先级（0–999）",
+    "custom_hotkey.priority_hint": "重叠规则都需设置不同优先级，数值大的优先。每次只执行一个动作；默认动作需单独添加并设置较低优先级。",
+    "custom_hotkey.priority_confirm": "以下规则的条件可能同时成立，将只执行优先级较高的一条。\n\n现有规则：{}\n{}\n\n新规则：{}\n{}\n\n是否保留两条规则？",
+    "custom_hotkey.single_key_hint": "单个字母／数字在条件满足时会被热键占用，不能同时输入该字符。建议使用功能键或组合键。",
     "custom_hotkey.condition_add": "添加关联程序…",
     "custom_hotkey.conditions_hint": "最多添加 32 个程序，按完整路径匹配。启用程序条件后，请至少添加一个程序。所有已设置的锁定键条件必须同时满足。",
     "custom_hotkey.window_title": "简驭 | Simpilot - 添加全局热键",
