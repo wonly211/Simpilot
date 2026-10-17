@@ -9,11 +9,14 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace simpilot {
 
 class ProgramResolutionCache;
+
+[[nodiscard]] bool is_shell_application_target(std::wstring_view executable) noexcept;
 
 class ProgramResolver final {
 public:

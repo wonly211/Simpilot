@@ -47,12 +47,6 @@ std::vector<std::filesystem::path> search_directories() {
     return result;
 }
 
-bool shell_command(const std::wstring& executable) {
-    const auto normalized = lowercase(executable);
-    return normalized.starts_with(L"shell:") || normalized.starts_with(L"ms-settings:")
-        || executable.starts_with(L"::{");
-}
-
 void mark_unavailable(MenuEntry& entry, std::wstring reason) {
     entry.is_available = false;
     entry.unavailable_reason = std::move(reason);
@@ -60,6 +54,16 @@ void mark_unavailable(MenuEntry& entry, std::wstring reason) {
 }
 
 } // namespace
+
+bool is_shell_application_target(const std::wstring_view executable) noexcept {
+    try {
+        const auto normalized = lowercase(std::wstring(executable));
+        return normalized.starts_with(L"shell:") || normalized.starts_with(L"ms-settings:")
+            || executable.starts_with(L"::{");
+    } catch (...) {
+        return false;
+    }
+}
 
 ProgramResolver::ProgramResolver(const IProgramSearch* search, ProgramResolutionCache* cache,
                                  ProgramCandidateSelector candidate_selector)
@@ -139,7 +143,7 @@ void MenuResolutionService::resolve(MenuDocument& document,
             mark_unavailable(*entry, L"Invalid command format");
             continue;
         }
-        if (shell_command(parsed->executable)) {
+        if (is_shell_application_target(parsed->executable)) {
             entry->resolved_value = expanded;
             continue;
         }

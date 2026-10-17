@@ -350,6 +350,28 @@ void resolver_uses_persistent_cache_without_everything() {
     std::filesystem::remove_all(root);
 }
 
+void resolver_accepts_apps_folder_targets() {
+    require(simpilot::is_shell_application_target(
+                L"shell:AppsFolder\\OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0!ChatGPT"),
+        "Recognize shell AppsFolder targets as applications");
+    require(simpilot::is_shell_application_target(L"MS-SETTINGS:"),
+        "Recognize case-insensitive settings targets as applications");
+    require(simpilot::is_shell_application_target(L"::{26EE0668-A00A-44D7-9371-BEB064C98683}"),
+        "Recognize shell GUID targets as applications");
+    require(!simpilot::is_shell_application_target(L"document.txt"),
+        "Do not classify ordinary files as shell applications");
+
+    auto document = simpilot::MenuParser::parse(
+        L"ChatGPT Classic|shell:AppsFolder\\OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0!ChatGPT\r\n");
+    simpilot::MenuResolutionService service;
+    service.resolve(document, simpilot::VariableExpander(L"C:\\Config"));
+    const auto& chatgpt = entry(document.root->children.at(0));
+    require(chatgpt.is_available, "Accept a shell AppsFolder target");
+    require(chatgpt.resolved_value
+            == L"shell:AppsFolder\\OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0!ChatGPT",
+        "Preserve the shell AppsFolder target");
+}
+
 void config_watcher_reports_menu_file_changes() {
     const auto root = std::filesystem::temp_directory_path()
         / (L"simpilot-watcher-test-" + std::to_wstring(GetCurrentProcessId()));
@@ -403,6 +425,7 @@ int main() { try {
     resolver_uses_user_selection_for_multiple_everything_candidates();
     program_resolution_cache_persists_and_removes_stale_entries();
     resolver_uses_persistent_cache_without_everything();
+    resolver_accepts_apps_folder_targets();
     config_watcher_reports_menu_file_changes();
     return 0;
 } catch (const std::exception& error) { std::cerr << error.what(); return 1; } }

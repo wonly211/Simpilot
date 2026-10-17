@@ -343,6 +343,47 @@ void editor_scrolling(const std::filesystem::path& root) {
     DestroyWindow(parent);
 }
 
+void editor_recognizes_shell_applications(const std::filesystem::path& root) {
+    std::filesystem::create_directories(root);
+    const auto main_menu = root / L"Simpilot.ini";
+    const auto second_menu = root / L"Simpilot2.ini";
+    const std::wstring chatgpt =
+        L"shell:AppsFolder\\OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0!ChatGPT";
+    simpilot::write_configuration_text(main_menu,
+        L"ChatGPT Classic|" + chatgpt + L"\nSettings|ms-settings:\n");
+
+    const auto instance = GetModuleHandleW(nullptr);
+    const auto parent = CreateWindowW(L"STATIC", L"Shell application type test",
+        WS_OVERLAPPEDWINDOW, -30000, -30000, 1000, 700, nullptr, nullptr, instance, nullptr);
+    {
+        simpilot::MenuEditorWindow editor(instance, parent, "en-US",
+            main_menu, second_menu);
+        require(editor.create(), "Create the editor for shell application type detection");
+        const auto window = FindWindowExW(
+            parent, nullptr, L"Simpilot.MenuEditorWindow", nullptr);
+        const auto tree = control(window, 101);
+        const auto type = control(window, 302);
+        const auto target = control(window, 303);
+        const auto chatgpt_item = TreeView_GetRoot(tree);
+        const auto settings_item = TreeView_GetNextSibling(tree, chatgpt_item);
+        require(chatgpt_item && settings_item,
+            "Populate MSIX test items in the menu tree");
+
+        TreeView_SelectItem(tree, chatgpt_item);
+        require(SendMessageW(type, CB_GETCURSEL, 0, 0) == 0,
+            "Detect an MSIX AppsFolder target as Open application");
+        std::wstring value(512, L'\0');
+        const auto length = GetWindowTextW(target, value.data(), static_cast<int>(value.size()));
+        value.resize(static_cast<std::size_t>(length));
+        require(value == chatgpt, "Preserve the MSIX AppsFolder target");
+
+        TreeView_SelectItem(tree, settings_item);
+        require(SendMessageW(type, CB_GETCURSEL, 0, 0) == 0,
+            "Detect a settings URI as Open application");
+    }
+    DestroyWindow(parent);
+}
+
 void icon_target_names(const std::filesystem::path& root) {
     const auto instance = GetModuleHandleW(nullptr);
     const auto config = root / L"Config";
@@ -352,7 +393,9 @@ void icon_target_names(const std::filesystem::path& root) {
     const auto target = L"\"" + std::wstring(executable) + L"\"";
     simpilot::write_configuration_text(config / L"Simpilot.ini",
         L"Primary|" + target + L"\nAlternate|" + target + L"\n"
-        L"Google Chrome(&H)|" + target + L"\nGoogle Chrome(&O)|" + target + L" --incognito\n");
+        L"Google Chrome(&H)|" + target + L"\nGoogle Chrome(&O)|" + target + L" --incognito\n"
+        L"Control Panel|::{26EE0668-A00A-44D7-9371-BEB064C98683}\n"
+        L"Settings|ms-settings:\n");
     simpilot::write_configuration_text(config / L"Simpilot2.ini", L"Secondary|" + target + L"\n");
     simpilot::Localization language("en-US");
     simpilot::ProgramSearchRegistry search;
@@ -376,9 +419,10 @@ void icon_target_names(const std::filesystem::path& root) {
     page->create({instance, parent, 96, font, language, [] {}});
     page->layout({0, 0, 780, 600}, 96, font);
     const auto list = control(parent, 500);
-    require(ListView_GetItemCount(list) == 5,
-        "Keep separate rows for Chrome(H) and Chrome(O) despite the same parsed name and application target");
-    const std::array names{L"Primary", L"Alternate", L"Google Chrome(H)", L"Google Chrome(O)", L"Secondary"};
+    require(ListView_GetItemCount(list) == 7,
+        "List local and shell application targets in the icon page");
+    const std::array names{L"Primary", L"Alternate", L"Google Chrome(H)",
+        L"Google Chrome(O)", L"Control Panel", L"Settings", L"Secondary"};
     for (int index = 0; index < static_cast<int>(names.size()); ++index) {
         wchar_t value[256]{};
         ListView_GetItemText(list, index, 1, value, 256);
@@ -393,6 +437,11 @@ void icon_target_names(const std::filesystem::path& root) {
         && normal_command->executable == executable && private_command->executable == executable
         && normal_command->arguments.empty() && private_command->arguments == L"--incognito",
         "Separately indexed Chrome labels retain their corresponding launch arguments");
+    for (const int row : {4, 5}) {
+        LVITEMW item{.mask = LVIF_IMAGE, .iItem = row};
+        require(ListView_GetItem(list, &item) && item.iImage != I_IMAGENONE,
+            "Shell namespace targets display extracted icons on the icon page");
+    }
     page.reset();
     DestroyWindow(parent);
     session.cancel();
@@ -545,6 +594,7 @@ int main() {
         transaction(root / L"icon_failure", 2);
         ini_and_icon_failures(root / L"ini_failure");
         editor_scrolling(root / L"editor_scrolling");
+        editor_recognizes_shell_applications(root / L"shell_application_types");
         icon_target_names(root / L"icon_names");
         module_lifecycle(root / L"module");
         KillTimer(nullptr, dialogs);
