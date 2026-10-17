@@ -76,6 +76,8 @@ private:
     void apply_detail_changes();
     void update_tree_item(MenuElement* element);
     void browse_target();
+    void choose_packaged_application();
+    void choose_all_applications();
     void reselect_program();
     [[nodiscard]] MenuElement* selected_element() const;
     [[nodiscard]] std::optional<ElementLocation> find_location(MenuElement* element) const;

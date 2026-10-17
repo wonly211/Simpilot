@@ -3,10 +3,13 @@
 #include "simpilot/atomic_file.hpp"
 
 #include "simpilot/command.hpp"
+#include "program_resolver.hpp"
 
 #include <commctrl.h>
 #include <commoncontrols.h>
 #include <shellapi.h>
+#include <shlobj_core.h>
+#include <shobjidl_core.h>
 #include <wincodec.h>
 #include <wrl/client.h>
 
@@ -193,6 +196,55 @@ public:
 private:
     HRESULT result_;
 };
+
+HICON bitmap_to_icon(const HBITMAP bitmap) noexcept {
+    if (!bitmap) return nullptr;
+    BITMAP information{};
+    if (!GetObjectW(bitmap, sizeof(information), &information)
+        || information.bmWidth <= 0 || information.bmHeight <= 0) {
+        return nullptr;
+    }
+    const auto mask_stride = ((information.bmWidth + 31) / 32) * 4;
+    std::vector<std::uint8_t> mask(
+        static_cast<std::size_t>(mask_stride) * information.bmHeight, 0);
+    const auto mask_bitmap = CreateBitmap(
+        information.bmWidth, information.bmHeight, 1, 1, mask.data());
+    if (!mask_bitmap) return nullptr;
+    ICONINFO icon_information{
+        TRUE, 0, 0, mask_bitmap, bitmap};
+    const auto icon = CreateIconIndirect(&icon_information);
+    DeleteObject(mask_bitmap);
+    return icon;
+}
+
+HICON shell_namespace_icon(const std::wstring& path) noexcept {
+    try {
+        const ImageApartment apartment;
+        if (!apartment.available()) return nullptr;
+        PIDLIST_ABSOLUTE identifier_list = nullptr;
+        if (FAILED(SHParseDisplayName(path.c_str(), nullptr, &identifier_list, 0, nullptr))
+            || !identifier_list) {
+            return nullptr;
+        }
+        using Microsoft::WRL::ComPtr;
+        ComPtr<IShellItemImageFactory> factory;
+        const auto created = SHCreateItemFromIDList(
+            identifier_list, IID_PPV_ARGS(factory.GetAddressOf()));
+        CoTaskMemFree(identifier_list);
+        if (FAILED(created) || !factory) return nullptr;
+        const SIZE size{cached_icon_size, cached_icon_size};
+        HBITMAP bitmap = nullptr;
+        if (FAILED(factory->GetImage(
+                size, SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK, &bitmap))) {
+            return nullptr;
+        }
+        const auto icon = bitmap_to_icon(bitmap);
+        DeleteObject(bitmap);
+        return icon;
+    } catch (...) {
+        return nullptr;
+    }
+}
 
 bool save_image_icon(const std::filesystem::path& path,
                      const std::filesystem::path& source) {
@@ -517,8 +569,10 @@ HICON MenuIconCache::load_icon(const std::wstring& custom_key,
         icons_.emplace(memory_key, custom);
         return custom;
     }
+    const auto shell_namespace = is_shell_application_target(shell_path);
     const auto cache_path = cache_path_for(cache_key);
-    if (cache_is_current(cache_path, shell_path, use_file_attributes)) {
+    if (!shell_namespace
+        && cache_is_current(cache_path, shell_path, use_file_attributes)) {
         const auto cached = static_cast<HICON>(LoadImageW(
             nullptr, cache_path.c_str(), IMAGE_ICON, cached_icon_size, cached_icon_size,
             LR_LOADFROMFILE));
@@ -527,16 +581,21 @@ HICON MenuIconCache::load_icon(const std::wstring& custom_key,
             return cached;
         }
     }
-    auto icon = high_resolution_shell_icon(
-        shell_path, attributes, use_file_attributes);
-    if (!icon) {
-        icon = fallback_shell_icon(shell_path, attributes, use_file_attributes);
+    HICON icon = nullptr;
+    if (shell_namespace) {
+        icon = shell_namespace_icon(shell_path);
+    } else {
+        icon = high_resolution_shell_icon(
+            shell_path, attributes, use_file_attributes);
+        if (!icon) {
+            icon = fallback_shell_icon(shell_path, attributes, use_file_attributes);
+        }
     }
     if (!icon) {
         icons_.emplace(memory_key, nullptr);
         return nullptr;
     }
-    (void)save_icon(cache_path, icon);
+    if (!shell_namespace) (void)save_icon(cache_path, icon);
     icons_.emplace(memory_key, icon);
     return icon;
 }

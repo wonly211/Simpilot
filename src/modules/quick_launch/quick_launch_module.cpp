@@ -528,7 +528,9 @@ std::vector<MenuIconTarget> QuickLaunchModule::collect_menu_icon_targets() const
             if (!entry || !entry->is_available || entry->kind != MenuEntryKind::command) continue;
             const auto icon_source = MenuIconCache::target_for(*entry);
             std::error_code error;
-            if (!icon_source || !std::filesystem::is_regular_file(*icon_source, error)) continue;
+            if (!icon_source) continue;
+            if (!is_shell_application_target(*icon_source)
+                && !std::filesystem::is_regular_file(*icon_source, error)) continue;
             const auto custom_key = MenuIconCache::custom_key_for(*entry);
             const auto existing = std::ranges::find_if(targets,
                 [&custom_key](const MenuIconTarget& item) {

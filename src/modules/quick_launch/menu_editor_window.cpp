@@ -4,8 +4,12 @@
 
 #include "simpilot/command.hpp"
 #include "simpilot/config_file.hpp"
+#include "apps_folder_application_catalog.hpp"
+#include "apps_folder_application_dialog.hpp"
+#include "application_source_dialog.hpp"
 #include "menu_parser.hpp"
 #include "menu_writer.hpp"
+#include "program_resolver.hpp"
 
 #include <commctrl.h>
 #include <commdlg.h>
@@ -85,6 +89,7 @@ int item_type(const MenuEntry& entry) {
         && !application_extension(entry.value)) return 2;
     const auto parsed = ParsedCommand::try_parse(entry.value);
     if (!parsed) return 2;
+    if (is_shell_application_target(parsed->executable)) return 0;
     if (!parsed->arguments.empty() || application_extension(parsed->executable)) return 0;
     std::error_code error;
     return std::filesystem::is_directory(parsed->executable, error) ? 1 : 2;
@@ -93,6 +98,26 @@ int item_type(const MenuEntry& entry) {
 bool web_url(const std::wstring& value) {
     const auto normalized = lowercase(value);
     return normalized.starts_with(L"http://") || normalized.starts_with(L"https://");
+}
+
+void choose_apps_folder_application(
+    const HINSTANCE instance, const HWND owner, const std::string& language_code,
+    const HWND target_edit, const AppsFolderApplicationScope scope) {
+    const auto applications = AppsFolderApplicationCatalog::enumerate(scope);
+    const Localization localization(language_code);
+    if (applications.empty()) {
+        const auto message_key = scope == AppsFolderApplicationScope::packaged
+            ? "menu_editor.no_packaged_applications"
+            : "menu_editor.no_apps_folder_applications";
+        MessageBoxW(owner, localization.text(message_key).data(),
+            localization.text("ui.app_title").data(), MB_OK | MB_ICONINFORMATION);
+        return;
+    }
+    const auto selected = AppsFolderApplicationDialog::show_modal(
+        instance, owner, language_code, applications, scope, control_text(target_edit));
+    if (!selected) return;
+    const auto target = AppsFolderApplicationCatalog::shell_target(*selected);
+    SetWindowTextW(target_edit, target.c_str());
 }
 
 std::optional<MenuEditorWindow::ElementLocation> find_location_in(
@@ -816,6 +841,19 @@ void MenuEditorWindow::apply_detail_changes() {
 
 void MenuEditorWindow::browse_target() {
     const auto type = std::max<LRESULT>(0, SendMessageW(type_combo_, CB_GETCURSEL, 0, 0));
+    if (type == 0) {
+        const auto source = ApplicationSourceDialog::show_modal(
+            instance_, window_, language_code_);
+        if (!source) return;
+        if (*source == ApplicationSource::packaged) {
+            choose_packaged_application();
+            return;
+        }
+        if (*source == ApplicationSource::apps_folder) {
+            choose_all_applications();
+            return;
+        }
+    }
     if (type == 1) {
         BROWSEINFOW information{
             .hwndOwner = window_,
@@ -854,6 +892,16 @@ void MenuEditorWindow::browse_target() {
         .lpstrDefExt = type == 0 ? L"exe" : nullptr,
     };
     if (GetOpenFileNameW(&dialog)) SetWindowTextW(target_edit_, path.data());
+}
+
+void MenuEditorWindow::choose_packaged_application() {
+    choose_apps_folder_application(instance_, window_, language_code_, target_edit_,
+        AppsFolderApplicationScope::packaged);
+}
+
+void MenuEditorWindow::choose_all_applications() {
+    choose_apps_folder_application(instance_, window_, language_code_, target_edit_,
+        AppsFolderApplicationScope::all);
 }
 
 void MenuEditorWindow::reselect_program() {

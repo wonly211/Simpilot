@@ -2,7 +2,7 @@
 
 [简体中文](../zh-CN/用户手册.md) | **English**
 
-Applies to version: 1.0.13
+Applies to version: 1.0.14
 
 Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
 
@@ -178,7 +178,7 @@ Launch items support these action types:
 - **Open file** uses the Windows default application for that file type.
 - **Open website** uses the default browser for an `http://` or `https://` address.
 
-Use **Browse...** to select a local target. The editor handles quoting when a path contains spaces.
+**Browse...** first asks for the application source. The choices appear as **Choose an installed MSIX/UWP app**, **Browse for an executable**, and **Choose from the Start menu**. The first lists apps registered for the current user, the second selects an EXE or shortcut with File Explorer, and the third lists every launchable AppsFolder entry, including desktop, MSIX/UWP, and system applications. AppsFolder choices write `shell:AppsFolder\<AUMID>` as the target and let Windows Shell start the application; they do not replace the menu name you entered. The editor handles quoting when a path contains spaces.
 
 When a quick-launch entry opens `cmd.exe`, `powershell.exe`, `pwsh.exe`, or Windows Terminal, the terminal starts in the current Windows user profile rather than `Config/`. Other launch items continue to use `Config/` as their working directory so existing relative paths retain their meaning.
 
@@ -415,13 +415,15 @@ The selected result is saved in `Cache/program-cache.tsv`. It expires automatica
 
 Simpilot automatically displays icons for supported applications, files, websites, and categories. Icons for local targets are cached in `Cache/RunIcon/`. If a program does not contain a native 128×128 image, Simpilot scales the best available icon.
 
+Shell targets such as `shell:AppsFolder\<AUMID>`, `ms-settings:`, and `::{GUID}` are resolved through Windows Shell to extract their real application icons. They also appear in **Settings > Menu Icons** for custom icon assignment.
+
 An icon extraction failure does not prevent the launch item from working; the item falls back to text without an icon.
 
 ### 9.2 Manually selected icons
 
 Open **Settings > Menu Icons**:
 
-1. Select a local launch item.
+1. Select a launch item.
 2. Select **Choose Icon...**.
 3. Choose an ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF image. If you choose an EXE or DLL, select an icon from that file.
 4. Select **Apply** or **Save**.
