@@ -1,0 +1,65 @@
+# Quick Launch Menu
+
+[简体中文](../zh-CN/快捷启动菜单) | **English**
+
+The quick-launch menu centralizes frequently used entry points. Left-click the Simpilot tray icon to open the main menu. The menu chooses an opening direction automatically from the pointer position and available space on the active display.
+
+## Open the editor
+
+There are two editing paths:
+
+- For structured changes to categories, launch items, and separators, right-click the tray icon, select **Settings**, then select **Quick Launch Menu**.
+- For direct text inspection or batch edits, select **Edit Menu > Edit Main Menu** or **Edit Menu > Edit Second Menu**. Simpilot opens the corresponding configuration file in the Windows default document editor.
+
+- The **main menu** is saved in `Config/Simpilot.ini` and opens from the tray icon or its built-in hotkey.
+- The **second menu** is saved in `Config/Simpilot2.ini`, is created only when needed, and can have its own hotkey.
+
+If **Edit Second Menu** is selected while `Config/Simpilot2.ini` is missing, Simpilot asks for confirmation before creating an empty file. Choosing **No** leaves the file absent.
+
+For initial setup, see [Quick Start](Quick-Start). To open either menu from the keyboard, see [Global Hotkeys](Global-Hotkeys).
+
+## Build a menu hierarchy
+
+Use the tree on the left to select items and adjust their structure. The controls above the tree create three item types:
+
+| Type | Purpose |
+| --- | --- |
+| Category | Creates a submenu that can contain other items. |
+| Launch item | Creates an entry that performs an action. |
+| Separator | Adds a visual division between items at the same level. |
+
+Select an item to edit its name, target, and other properties directly on the right. Use **Move Up**, **Move Down**, **Promote**, and **Demote** below the tree to change position and hierarchy. Categories and launch items can have a menu access key. Duplicate access keys at the same level are highlighted to help prevent conflicts.
+
+## Add a launch item
+
+Launch items support these action types:
+
+| Action type | Use it for |
+| --- | --- |
+| Open application | Starts a program. You can set arguments, a working directory, administrator privileges, existing-process behavior, and initial window state. |
+| Open folder | Opens the target folder in Windows File Explorer. |
+| Open file | Opens a target file through its default Windows file association. |
+| Open website | Opens an `http://` or `https://` address in the default browser. |
+
+Use a complete application path whenever possible. **Browse...** offers **Choose an installed MSIX/UWP app**, **Browse for an executable**, and **Choose from the Start menu**. The first lists apps registered for the current user, the second selects an EXE or shortcut with File Explorer, and the third lists every launchable AppsFolder entry, including desktop, MSIX/UWP, and system applications. AppsFolder choices fill in `shell:AppsFolder\<AUMID>`. If an application entry contains only a file name, Simpilot first checks normal Windows search locations and `PATH`, then uses Everything when available. If Everything finds several candidates, Simpilot shows their paths, versions, and modification times so that you can select the right file.
+
+Everything is optional. Its absence does not prevent the menu from working, but pathless application entries might not be resolved. See [Everything Integration](Everything-Integration) for the full behavior.
+
+## Icons and appearance
+
+Simpilot automatically extracts an icon for local items it can resolve and caches it under `Cache/RunIcon/`. In **Settings > Menu Icons**, import an ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF image, or select an icon from an EXE or DLL. Custom icons are indexed by the complete menu label, including its access key, so different menu labels for the same application can have separate icons.
+
+Choose **Follow Windows**, **Light**, or **Dark** under **Settings > General** to control the quick-launch and tray context menu theme. This does not change the Windows system theme. See [Menu Icons and Themes](Menu-Icons-and-Themes) for details.
+
+## Save and refresh
+
+**Apply** saves changes while keeping Settings open. **Save** saves and closes Settings. **Cancel** discards changes that have not been applied. Simpilot monitors `Simpilot.ini` and `Simpilot2.ini` and usually refreshes menus automatically. If a new configuration cannot be read, the last valid menu stays active.
+
+Files opened from **Edit Menu** should be saved as UTF-8. A valid save normally refreshes the quick-launch menu automatically. If the content cannot be parsed, Simpilot keeps the last valid menu active and records the error. After correcting the file, wait for automatic reload or select **Maintenance > Refresh Menu** to retry immediately. The visual editor is recommended for normal structural changes.
+
+## Related pages
+
+- [Wiki Home](Home.en-US)
+- [Quick Start](Quick-Start)
+- [Global Hotkeys](Global-Hotkeys)
+- [Configuration, Logs, and Backup](Configuration-Logs-and-Backup)

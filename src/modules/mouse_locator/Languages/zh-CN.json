@@ -1,0 +1,9 @@
+{
+  "locale": "zh-CN",
+  "strings": {
+    "settings.section.cursor_locator": "光标定位",
+    "settings.cursor_locator": "晃动鼠标时突出显示光标位置",
+    "settings.cursor_locator.description": "快速来回晃动鼠标时，在光标周围显示醒目的渐隐圆环。",
+    "ui.cursor_locator_update_failed": "无法启动光标突出显示功能，本次设置未更改。"
+  }
+}

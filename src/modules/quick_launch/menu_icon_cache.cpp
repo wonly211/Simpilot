@@ -1,0 +1,611 @@
+#include "menu_icon_cache.hpp"
+
+#include "simpilot/atomic_file.hpp"
+
+#include "simpilot/command.hpp"
+#include "program_resolver.hpp"
+
+#include <commctrl.h>
+#include <commoncontrols.h>
+#include <shellapi.h>
+#include <shlobj_core.h>
+#include <shobjidl_core.h>
+#include <wincodec.h>
+#include <wrl/client.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cwctype>
+#include <fstream>
+#include <format>
+#include <map>
+#include <stdexcept>
+#include <vector>
+
+namespace simpilot {
+namespace {
+
+constexpr int cached_icon_size = 128;
+
+std::wstring lowercase(std::wstring value) {
+    std::transform(value.begin(), value.end(), value.begin(), towlower);
+    return value;
+}
+
+#pragma pack(push, 1)
+struct IconDirectory {
+    std::uint16_t reserved = 0;
+    std::uint16_t type = 1;
+    std::uint16_t count = 1;
+};
+
+struct IconDirectoryEntry {
+    std::uint8_t width = 0;
+    std::uint8_t height = 0;
+    std::uint8_t color_count = 0;
+    std::uint8_t reserved = 0;
+    std::uint16_t planes = 1;
+    std::uint16_t bit_count = 32;
+    std::uint32_t bytes_in_resource = 0;
+    std::uint32_t image_offset = 0;
+};
+#pragma pack(pop)
+
+std::vector<std::uint32_t> render_icon(const HICON icon, const std::uint8_t background) {
+    BITMAPINFO information{};
+    information.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    information.bmiHeader.biWidth = cached_icon_size;
+    information.bmiHeader.biHeight = -cached_icon_size;
+    information.bmiHeader.biPlanes = 1;
+    information.bmiHeader.biBitCount = 32;
+    information.bmiHeader.biCompression = BI_RGB;
+    void* raw_pixels = nullptr;
+    const auto bitmap = CreateDIBSection(
+        nullptr, &information, DIB_RGB_COLORS, &raw_pixels, nullptr, 0);
+    if (!bitmap || !raw_pixels) {
+        if (bitmap) DeleteObject(bitmap);
+        return {};
+    }
+    auto* pixels = static_cast<std::uint32_t*>(raw_pixels);
+    const auto background_pixel = static_cast<std::uint32_t>(background)
+        | (static_cast<std::uint32_t>(background) << 8U)
+        | (static_cast<std::uint32_t>(background) << 16U);
+    std::fill_n(pixels, cached_icon_size * cached_icon_size, background_pixel);
+    const auto dc = CreateCompatibleDC(nullptr);
+    if (!dc) {
+        DeleteObject(bitmap);
+        return {};
+    }
+    const auto previous = SelectObject(dc, bitmap);
+    const auto drawn = DrawIconEx(dc, 0, 0, icon, cached_icon_size, cached_icon_size,
+                                  0, nullptr, DI_NORMAL) != FALSE;
+    std::vector<std::uint32_t> result(
+        pixels, pixels + cached_icon_size * cached_icon_size);
+    SelectObject(dc, previous);
+    DeleteDC(dc);
+    DeleteObject(bitmap);
+    return drawn ? result : std::vector<std::uint32_t>{};
+}
+
+int recovered_alpha(const std::uint32_t black_pixel,
+                    const std::uint32_t white_pixel) noexcept {
+    const auto transparency = std::clamp(
+        (static_cast<int>(white_pixel & 0xFFU)
+         - static_cast<int>(black_pixel & 0xFFU)
+         + static_cast<int>((white_pixel >> 8U) & 0xFFU)
+         - static_cast<int>((black_pixel >> 8U) & 0xFFU)
+         + static_cast<int>((white_pixel >> 16U) & 0xFFU)
+         - static_cast<int>((black_pixel >> 16U) & 0xFFU)) / 3,
+        0, 255);
+    return 255 - transparency;
+}
+
+bool save_icon_pixels(const std::filesystem::path& path,
+                      const std::vector<std::uint32_t>& pixels) {
+    if (pixels.size() != cached_icon_size * cached_icon_size) return false;
+
+    constexpr auto mask_stride = ((cached_icon_size + 31) / 32) * 4;
+    std::array<std::uint8_t, mask_stride * cached_icon_size> mask{};
+    for (int y = 0; y < cached_icon_size; ++y) {
+        for (int x = 0; x < cached_icon_size; ++x) {
+            const auto alpha = (pixels[static_cast<std::size_t>(y * cached_icon_size + x)]
+                                >> 24U) & 0xFFU;
+            if (alpha < 128) {
+                const auto mask_y = cached_icon_size - 1 - y;
+                mask[static_cast<std::size_t>(mask_y * mask_stride + x / 8)]
+                    |= static_cast<std::uint8_t>(0x80U >> (x % 8));
+            }
+        }
+    }
+
+    BITMAPINFOHEADER bitmap_header{
+        .biSize = sizeof(BITMAPINFOHEADER),
+        .biWidth = cached_icon_size,
+        .biHeight = cached_icon_size * 2,
+        .biPlanes = 1,
+        .biBitCount = 32,
+        .biCompression = BI_RGB,
+        .biSizeImage = static_cast<DWORD>(pixels.size() * sizeof(std::uint32_t)),
+    };
+    const auto image_size = static_cast<std::uint32_t>(
+        sizeof(bitmap_header) + pixels.size() * sizeof(std::uint32_t) + mask.size());
+    const IconDirectory directory;
+    const IconDirectoryEntry entry{
+        .width = static_cast<std::uint8_t>(cached_icon_size),
+        .height = static_cast<std::uint8_t>(cached_icon_size),
+        .bytes_in_resource = image_size,
+        .image_offset = static_cast<std::uint32_t>(
+            sizeof(IconDirectory) + sizeof(IconDirectoryEntry)),
+    };
+
+    std::error_code error;
+    std::filesystem::create_directories(path.parent_path(), error);
+    if (error) return false;
+    AtomicFileReplacement replacement(path);
+    std::ofstream stream(
+        replacement.temporary_path(), std::ios::binary | std::ios::trunc);
+    if (!stream) return false;
+    stream.write(reinterpret_cast<const char*>(&directory), sizeof(directory));
+    stream.write(reinterpret_cast<const char*>(&entry), sizeof(entry));
+    stream.write(reinterpret_cast<const char*>(&bitmap_header), sizeof(bitmap_header));
+    for (int y = cached_icon_size - 1; y >= 0; --y) {
+        const auto* row = pixels.data() + static_cast<std::size_t>(y * cached_icon_size);
+        stream.write(reinterpret_cast<const char*>(row),
+                     cached_icon_size * sizeof(std::uint32_t));
+    }
+    stream.write(reinterpret_cast<const char*>(mask.data()),
+                 static_cast<std::streamsize>(mask.size()));
+    stream.close();
+    return stream && replacement.commit();
+}
+
+bool save_icon(const std::filesystem::path& path, const HICON icon) {
+    const auto black = render_icon(icon, 0);
+    const auto white = render_icon(icon, 255);
+    if (black.empty() || white.size() != black.size()) return false;
+
+    std::vector<std::uint32_t> pixels(black.size());
+    for (std::size_t index = 0; index < pixels.size(); ++index) {
+        const auto black_pixel = black[index];
+        const auto white_pixel = white[index];
+        const auto blue_black = static_cast<int>(black_pixel & 0xFFU);
+        const auto green_black = static_cast<int>((black_pixel >> 8U) & 0xFFU);
+        const auto red_black = static_cast<int>((black_pixel >> 16U) & 0xFFU);
+        const auto alpha = recovered_alpha(black_pixel, white_pixel);
+        const auto unpremultiply = [alpha](const int component) {
+            return alpha == 0 ? 0 : std::clamp(component * 255 / alpha, 0, 255);
+        };
+        const auto blue = unpremultiply(blue_black);
+        const auto green = unpremultiply(green_black);
+        const auto red = unpremultiply(red_black);
+        pixels[index] = static_cast<std::uint32_t>(blue)
+            | (static_cast<std::uint32_t>(green) << 8U)
+            | (static_cast<std::uint32_t>(red) << 16U)
+            | (static_cast<std::uint32_t>(alpha) << 24U);
+    }
+
+    return save_icon_pixels(path, pixels);
+}
+
+class ImageApartment final {
+public:
+    ImageApartment() : result_(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED)) {}
+    ~ImageApartment() { if (SUCCEEDED(result_)) CoUninitialize(); }
+    bool available() const { return SUCCEEDED(result_) || result_ == RPC_E_CHANGED_MODE; }
+private:
+    HRESULT result_;
+};
+
+HICON bitmap_to_icon(const HBITMAP bitmap) noexcept {
+    if (!bitmap) return nullptr;
+    BITMAP information{};
+    if (!GetObjectW(bitmap, sizeof(information), &information)
+        || information.bmWidth <= 0 || information.bmHeight <= 0) {
+        return nullptr;
+    }
+    const auto mask_stride = ((information.bmWidth + 31) / 32) * 4;
+    std::vector<std::uint8_t> mask(
+        static_cast<std::size_t>(mask_stride) * information.bmHeight, 0);
+    const auto mask_bitmap = CreateBitmap(
+        information.bmWidth, information.bmHeight, 1, 1, mask.data());
+    if (!mask_bitmap) return nullptr;
+    ICONINFO icon_information{
+        TRUE, 0, 0, mask_bitmap, bitmap};
+    const auto icon = CreateIconIndirect(&icon_information);
+    DeleteObject(mask_bitmap);
+    return icon;
+}
+
+HICON shell_namespace_icon(const std::wstring& path) noexcept {
+    try {
+        const ImageApartment apartment;
+        if (!apartment.available()) return nullptr;
+        PIDLIST_ABSOLUTE identifier_list = nullptr;
+        if (FAILED(SHParseDisplayName(path.c_str(), nullptr, &identifier_list, 0, nullptr))
+            || !identifier_list) {
+            return nullptr;
+        }
+        using Microsoft::WRL::ComPtr;
+        ComPtr<IShellItemImageFactory> factory;
+        const auto created = SHCreateItemFromIDList(
+            identifier_list, IID_PPV_ARGS(factory.GetAddressOf()));
+        CoTaskMemFree(identifier_list);
+        if (FAILED(created) || !factory) return nullptr;
+        const SIZE size{cached_icon_size, cached_icon_size};
+        HBITMAP bitmap = nullptr;
+        if (FAILED(factory->GetImage(
+                size, SIIGBF_ICONONLY | SIIGBF_BIGGERSIZEOK, &bitmap))) {
+            return nullptr;
+        }
+        const auto icon = bitmap_to_icon(bitmap);
+        DeleteObject(bitmap);
+        return icon;
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+bool save_image_icon(const std::filesystem::path& path,
+                     const std::filesystem::path& source) {
+    const ImageApartment apartment;
+    if (!apartment.available()) return false;
+    using Microsoft::WRL::ComPtr;
+    ComPtr<IWICImagingFactory> factory;
+    if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+        IID_PPV_ARGS(factory.GetAddressOf())))) return false;
+    ComPtr<IWICBitmapDecoder> decoder;
+    if (FAILED(factory->CreateDecoderFromFilename(source.c_str(), nullptr, GENERIC_READ,
+        WICDecodeMetadataCacheOnDemand, decoder.GetAddressOf()))) return false;
+    ComPtr<IWICBitmapFrameDecode> frame;
+    if (FAILED(decoder->GetFrame(0, frame.GetAddressOf()))) return false;
+    UINT width = 0, height = 0;
+    if (FAILED(frame->GetSize(&width, &height)) || !width || !height) return false;
+
+    const auto longest = std::max(width, height);
+    const auto scaled = [longest](UINT dimension) {
+        return std::max(1U, static_cast<UINT>(
+            (static_cast<std::uint64_t>(dimension) * cached_icon_size + longest / 2) / longest));
+    };
+    const auto scaled_width = scaled(width), scaled_height = scaled(height);
+    // Scale premultiplied pixels to avoid dark edges around transparent artwork.
+    ComPtr<IWICFormatConverter> converter;
+    if (FAILED(factory->CreateFormatConverter(converter.GetAddressOf()))
+        || FAILED(converter->Initialize(frame.Get(), GUID_WICPixelFormat32bppPBGRA,
+            WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom))) return false;
+    ComPtr<IWICBitmapScaler> scaler;
+    if (FAILED(factory->CreateBitmapScaler(scaler.GetAddressOf()))
+        || FAILED(scaler->Initialize(converter.Get(), scaled_width, scaled_height,
+            WICBitmapInterpolationModeFant))) return false;
+    std::vector<std::uint32_t> image(static_cast<std::size_t>(scaled_width) * scaled_height);
+    if (FAILED(scaler->CopyPixels(nullptr, scaled_width * static_cast<UINT>(sizeof(std::uint32_t)),
+        static_cast<UINT>(image.size() * sizeof(std::uint32_t)),
+        reinterpret_cast<BYTE*>(image.data())))) return false;
+
+    std::vector<std::uint32_t> pixels(cached_icon_size * cached_icon_size, 0);
+    const auto left = (cached_icon_size - scaled_width) / 2;
+    const auto top = (cached_icon_size - scaled_height) / 2;
+    for (UINT y = 0; y < scaled_height; ++y) {
+        for (UINT x = 0; x < scaled_width; ++x) {
+            const auto pixel = image[static_cast<std::size_t>(y) * scaled_width + x];
+            const auto alpha = pixel >> 24U;
+            const auto component = [pixel, alpha](unsigned shift) {
+                return alpha ? std::min(255U, ((pixel >> shift) & 0xFFU) * 255U / alpha) : 0U;
+            };
+            pixels[static_cast<std::size_t>(y + top) * cached_icon_size + x + left]
+                = component(0) | (component(8) << 8U) | (component(16) << 16U) | (alpha << 24U);
+        }
+    }
+    return save_icon_pixels(path, pixels);
+}
+
+std::uint64_t stable_hash(const std::wstring_view value) noexcept {
+    std::uint64_t result = 1469598103934665603ULL;
+    for (const auto character : value) {
+        result ^= static_cast<std::uint16_t>(character);
+        result *= 1099511628211ULL;
+    }
+    return result;
+}
+
+std::wstring legacy_custom_key(const MenuEntry& entry) {
+    return std::format(L"{}:{}:{}", entry.kind == MenuEntryKind::web ? L"web" : L"command",
+        entry.run_as_administrator ? L"admin" : L"normal", entry.value);
+}
+
+bool cache_is_current(const std::filesystem::path& cache,
+                      const std::wstring& source,
+                      const bool synthetic) noexcept {
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(cache, error)) return false;
+    if (synthetic) return true;
+    const auto source_time = std::filesystem::last_write_time(source, error);
+    if (error) return true;
+    const auto cache_time = std::filesystem::last_write_time(cache, error);
+    return !error && cache_time >= source_time;
+}
+
+HICON system_image_list_icon(const int icon_index, const int image_list_size) noexcept {
+    IImageList* image_list = nullptr;
+    const auto list_result = SHGetImageList(
+        image_list_size, __uuidof(IImageList), reinterpret_cast<void**>(&image_list));
+    if (FAILED(list_result) || !image_list) return nullptr;
+
+    HICON icon = nullptr;
+    const auto icon_result = image_list->GetIcon(
+        icon_index, ILD_TRANSPARENT, &icon);
+    image_list->Release();
+    return SUCCEEDED(icon_result) ? icon : nullptr;
+}
+
+bool icon_needs_upscaling(const HICON icon) {
+    const auto black = render_icon(icon, 0);
+    const auto white = render_icon(icon, 255);
+    if (black.empty() || white.size() != black.size()) return false;
+
+    auto left = cached_icon_size;
+    auto top = cached_icon_size;
+    auto right = -1;
+    auto bottom = -1;
+    for (int y = 0; y < cached_icon_size; ++y) {
+        for (int x = 0; x < cached_icon_size; ++x) {
+            const auto index = static_cast<std::size_t>(y * cached_icon_size + x);
+            const auto black_pixel = black[index];
+            const auto white_pixel = white[index];
+            if (recovered_alpha(black_pixel, white_pixel) < 32) continue;
+            left = std::min(left, x);
+            top = std::min(top, y);
+            right = std::max(right, x);
+            bottom = std::max(bottom, y);
+        }
+    }
+    if (right < left || bottom < top) return false;
+    return std::max(right - left + 1, bottom - top + 1) < cached_icon_size / 2;
+}
+
+HICON high_resolution_shell_icon(const std::wstring& path,
+                                 const DWORD attributes,
+                                 const bool use_file_attributes) {
+    SHFILEINFOW information{};
+    auto flags = SHGFI_SYSICONINDEX;
+    if (use_file_attributes) flags |= SHGFI_USEFILEATTRIBUTES;
+    if (SHGetFileInfoW(path.c_str(), attributes, &information,
+                       sizeof(information), flags) == 0) {
+        return nullptr;
+    }
+
+    auto icon = system_image_list_icon(information.iIcon, SHIL_JUMBO);
+    if (icon && icon_needs_upscaling(icon)) {
+        if (const auto scalable = system_image_list_icon(
+                information.iIcon, SHIL_EXTRALARGE)) {
+            DestroyIcon(icon);
+            icon = scalable;
+        }
+    }
+    return icon;
+}
+
+HICON fallback_shell_icon(const std::wstring& path,
+                          const DWORD attributes,
+                          const bool use_file_attributes) noexcept {
+    SHFILEINFOW information{};
+    auto flags = SHGFI_ICON | SHGFI_LARGEICON;
+    if (use_file_attributes) flags |= SHGFI_USEFILEATTRIBUTES;
+    if (SHGetFileInfoW(path.c_str(), attributes, &information,
+                       sizeof(information), flags) == 0) {
+        return nullptr;
+    }
+    return information.hIcon;
+}
+
+} // namespace
+
+MenuIconCache::MenuIconCache(std::filesystem::path cache_directory)
+    : cache_directory_(std::move(cache_directory)) {}
+
+MenuIconCache::~MenuIconCache() {
+    clear();
+}
+
+void MenuIconCache::clear() noexcept {
+    for (const auto& [key, icon] : icons_) {
+        (void)key;
+        if (icon) DestroyIcon(icon);
+    }
+    icons_.clear();
+}
+
+HICON MenuIconCache::icon_for(const MenuEntry& entry) {
+    const auto custom_key = custom_key_for(entry);
+    if (entry.kind == MenuEntryKind::web) {
+        return icon_for_customization(custom_key, L".url", entry.kind);
+    }
+    const auto target = target_for(entry);
+    return target ? icon_for_customization(custom_key, *target, entry.kind) : nullptr;
+}
+
+HICON MenuIconCache::icon_for_customization(const std::wstring& custom_key,
+                                            const std::wstring& icon_source,
+                                            const MenuEntryKind kind) {
+    if (custom_key.empty()) return nullptr;
+    if (kind == MenuEntryKind::web) {
+        return load_icon(custom_key, L"shell:.url", L".url",
+                         FILE_ATTRIBUTE_NORMAL, true);
+    }
+    if (icon_source.empty()) return nullptr;
+    return load_icon(custom_key, L"file:" + lowercase(icon_source), icon_source,
+                     FILE_ATTRIBUTE_NORMAL, false);
+}
+
+HICON MenuIconCache::folder_icon() {
+    return load_icon(L"shell:folder", L"shell:folder", L"folder",
+                     FILE_ATTRIBUTE_DIRECTORY, true);
+}
+
+bool MenuIconCache::has_custom_icon(const std::wstring& custom_key) const noexcept {
+    if (custom_key.empty()) return false;
+    std::error_code error;
+    return std::filesystem::is_regular_file(custom_icon_path_for(custom_key), error);
+}
+
+bool MenuIconCache::set_custom_icon(const std::wstring& custom_key,
+                                    const std::filesystem::path& source,
+                                    const int source_index) {
+    if (custom_key.empty() || source.empty()) return false;
+    const auto extension = lowercase(source.extension().wstring());
+    const bool resource = extension == L".ico" || extension == L".exe"
+        || extension == L".dll" || extension == L".icl" || extension == L".cpl"
+        || extension == L".scr" || extension == L".ocx";
+    if (!resource) {
+        const auto saved = save_image_icon(custom_icon_path_for(custom_key), source);
+        if (saved) clear();
+        return saved;
+    }
+    HICON icon = nullptr;
+    UINT icon_identifier = 0;
+    const auto count = PrivateExtractIconsW(source.c_str(), source_index,
+                                            cached_icon_size, cached_icon_size,
+                                            &icon, &icon_identifier, 1,
+                                            LR_DEFAULTCOLOR);
+    const auto saved = count == 1 && icon
+        ? save_icon(custom_icon_path_for(custom_key), icon)
+        : save_image_icon(custom_icon_path_for(custom_key), source);
+    if (icon) DestroyIcon(icon);
+    if (saved) clear();
+    return saved;
+}
+
+bool MenuIconCache::remove_custom_icon(const std::wstring& custom_key) noexcept {
+    if (custom_key.empty()) return false;
+    std::error_code error;
+    const auto removed = std::filesystem::remove(custom_icon_path_for(custom_key), error);
+    if (!error) clear();
+    return !error && removed;
+}
+
+std::wstring MenuIconCache::custom_key_for(const MenuEntry& entry) {
+    return std::format(L"menu-label:{}:{}:{}", entry.display_name.size(), entry.display_name,
+        entry.access_key ? static_cast<unsigned>(*entry.access_key) : 0U);
+}
+
+std::wstring MenuIconCache::label_for(const MenuEntry& entry) {
+    return entry.access_key
+        ? std::format(L"{}({})", entry.display_name, *entry.access_key) : entry.display_name;
+}
+
+bool MenuIconCache::migrate_legacy_custom_icons(
+    const std::span<const MenuEntry* const> entries) noexcept {
+    try {
+        // Prefer the recent name-only choice over older command-based overrides.
+        std::array<std::map<std::filesystem::path, std::vector<std::filesystem::path>>, 2> migrations;
+        for (const auto* entry : entries) {
+            if (!entry) continue;
+            const std::array legacy_keys{
+                L"menu-name:" + entry->display_name, legacy_custom_key(*entry)};
+            for (std::size_t index = 0; index < legacy_keys.size(); ++index) {
+                const auto legacy = custom_icon_path_for(legacy_keys[index]);
+                if (std::filesystem::is_regular_file(legacy)) {
+                    migrations[index][legacy].push_back(custom_icon_path_for(custom_key_for(*entry)));
+                }
+            }
+        }
+        for (const auto& generation : migrations) {
+            for (const auto& [legacy, destinations] : generation) {
+                std::vector<std::filesystem::path> created;
+                try {
+                    for (const auto& destination : destinations) {
+                        if (std::filesystem::exists(destination)) continue;
+                        AtomicFileReplacement replacement(destination);
+                        std::filesystem::copy_file(legacy, replacement.temporary_path(),
+                            std::filesystem::copy_options::overwrite_existing);
+                        if (!replacement.commit()) throw std::runtime_error("Cannot migrate custom icon");
+                        created.push_back(destination);
+                    }
+                    // Archive the old identity so restoring automatic icons cannot import it again.
+                    auto archive = legacy;
+                    archive.replace_extension(L".legacy.ico");
+                    for (unsigned index = 1; std::filesystem::exists(archive); ++index) {
+                        archive = legacy;
+                        archive.replace_extension(std::format(L".legacy-{}.ico", index));
+                    }
+                    std::filesystem::rename(legacy, archive);
+                } catch (...) {
+                    for (const auto& destination : created) {
+                        std::error_code error;
+                        std::filesystem::remove(destination, error);
+                    }
+                    clear();
+                    return false;
+                }
+            }
+        }
+        if (!migrations[0].empty() || !migrations[1].empty()) clear();
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+std::optional<std::wstring> MenuIconCache::target_for(const MenuEntry& entry) {
+    if (entry.kind != MenuEntryKind::command) return std::nullopt;
+    const auto command = ParsedCommand::try_parse(entry.effective_value());
+    if (!command || command->executable.empty()) return std::nullopt;
+    return command->executable;
+}
+
+HICON MenuIconCache::load_icon(const std::wstring& custom_key,
+                               const std::wstring& cache_key,
+                               const std::wstring& shell_path,
+                               const DWORD attributes,
+                               const bool use_file_attributes) {
+    const auto memory_key = std::format(L"{}:{}{}", custom_key.size(), custom_key, cache_key);
+    if (const auto found = icons_.find(memory_key); found != icons_.end()) {
+        return found->second;
+    }
+    const auto custom_path = custom_icon_path_for(custom_key);
+    if (const auto custom = static_cast<HICON>(LoadImageW(
+            nullptr, custom_path.c_str(), IMAGE_ICON, cached_icon_size, cached_icon_size,
+            LR_LOADFROMFILE))) {
+        icons_.emplace(memory_key, custom);
+        return custom;
+    }
+    const auto shell_namespace = is_shell_application_target(shell_path);
+    const auto cache_path = cache_path_for(cache_key);
+    if (!shell_namespace
+        && cache_is_current(cache_path, shell_path, use_file_attributes)) {
+        const auto cached = static_cast<HICON>(LoadImageW(
+            nullptr, cache_path.c_str(), IMAGE_ICON, cached_icon_size, cached_icon_size,
+            LR_LOADFROMFILE));
+        if (cached) {
+            icons_.emplace(memory_key, cached);
+            return cached;
+        }
+    }
+    HICON icon = nullptr;
+    if (shell_namespace) {
+        icon = shell_namespace_icon(shell_path);
+    } else {
+        icon = high_resolution_shell_icon(
+            shell_path, attributes, use_file_attributes);
+        if (!icon) {
+            icon = fallback_shell_icon(shell_path, attributes, use_file_attributes);
+        }
+    }
+    if (!icon) {
+        icons_.emplace(memory_key, nullptr);
+        return nullptr;
+    }
+    if (!shell_namespace) (void)save_icon(cache_path, icon);
+    icons_.emplace(memory_key, icon);
+    return icon;
+}
+
+std::filesystem::path MenuIconCache::cache_path_for(const std::wstring& key) const {
+    return cache_directory_ / std::format(L"{:016x}.ico", stable_hash(key));
+}
+
+std::filesystem::path MenuIconCache::custom_icon_path_for(const std::wstring& key) const {
+    return cache_directory_ / std::format(L"{:016x}.custom.ico", stable_hash(key));
+}
+
+} // namespace simpilot

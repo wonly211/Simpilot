@@ -1,0 +1,4 @@
+#pragma once
+
+#define IDI_SIMPILOT 101
+#define IDR_BUILTIN_LANGUAGE_PACK 102

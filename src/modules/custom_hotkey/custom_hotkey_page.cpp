@@ -1,0 +1,296 @@
+#include "custom_hotkey_settings.hpp"
+#include "custom_hotkey_dialog.hpp"
+#include "hotkey_settings_page.hpp"
+#include "settings_visual_style.hpp"
+#include "toggle_switch.hpp"
+#include <commctrl.h>
+#include <array>
+#include <format>
+
+namespace simpilot {
+namespace {
+class CustomHotkeySection final : public ISettingsPage {
+public:
+    CustomHotkeySection(CustomHotkeySettings& draft, HotkeyRegistry& hotkeys,
+        KeyboardManager& keyboard, std::filesystem::path directory,
+        std::function<void(std::wstring_view)> diagnose)
+        : draft_(draft), hotkeys_(hotkeys), keyboard_(keyboard),
+          directory_(std::move(directory)), diagnose_(std::move(diagnose)) {}
+    ~CustomHotkeySection() override {
+        observer_.reset();
+        if (window_) DestroyWindow(window_);
+        if (images_) ImageList_Destroy(images_);
+    }
+    void create(const SettingsPageContext& context) override {
+        instance_ = context.instance;
+        localization_ = &context.localization;
+        WNDCLASSW wc{};
+        wc.lpfnWndProc = procedure;
+        wc.hInstance = instance_;
+        wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+        wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+        wc.lpszClassName = L"Simpilot.CustomHotkeySection";
+        if (!RegisterClassW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+            throw std::runtime_error("Cannot register custom hotkey section");
+        }
+        window_ = CreateWindowExW(WS_EX_CONTROLPARENT, wc.lpszClassName, L"",
+            WS_CHILD | WS_CLIPCHILDREN, 0, 0, 0, 0, context.parent, nullptr, instance_, this);
+        if (!window_) throw std::runtime_error("Cannot create custom hotkey section");
+        heading_ = control(L"STATIC", 0, 0);
+        add_ = control(L"BUTTON", 1, WS_TABSTOP | BS_PUSHBUTTON);
+        edit_ = control(L"BUTTON", 2, WS_TABSTOP | BS_PUSHBUTTON);
+        remove_ = control(L"BUTTON", 3, WS_TABSTOP | BS_PUSHBUTTON);
+        settings_visual_style::style_button(add_, settings_visual_style::ButtonStyle::add);
+        settings_visual_style::style_button(edit_, settings_visual_style::ButtonStyle::edit);
+        settings_visual_style::style_button(remove_, settings_visual_style::ButtonStyle::remove);
+        list_ = control(WC_LISTVIEWW, 4, WS_TABSTOP | LVS_REPORT | LVS_SINGLESEL
+            | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS);
+        ListView_SetExtendedListViewStyle(list_,
+            LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER | LVS_EX_CHECKBOXES | LVS_EX_LABELTIP | LVS_EX_INFOTIP);
+        settings_visual_style::style_list_view(list_);
+        for (int i = 0; i < 6; ++i) {
+            wchar_t empty[] = L"";
+            LVCOLUMNW column{.mask = LVCF_WIDTH | LVCF_SUBITEM | LVCF_TEXT,
+                .cx = 100, .pszText = empty, .iSubItem = i};
+            ListView_InsertColumn(list_, i, &column);
+        }
+        observer_ = hotkeys_.observe_drafts("custom_hotkey.section", [this] { refresh(); });
+        refresh_language(context.localization);
+    }
+    void layout(RECT bounds, UINT dpi, HFONT font) override {
+        const auto scale = [dpi](int value) { return MulDiv(value, dpi, 96); };
+        typography_.update(font, dpi);
+        MoveWindow(window_, bounds.left, bounds.top, std::max(1L, bounds.right - bounds.left),
+                   std::max(1L, bounds.bottom - bounds.top), TRUE);
+        const int width = std::max(1L, bounds.right - bounds.left);
+        const int height = std::max(1L, bounds.bottom - bounds.top);
+        const int gap = scale(8);
+        const int button_width = scale(32);
+        const int toolbar_width = button_width * 3 + gap * 2;
+        const bool stacked = width < toolbar_width + scale(220);
+        const int toolbar_y = stacked ? scale(32) : 0;
+        const int toolbar_x = stacked ? 0 : width - toolbar_width;
+        MoveWindow(heading_, 0, scale(6),
+            stacked ? width : std::max(1, toolbar_x - scale(16)), scale(22), TRUE);
+        MoveWindow(add_, toolbar_x, toolbar_y, button_width, scale(32), TRUE);
+        MoveWindow(edit_, toolbar_x + button_width + gap, toolbar_y, button_width, scale(32), TRUE);
+        MoveWindow(remove_, toolbar_x + 2 * (button_width + gap), toolbar_y, button_width, scale(32), TRUE);
+        const int list_y = toolbar_y + scale(44);
+        MoveWindow(list_, 0, list_y, width, std::max(1, height - list_y), TRUE);
+        RECT list_client{};
+        GetClientRect(list_, &list_client);
+        const int available = std::max(1L, list_client.right - scale(4));
+        const int widths[]{scale(64), scale(164), scale(180), scale(112)};
+        for (int i = 0; i < 4; ++i) ListView_SetColumnWidth(list_, i, widths[i]);
+        ListView_SetColumnWidth(list_, 4, std::max(scale(248),
+            available - widths[0] - widths[1] - widths[2] - widths[3] - scale(260)));
+        ListView_SetColumnWidth(list_, 5, scale(260));
+        for (auto control : {add_, edit_, remove_, list_}) {
+            SendMessageW(control, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.body()), TRUE);
+        }
+        SendMessageW(heading_, WM_SETFONT, reinterpret_cast<WPARAM>(typography_.section()), TRUE);
+        if (dpi_ != dpi || !images_) {
+            const auto next = toggle_switch::create_state_image_list(dpi);
+            if (next) {
+                ListView_SetImageList(list_, next, LVSIL_STATE);
+                if (images_) ImageList_Destroy(images_);
+                images_ = next;
+            }
+            dpi_ = dpi;
+        }
+    }
+    void show(bool visible) override { ShowWindow(window_, visible ? SW_SHOW : SW_HIDE); }
+    void refresh_language(const Localization& localization) override {
+        localization_ = &localization;
+        SetWindowTextW(heading_, text("settings.section.custom_hotkeys"));
+        SetWindowTextW(add_, text("settings.add"));
+        SetWindowTextW(edit_, text("settings.edit"));
+        SetWindowTextW(remove_, text("settings.delete"));
+        constexpr std::string_view columns[]{"settings.global_hotkeys.column.enabled",
+            "settings.global_hotkeys.column.hotkey", "custom_hotkey.name.column", "settings.global_hotkeys.column.action",
+            "settings.global_hotkeys.column.target", "hotkey.activation.column"};
+        for (int i = 0; i < 6; ++i) {
+            LVCOLUMNW column{.mask = LVCF_TEXT, .pszText = const_cast<wchar_t*>(text(columns[i]))};
+            ListView_SetColumn(list_, i, &column);
+        }
+        refresh();
+    }
+private:
+    const wchar_t* text(std::string_view key) const { return localization_->text(key).data(); }
+    HWND control(const wchar_t* type, int id, DWORD style) {
+        const auto value = CreateWindowW(type, L"", WS_CHILD | WS_VISIBLE | style, 0, 0, 0, 0,
+            window_, reinterpret_cast<HMENU>(static_cast<INT_PTR>(id)), instance_, nullptr);
+        if (!value) throw std::runtime_error("Cannot create custom hotkey control");
+        return value;
+    }
+    std::optional<std::size_t> selected() const {
+        const auto index = ListView_GetNextItem(list_, -1, LVNI_SELECTED);
+        return index >= 0 && static_cast<std::size_t>(index) < draft_.items.size()
+            ? std::optional<std::size_t>(index) : std::nullopt;
+    }
+    void buttons() {
+        EnableWindow(add_, draft_.items.size() < 128);
+        EnableWindow(edit_, selected().has_value());
+        EnableWindow(remove_, selected().has_value());
+    }
+    void refresh(std::optional<std::size_t> selection = std::nullopt) {
+        if (!list_) return;
+        if (!selection) selection = selected();
+        refreshing_ = true;
+        ListView_DeleteAllItems(list_);
+        for (std::size_t i = 0; i < draft_.items.size(); ++i) {
+            const auto& item = draft_.items[i];
+            wchar_t empty[] = L"";
+            LVITEMW row{.mask = LVIF_TEXT, .iItem = static_cast<int>(i), .pszText = empty};
+            const auto index = ListView_InsertItem(list_, &row);
+            ListView_SetCheckState(list_, index, item.enabled);
+            auto gesture = item.binding.gesture ? item.binding.gesture->display_text() : std::wstring{};
+            ListView_SetItemText(list_, index, 1, gesture.data());
+            ListView_SetItemText(list_, index, 2, const_cast<wchar_t*>(item.name.c_str()));
+            ListView_SetItemText(list_, index, 3, const_cast<wchar_t*>(text(
+                item.action == CustomHotKeyAction::open_folder ? "custom_hotkey.open_folder"
+                : item.action == CustomHotKeyAction::open_file ? "custom_hotkey.open_file"
+                : "custom_hotkey.open_application")));
+            ListView_SetItemText(list_, index, 4, const_cast<wchar_t*>(item.program_path.c_str()));
+            auto conditions = activation_description(item.binding.activation, *localization_);
+            std::ranges::replace(conditions, L'\n', L' ');
+            ListView_SetItemText(list_, index, 5, conditions.data());
+            if (selection == i) ListView_SetItemState(list_, index,
+                LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+        }
+        refreshing_ = false;
+        buttons();
+    }
+    void edit(bool add) {
+        const auto revision = hotkeys_.draft_revision();
+        const auto editing_bindings = hotkeys_.editable_drafts();
+        const auto still_editable = [&] {
+            return revision == hotkeys_.draft_revision()
+                && std::ranges::all_of(editing_bindings, [](const auto& item) { return item.active(); });
+        };
+        const auto index = add ? std::optional<std::size_t>{} : selected();
+        if ((!add && !index) || (add && draft_.items.size() >= 128)) return;
+        auto candidate = CustomHotKeyDialog::show_modal(instance_, window_,
+            std::string(localization_->language_code()), keyboard_, directory_,
+            index ? &draft_.items[*index] : nullptr, diagnose_);
+        if (!candidate || !candidate->binding.gesture || !still_editable()) return;
+        auto binding = BuiltInHotKey{candidate->binding, candidate->enabled};
+        if ((!index || draft_.items[*index].binding.gesture != binding.binding.gesture)
+            && !confirm_hotkey_availability(window_, *localization_, binding,
+                [this](const auto& gesture) { return keyboard_.probe_available(gesture); })) return;
+        if (!still_editable()) return;
+        candidate->binding = binding.binding;
+        // Explicitly acknowledge overlapping scenarios before mutating drafts.
+        for (const auto& other : hotkeys_.editable_drafts()) {
+            if ((index && other.id == "custom_hotkey." + std::to_string(*index)) || !other.active()) continue;
+            const auto previous = other.read();
+            if (previous.binding.gesture != candidate->binding.gesture
+                || !activation_overlaps(previous.binding.activation, candidate->binding.activation)
+                || activation_conflicts(previous.binding.activation, candidate->binding.activation)) continue;
+            const auto prior_name = other.display_name.empty() ? std::wstring(text(other.label_key)) : other.display_name;
+            const auto next_name = candidate->name.empty() ? candidate->program_path : candidate->name;
+            const auto prior_condition = activation_description(previous.binding.activation, *localization_);
+            const auto next_condition = activation_description(candidate->binding.activation, *localization_);
+            const auto message = std::vformat(localization_->text("custom_hotkey.priority_confirm"),
+                std::make_wformat_args(prior_name, prior_condition, next_name, next_condition));
+            if (MessageBoxW(window_, message.c_str(), text("settings.title"),
+                MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) != IDYES || !still_editable()) return;
+        }
+        // Allocate before any other owner's draft is cleared.
+        if (add) draft_.items.reserve(draft_.items.size() + 1);
+        const auto target = index.value_or(draft_.items.size());
+        const auto id = "custom_hotkey." + std::to_string(target);
+        const auto applied = hotkeys_.replace_conflicts(id, binding, [&](const auto& conflict) {
+            return confirm_hotkey_replacement(window_, *localization_, *binding.binding.gesture, conflict,
+                                              binding.binding.activation);
+        }, [&] {
+            if (index) draft_.items[*index] = std::move(*candidate);
+            else draft_.items.push_back(std::move(*candidate));
+        });
+        if (applied) refresh(target);
+    }
+    LRESULT message(UINT message, WPARAM wparam, LPARAM lparam) {
+        if (message == WM_COMMAND && HIWORD(wparam) == BN_CLICKED) {
+            if (LOWORD(wparam) == 1) edit(true);
+            if (LOWORD(wparam) == 2) edit(false);
+            if (LOWORD(wparam) == 3) {
+                const auto index = selected();
+                if (index && MessageBoxW(window_, text("settings.custom_hotkeys.delete_confirm"),
+                    text("settings.title"), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES) {
+                    draft_.items.erase(draft_.items.begin() + static_cast<std::ptrdiff_t>(*index));
+                    hotkeys_.drafts_changed();
+                }
+            }
+            return 0;
+        }
+        if (message == WM_NOTIFY) {
+            const auto* notification = reinterpret_cast<NMHDR*>(lparam);
+            if (notification && notification->hwndFrom == list_) {
+                if (notification->code == LVN_GETINFOTIPW) {
+                    auto* tip = reinterpret_cast<NMLVGETINFOTIPW*>(lparam);
+                    if (tip->iItem >= 0 && static_cast<std::size_t>(tip->iItem) < draft_.items.size()) {
+                        const auto& item = draft_.items[tip->iItem];
+                        const auto value = (item.name.empty() ? L"" : item.name + L"\n")
+                            + item.program_path + L"\n" + activation_description(item.binding.activation, *localization_);
+                        wcsncpy_s(tip->pszText, tip->cchTextMax, value.c_str(), _TRUNCATE);
+                    }
+                }
+                if (notification->code == NM_DBLCLK
+                    && reinterpret_cast<NMITEMACTIVATE*>(lparam)->iSubItem != 0) edit(false);
+                if (notification->code == LVN_ITEMCHANGED && !refreshing_) {
+                    buttons();
+                    const auto* change = reinterpret_cast<NMLISTVIEW*>(lparam);
+                    if ((change->uChanged & LVIF_STATE) && change->iItem >= 0
+                        && ((change->uOldState ^ change->uNewState) & LVIS_STATEIMAGEMASK)
+                        && static_cast<std::size_t>(change->iItem) < draft_.items.size()) {
+                        auto& item = draft_.items[change->iItem];
+                        item.enabled = item.binding.gesture
+                            && ListView_GetCheckState(list_, change->iItem) != FALSE;
+                        hotkeys_.drafts_changed();
+                    }
+                }
+            }
+            return 0;
+        }
+        if (message == WM_ERASEBKGND) return settings_visual_style::erase_background(window_, wparam);
+        if (settings_visual_style::is_color_message(message)) {
+            return settings_visual_style::handle_color_message(message, wparam, lparam);
+        }
+        return DefWindowProcW(window_, message, wparam, lparam);
+    }
+    static LRESULT CALLBACK procedure(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+        if (message == WM_NCCREATE) {
+            auto* page = static_cast<CustomHotkeySection*>(reinterpret_cast<CREATESTRUCTW*>(lparam)->lpCreateParams);
+            page->window_ = window;
+            SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(page));
+        }
+        auto* page = reinterpret_cast<CustomHotkeySection*>(GetWindowLongPtrW(window, GWLP_USERDATA));
+        if (!page) return DefWindowProcW(window, message, wparam, lparam);
+        try {
+            const auto result = page->message(message, wparam, lparam);
+            if (message == WM_NCDESTROY) page->window_ = nullptr;
+            return result;
+        } catch (...) { return message == WM_CREATE ? -1 : 0; }
+    }
+    CustomHotkeySettings& draft_;
+    HotkeyRegistry& hotkeys_;
+    KeyboardManager& keyboard_;
+    std::filesystem::path directory_;
+    std::function<void(std::wstring_view)> diagnose_;
+    Registration observer_;
+    const Localization* localization_ = nullptr;
+    HINSTANCE instance_ = nullptr;
+    HWND window_ = nullptr, heading_ = nullptr, add_ = nullptr, edit_ = nullptr,
+         remove_ = nullptr, list_ = nullptr;
+    HIMAGELIST images_ = nullptr;
+    settings_visual_style::PageTypography typography_;
+    UINT dpi_ = 0;
+    bool refreshing_ = false;
+};
+}
+std::unique_ptr<ISettingsPage> make_custom_hotkey_section(
+    CustomHotkeySettings& draft, HotkeyRegistry& hotkeys, KeyboardManager& keyboard,
+    const std::filesystem::path& directory, std::function<void(std::wstring_view)> diagnose) {
+    return std::make_unique<CustomHotkeySection>(draft, hotkeys, keyboard, directory, std::move(diagnose));
+}
+} // namespace simpilot

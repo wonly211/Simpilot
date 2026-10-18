@@ -1,0 +1,136 @@
+<p align="center">
+  <img src="assets/simpilot-icon.png" width="128" height="128" alt="简驭 | Simpilot 图标">
+</p>
+
+<h1 align="center">简驭 | Simpilot</h1>
+
+<p align="center">
+  <strong>简体中文</strong> |
+  <a href="README.en-US.md">English</a>
+</p>
+
+<p align="center">
+  把常用入口和高频操作，收进一个托盘图标与一组全局热键。
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4" alt="Windows 10 和 11">
+  <img src="https://img.shields.io/badge/Architecture-x64-5C6BC0" alt="x64">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/wonly211/Simpilot" alt="许可证"></a>
+</p>
+
+简驭是一款面向 Windows 的轻量级快捷启动器与全局热键管理器。无需打开层层文件夹，也不必在任务栏反复寻找窗口：通过托盘菜单或熟悉的按键组合，即可启动应用、打开文件夹与文件、访问网址，或唤出 Everything 搜索。
+
+它适合希望减少鼠标往返、整理零散入口，并让常用操作始终触手可及的办公用户、开发者、内容创作者和效率工具爱好者。
+
+## 为什么选择简驭
+
+| 能力 | 你能获得什么 |
+|---|---|
+| 分层快捷启动菜单 | 把应用、文件夹、文件和网址按自己的工作方式分类整理 |
+| 全局热键 | 从任何普通桌面应用中直接触发常用操作 |
+| 物理键盘映射 | 将单键、快捷键或双动作键 chord 映射为新的单键或快捷键，并可限定前台应用 |
+| 应用输入法 | 按应用完整 EXE 路径指定输入法及中文/英文模式，或自动记忆上次状态；默认关闭 |
+| Windows 快捷键接管 | 在简驭运行期间屏蔽选定的 `Win+字母`，并优先执行自定义动作 |
+| Everything 集成 | 一键打开或恢复搜索窗口，并帮助定位没有填写完整路径的程序 |
+| 菜单图标与主题 | 自动提取清晰图标，也可人工指定；支持跟随系统、浅色和深色主题 |
+| 便携与本地化 | 完整解压即可运行，配置保存在本地；内建简体中文、繁體中文和 English，并可用 `Language.lng` 扩展其他语言 |
+
+简驭使用原生 C++20 与 Win32 构建，核心功能不需要账户或云端服务，也不会为了屏蔽快捷键而修改 Windows 系统策略。关闭简驭后，由它注册的热键和实时快捷键屏蔽会自动解除。
+
+## 三步开始
+
+1. 本仓库重建后尚无正式发布附件；请按下方[源码构建](#从源码构建)生成便携 ZIP。下一次正式版本标签验证通过后将自动发布。
+2. 将压缩包完整解压到当前用户可写的固定目录，并保持 `Everything/` 目录结构不变。
+3. 运行 `Simpilot.exe`。左键单击托盘图标或按反引号键打开快捷启动菜单；右键单击托盘图标进入设置与维护。
+
+简驭是托盘应用，启动后不会显示普通主窗口。若没有看到图标，请检查任务栏的隐藏图标区域。
+
+> 本地构建包尚未进行数字签名。后续正式发布时，若 Windows SmartScreen 首次运行时提示未知发布者，请先确认文件来自本仓库的正式 Release，并使用随包 `.sha256` 文件核对下载内容。
+
+## 典型使用方式
+
+- 用一个分层菜单集中管理工作软件、项目目录、常用文档和网站。
+- 为会议、截图、终端、编辑器或资料目录设置顺手的全局热键。
+- 将 `Win+S`、`Win+G` 等组合交给自己的操作，并在简驭退出后自动恢复系统行为。
+- 使用同一热键恢复已经运行的应用窗口，避免重复启动。
+- 在主菜单之外建立第二菜单，将工作与个人入口分开。
+- 直接唤出 Everything；当同名程序存在多个版本时，自行选择真正需要的路径。
+
+## 功能概览
+
+- 左键托盘图标只显示快捷启动菜单，右键只显示设置、语言、Everything 维护、关于和退出。
+- 可视化编辑主菜单与第二菜单，支持分类、分隔线、排序、层级和菜单访问键。
+- 自定义热键可打开应用、文件夹或文件；应用动作支持参数、工作目录、管理员权限、重复启动策略和窗口状态。
+- 内置快捷启动菜单、第二菜单、设置窗口和 Everything 搜索四类功能热键，可分别录制、清除、启用或暂停。
+- 支持按物理键区分左右修饰键的单键、快捷键和单级 chord 映射；左右 Ctrl、Alt、Shift、Win 也可单独作为源键。添加或编辑时既可直接录制，也可从下拉框选择包括 F1-F24 在内的按键，并可设置全局或应用进程范围。例如可将普通键盘的右 Ctrl 映射为 `左 Win + 左 Shift + F23`，模拟 Copilot 键序列。
+- 支持实时屏蔽受支持的 `Win+A` 至 `Win+Z`，其中 `Win+L` 因 Windows 安全限制不提供覆盖。
+- 自动监听菜单配置变化；读取失败时保留上一份有效菜单。
+- Windows 资源管理器重启后自动恢复托盘图标。
+- 自动生成透明的 128x128 图标缓存，支持导入 ICO、PNG、JPG/JPEG、BMP、GIF、TIFF，或从 EXE、DLL 中人工选择图标。
+- 使用 Everything 默认实例与官方 SDK；Everything 不可用时不影响简驭本身启动，并可在菜单编辑器中查看或重新选择无路径程序的解析结果。
+- 在“设置 > 应用输入法”启用后，可指定、自动记忆或不干预各应用的输入法状态；记忆跨重启保存。第一版重点验证微软拼音，部分输入法或高权限窗口可能拒绝切换。
+- 添加应用可选择 EXE 文件或运行中的应用；支持搜索、刷新、显示后台进程，并按完整程序路径合并多个进程或窗口。
+- 支持 Per-Monitor V2 DPI，菜单在不同缩放比例的显示器上保持清晰。
+- 日志统一保存在 `Log/Simpilot.log`，启动时清理超过 90 天的记录。
+
+## 用户手册
+
+安装、菜单编辑、热键录制、Windows 快捷键屏蔽、Everything、备份迁移和故障排查，请阅读：
+
+**[《简驭 | Simpilot 用户手册》](docs/user/zh-CN/用户手册.md)**
+
+仓库内的其他用户资料可从 **[用户文档索引](docs/README.md)** 查阅。
+
+也可访问 **[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)**，按任务查阅快速开始、菜单、热键、Everything、语言包和故障排查。
+
+遇到问题时，可先查看手册的故障排查与常见问题章节，再到 [GitHub Issues](https://github.com/wonly211/Simpilot/issues) 反馈。提交问题前请检查日志，避免公开个人目录名或文件名。
+
+## 系统要求
+
+- Windows 10 或 Windows 11
+- x64 处理器与操作系统
+- 一个当前用户可写的程序目录
+
+简驭采用便携方式发布，不提供安装程序。运行时配置、缓存和日志均保存在程序目录下，便于备份和迁移。
+
+<details>
+<summary><strong>运行时目录</strong></summary>
+
+```text
+Config/
+  Simpilot.ini
+  Simpilot2.ini
+  Setting.ini
+  InputMethodHistory.ini
+Cache/
+  program-cache.tsv
+  RunIcon/
+Log/
+  Simpilot.log
+```
+
+`Simpilot.ini` 与可选的 `Simpilot2.ini` 是快捷启动菜单的数据源；`Setting.ini` 保存界面语言和应用设置。启用应用输入法后，`InputMethodHistory.ini` 按需保存自动记忆状态。配置统一使用 UTF-8 原子保存，普通用户无需手工修改。
+
+</details>
+
+## 从源码构建
+
+需要 Windows 10/11 x64、Visual Studio 2022 C++ 桌面工具与 Windows SDK、CMake 3.25+、PowerShell 7、Python 3.10+ 和 Git。Python 仅用于离线文档/同步检查，不需额外包。依赖已随源码提供。
+
+```powershell
+cmake --preset vs2022-x64
+cmake --build --preset release --parallel 4
+ctest --preset release --parallel 1
+cmake --build --preset package-release --parallel 4
+```
+
+ZIP 与 `.sha256` 位于 `build/vs2022-x64/`；完整解压后运行。完整九配置验证可运行 `pwsh -NoProfile -File tools/ci.ps1`，本地依次执行，耗时不同于九台 runner 的 CI。
+
+[仓库同步与文档检查](docs/repository-sync.md)。历史发布说明保留供兼容性查阅，旧标签和附件不在重建后的仓库中恢复。
+
+## 开源许可与第三方组件
+
+简驭依据 [GNU General Public License v3.0](LICENSE) 开源。
+
+发布包包含 Everything 运行组件；完整许可与来源说明见 [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt)。键盘录制、快捷键处理和物理键盘映射由 Simpilot 独立实现，设计参考公开可观察的键盘重映射行为，不包含外部键盘管理器源码。Everything 组件位于独立的 `Everything/` 目录，不会嵌入 `Simpilot.exe`，也不会在运行时下载。

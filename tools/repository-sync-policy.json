@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "description": "Complete buildable/testable/releasable source and user documentation. Everything else is local.",
+  "allow": [
+    { "purpose": "Build, licensing and project entry points", "patterns": [".gitignore", "CMakeLists.txt", "CMakePresets.json", "LICENSE", "THIRD-PARTY-NOTICES.txt", "README.md", "README.en-US.md"] },
+    { "purpose": "Application, public contracts and module tests", "patterns": ["src/**/*.cpp", "src/**/*.hpp", "src/**/*.h", "src/**/*.inc", "src/**/CMakeLists.txt", "src/**/*.cmake", "src/**/*.in", "src/**/Languages/*.json", "include/**/*.hpp", "include/**/*.h", "Languages/*.json"] },
+    { "purpose": "Tests", "patterns": ["tests/**/*.cpp", "tests/**/*.hpp", "tests/**/*.ps1", "tests/**/*.py"] },
+    { "purpose": "Application resources: exact files", "patterns": ["assets/simpilot-icon.png", "assets/simpilot.ico", "resources/BuiltinLanguagePack.rc.in", "resources/Simpilot.rc", "resources/SimpilotVersion.rc.in", "resources/resource.h"] },
+    { "purpose": "Required vendored distribution exceptions: exact files", "patterns": ["third_party/Everything/Everything.exe", "third_party/Everything/Everything64.dll", "third_party/Everything/Everything.lng", "third_party/Everything/Everything.ini", "third_party/nlohmann/json.hpp", "third_party/nlohmann/LICENSE.MIT"] },
+    { "purpose": "CI, build, release and repository checks", "patterns": [".github/workflows/ci.yml", ".github/ci/release-baseline.json", "tools/check-module-boundaries.ps1", "tools/ci.ps1", "tools/ci-common.ps1", "tools/ci-protocol.ps1", "tools/ci-github.ps1", "tools/language_pack_builder.cpp", "tools/measure-ci.ps1", "tools/publish-wiki.ps1", "tools/test-module-builds.ps1", "tools/repository-sync-policy.json", "tools/repository-sync.ps1", "tools/repository_sync.py", "tools/check-project-docs.ps1", "tools/project_docs.py"] },
+    { "purpose": "User manuals, Wiki sources, historical release notes and sync instructions", "patterns": ["docs/README.md", "docs/repository-sync.md", "docs/user/**/*.md", "docs/release-notes/v[0-9]*.[0-9]*.[0-9]*.md"] }
+  ],
+  "deny": [
+    "**/AGENTS.md", "**/AGENTS.override.md", "**/.codex/**", "**/.agents/**", "**/.aws/**", "**/.git/**", "**/.local/**",
+    "docs/documentation-map.md", "docs/documentation-map.json", "docs/development/**", "docs/archive/**", "docs/design/**", "docs/ui/**",
+    "docs/release-notes/*-*.md", "assets/ancient-glyph-logo*", "**/build/**", "**/out/**", "**/node_modules/**", "**/__pycache__/**",
+    "**/.vs/**", "**/Config/**", "**/Cache/**", "**/Log/**", "**/Backups/**", "**/*.user", "**/*.suo", "**/*.tmp", "**/*.log"
+  ]
+}

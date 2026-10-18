@@ -1,0 +1,653 @@
+# Simpilot User Manual
+
+[简体中文](../zh-CN/用户手册.md) | **English**
+
+Applies to version: 1.0.14
+
+Simpilot is a Windows tray-based quick launcher and global hotkey manager. It organizes applications, folders, files, and websites into hierarchical menus, opens local targets through global hotkeys, remaps physical keys, and can block selected Windows shortcuts while Simpilot is running.
+
+## 1. Installation and first launch
+
+### 1.1 System requirements
+
+- Windows 10 or Windows 11
+- An x64 processor and operating system
+- A program directory writable by the current user
+
+### 1.2 Install Simpilot
+
+Simpilot is distributed as a portable application and does not require an installer.
+
+1. The rebuilt repository has no official assets yet; [build from source](../../../README.en-US.md#build-from-source). After a future official release, download its `Simpilot-*-win-x64.zip` and `.sha256` from [GitHub Releases](https://github.com/wonly211/Simpilot/releases).
+2. Extract the complete archive to a fixed directory.
+3. Keep `Simpilot.exe` and the `Everything/` directory in their original relative locations.
+4. Run `Simpilot.exe`.
+
+Choose a directory that the current account can write to. Simpilot creates configuration, cache, and log files beside the application. Do not run it inside an archive preview, and do not copy only `Simpilot.exe` out of the package.
+
+The main release files are:
+
+```text
+Simpilot.exe
+Everything/
+  Everything.exe
+  Everything64.dll
+  Everything.lng
+  Everything.ini
+```
+
+Each release also provides a `.sha256` file. To verify the archive in PowerShell, run:
+
+```powershell
+Get-FileHash .\Simpilot-*-win-x64.zip -Algorithm SHA256
+```
+
+Compare the result with the matching `.sha256` file. Current packages are not digitally signed. If Windows SmartScreen reports an unknown publisher, first confirm that the archive came from the official repository and verify its checksum.
+
+### 1.3 What happens on first launch
+
+In a new directory without saved configuration, Simpilot first offers **Start fresh**, **Migrate from an older folder**, or **Import backup**. After setup it places an icon in the Windows notification area. If the icon is not immediately visible, check the taskbar's hidden-icons area. Existing settings are reused; unreadable or damaged files are preserved and reported for repair.
+
+Choosing **Start fresh** creates `Config/Simpilot.ini` with example entries such as Notepad and Calculator. The default interface language is Simplified Chinese, and the default hotkey for the quick-launch menu is the backtick key, usually below `Esc` and to the left of `1`.
+
+Simpilot also checks the default Everything instance and its database. If a usable instance is already available, it is reused. Otherwise, Simpilot attempts to start the bundled `Everything/Everything.exe`. Everything being unavailable does not prevent Simpilot from starting, but Everything Search and discovery of programs configured without a complete path may be unavailable.
+
+### 1.4 Upgrade and migration
+
+Export a `.simpilot-backup` before upgrading, or exit and copy the application folder. When updating in place, replace application files and the complete `Everything/` folder, keeping `Config/`, `Cache/program-cache.tsv`, `Cache/RunIcon/`, and external `Language.lng`. Keep `Backups/` to retain recovery points. Log retention is 90 days at startup.
+
+A new extraction does not automatically discover old settings. Since v1.0.11, first launch or **Settings > General** can explicitly migrate an old application folder or import a complete backup. The source folder is unchanged; restoration creates a backup and rolls back on failure. Migration and reading an existing configuration are distinct operations. Before downgrading, consult the relevant release notes, especially the v1.0.13 condition-format-2 boundary.
+
+
+## 2. Tray icon and menus
+
+### 2.1 Left-click: quick-launch menu
+
+Left-click the Simpilot tray icon to show only the quick-launch menu. Select an entry to open its application, folder, file, or website. Categories with an arrow open a submenu.
+
+The menu uses the pointer position as its anchor and automatically opens left, right, up, or down according to the available area of the current monitor. Text and icons follow the monitor's scaling setting.
+
+### 2.2 Right-click: management menu
+
+Right-click the tray icon to show settings and maintenance commands:
+
+- **Settings...** opens the complete Settings window.
+- **Edit Menu > Edit Main Menu** opens `Config/Simpilot.ini` in the Windows default document editor.
+- **Edit Menu > Edit Second Menu** opens `Config/Simpilot2.ini` in the Windows default document editor. If the file does not exist, Simpilot asks whether to create it first; choosing **No** leaves the file absent and does not open an editor.
+- **Language** switches among Simplified Chinese, Traditional Chinese, and English.
+- **Maintenance > Reload Menu** rereads the main and second menu configurations.
+- **Maintenance > Open Everything** opens or restores the Everything Search window.
+- **Maintenance > Install/Repair Everything Service...** requests administrator approval and repairs the bundled default Everything service.
+- **About Simpilot** shows product and version information.
+- **Exit** closes Simpilot and removes its registered hotkeys and shortcut blocking.
+
+Changes to `Simpilot.ini` and `Simpilot2.ini` are normally detected automatically. Use **Reload Menu** to retry a failed load or confirm an external edit immediately.
+Files opened from **Edit Menu** should be saved as UTF-8. A valid save is picked up automatically. If the new configuration is invalid, Simpilot keeps the last valid menu active and writes the parse error to the log.
+
+If Windows Explorer restarts, Simpilot automatically restores its tray icon.
+
+## 3. Settings window
+
+The full release includes nine Settings pages. Reduced builds show only pages contributed by compiled modules:
+
+1. General
+2. Quick Launch Menu
+3. Menu Icons
+4. Global Hotkeys
+5. Input methods
+6. Keyboard Mappings
+7. Everything Search
+8. Pointer location
+9. Windows Hotkey Blocking
+
+The buttons at the bottom behave as follows:
+
+- **Save** applies all changes and closes Settings.
+- **Apply** applies all changes while keeping Settings open.
+- **Cancel** discards changes that have not yet been applied and closes Settings.
+
+Changing the display language is saved immediately and refreshes the interface without waiting for **Save** or **Apply**. Most other settings take effect only after they are applied.
+
+Previously applied built-in hotkeys, custom hotkeys, and keyboard mappings remain active while Settings is open. Keyboard input is temporarily redirected only while a recorder is active; normal input resumes as soon as recording completes or is cancelled.
+
+## 4. General settings
+
+### 4.1 Start after Windows sign-in
+
+Enable **Start Simpilot after signing in to Windows**, then select **Apply** or **Save**. The setting affects only the current Windows user and does not require administrator privileges.
+
+If the whole Simpilot directory is moved, open Settings and apply this option again so the startup entry uses the new path.
+
+### 4.2 Pointer location
+
+This switch is under **Settings > Pointer location**. Enable **Highlight the pointer when the mouse is shaken** and select **Apply** or **Save**. Quickly moving the mouse back and forth then shows a prominent fading ring around the current pointer. Ordinary movement, small jitter, and slow reversals do not trigger it. The ring neither takes focus nor intercepts mouse clicks. Disabling the switch stops detection immediately.
+
+The option is stored as `MouseShakeLocatorEnabled=...` in `Config/Setting.ini` and is disabled by default.
+
+### 4.3 Display language
+
+Simpilot includes three interface languages:
+
+- Simplified Chinese
+- Traditional Chinese
+- English
+
+The interface changes immediately without restarting Simpilot or Windows Explorer. User-created menu names, category names, and target paths are not translated.
+
+Additional languages can be installed by placing a compressed `Language.lng` beside `Simpilot.exe`. Simpilot loads compatible languages at startup. A missing, damaged, or incompatible language pack is ignored and does not affect the three built-in languages.
+
+The selected language is stored as `Language=...` in `Config/Setting.ini`. If an external language omits a string, Simpilot falls back to English; if no value is available, `[missing translation]` is displayed instead of an empty control.
+
+The **User Manual** link in About follows the current Simpilot display language. Simplified Chinese and Traditional Chinese open the Simplified Chinese manual. English and languages loaded from `Language.lng` open this English manual.
+
+### 4.4 Quick-launch menu theme
+
+Theme options are under **Settings > Quick Launch Menu**.
+
+- **Use Windows setting** selects the current Windows application theme whenever a menu opens.
+- **Light** always uses a light menu.
+- **Dark** always uses a dark menu.
+
+This setting affects Simpilot menus only; it does not modify the Windows system theme. The new theme is used the next time a menu opens after the setting is applied.
+
+### 4.5 Menu text and icon size
+
+Under **Settings > Quick Launch Menu**, choose **Text and icon size: Small / Medium (default) / Large**. Medium preserves the previous appearance. Text, icons, row heights, and spacing change together and retain monitor DPI scaling. After Apply or Save, the next main, second, or nested menu uses the selected size. This option does not resize the tray context menu or other settings windows.
+
+## 5. Edit the quick-launch menu
+
+Open **Settings > Quick Launch Menu** to manage the main menu and optional second menu. The tray command **Edit Menu > Edit Main Menu/Edit Second Menu** opens the corresponding configuration file directly for text inspection or batch edits; the Settings page remains the recommended tool for normal structural changes.
+
+### 5.1 Main and second menus
+
+- The **main menu** reads `Config/Simpilot.ini` and opens from the tray icon or the built-in Quick Launch Menu hotkey.
+- The **second menu** reads `Config/Simpilot2.ini` and can have its own built-in hotkey.
+
+The second menu is optional. Simpilot creates `Simpilot2.ini` only after content is added and saved.
+If **Edit Second Menu** is selected while the file is missing, Simpilot asks for confirmation before creating an empty second-menu configuration and launching the Windows default document editor.
+
+### 5.2 Add content
+
+The commands above the tree add:
+
+- **Category**: a submenu that can contain other items.
+- **Launch item**: an application, folder, file, or website.
+- **Separator**: a visual divider between sibling items.
+
+Select an item in the tree and edit it directly in the panel on the right.
+
+### 5.3 Edit a launch item
+
+Launch items support these action types:
+
+- **Open application** launches a program and can include arguments and administrator privileges.
+- **Open folder** opens a directory in File Explorer.
+- **Open file** uses the Windows default application for that file type.
+- **Open website** uses the default browser for an `http://` or `https://` address.
+
+**Browse...** first asks for the application source. The choices appear as **Choose an installed MSIX/UWP app**, **Browse for an executable**, and **Choose from the Start menu**. The first lists apps registered for the current user, the second selects an EXE or shortcut with File Explorer, and the third lists every launchable AppsFolder entry, including desktop, MSIX/UWP, and system applications. AppsFolder choices write `shell:AppsFolder\<AUMID>` as the target and let Windows Shell start the application; they do not replace the menu name you entered. The editor handles quoting when a path contains spaces.
+
+When a quick-launch entry opens `cmd.exe`, `powershell.exe`, `pwsh.exe`, or Windows Terminal, the terminal starts in the current Windows user profile rather than `Config/`. Other launch items continue to use `Config/` as their working directory so existing relative paths retain their meaning.
+
+When an application contains only a file name, such as `tool.exe`, the editor displays its currently resolved path. Simpilot searches Windows system directories, `PATH`, and confirmed Everything results. If an Everything result is no longer the desired one, select **Choose Again...** beside the resolved path.
+
+### 5.4 Categories, order, and hierarchy
+
+Use the controls below the tree to change the selected item:
+
+- **Move Up / Move Down** changes its order among siblings.
+- **Promote / Demote** changes its hierarchy level.
+- **Delete** removes it. Deleting a non-empty category requires confirmation.
+
+Drag the divider between the tree and editor to adjust the width of both areas.
+
+### 5.5 Menu access keys
+
+Categories and launch items can have a one-character menu access key. The tree displays it as `[A]`, and Simpilot generates the Windows menu access marker automatically. Do not type `(&A)` into the item name.
+
+When the quick-launch menu is open, press the access key to select a category or run an item. Duplicate keys on the same level are highlighted; the same key may be reused on different levels.
+
+A menu access key works only while its menu is open. It is different from a global hotkey.
+
+### 5.6 Save and external edits
+
+Selecting **Apply** or **Save** validates and writes both menu configurations. Invalid names, empty targets, or malformed website addresses stop the save and select the affected item for correction.
+
+If another program modifies a menu file while the editor is open, Simpilot asks whether to overwrite the external change.
+
+Menu files are monitored in real time. Saving a valid UTF-8 edit in a text editor normally refreshes the menu automatically. If loading fails, Simpilot keeps the last valid menu active.
+After correcting an invalid file, wait for the next automatic reload or select **Maintenance > Reload Menu** to retry immediately.
+
+## 6. Global hotkeys
+
+Open **Settings > Global Hotkeys** to manage built-in and custom hotkeys.
+
+### 6.1 Record, clear, and enable
+
+To record a hotkey:
+
+1. Select **Record Hotkey** or **Record Again**.
+2. Press the key or combination you want.
+3. Select **Apply** or **Save**.
+
+During recording, the captured key events are not passed on to ordinary applications or Windows shortcut handlers. Press `Esc` to cancel recording and keep the previous value.
+
+**Clear** removes the recorded combination and disables that item. Turning off its switch pauses it without deleting the combination. `Backspace` is an ordinary recordable key and is not used to clear a hotkey.
+
+### 6.2 Built-in hotkeys
+
+Simpilot provides four built-in actions that cannot be deleted:
+
+| Action | Initial hotkey | Initial state |
+|---|---|---|
+| Quick Launch Menu | Backtick | Enabled |
+| Second Menu | Not set | Disabled |
+| Settings | Not set | Disabled |
+| Everything Search | `Win+S` | Disabled |
+
+The Everything Search action directly uses Simpilot's Everything integration and does not require a user-configured executable path.
+
+### 6.3 Add a custom global hotkey
+
+Select **Add**, then:
+
+1. Record a key or combination.
+2. Choose **Open application**, **Open folder**, or **Open file**.
+3. Select an existing target.
+4. For applications, optionally configure arguments, working directory, privileges, existing-process behavior, and initial window state.
+5. Save the hotkey, then apply the Settings window.
+
+Application actions provide three existing-process behaviors:
+
+- **Show existing window** restores and activates a usable window. If the process has no usable window, Simpilot invokes the application again so its own single-instance logic can respond.
+- **Start a new instance** always launches the application again.
+- **Do nothing** skips the action when the same executable is already running.
+
+Folder and file actions are handled directly by Windows and do not use application arguments, administrator privileges, duplicate-process behavior, or window-state options.
+
+Use the switch in the custom hotkey list to pause an action without deleting it. Select an item to edit or delete it.
+
+### Activation conditions for custom hotkeys
+
+In the custom-hotkey editor, set Caps Lock, Num Lock and Scroll Lock independently to **Any state**, **On** or **Off**. The default is unrestricted. Every selected lock-key requirement must match.
+
+Enable **Only while any of these programs is running** to associate up to 32 EXE files. Matching uses the full path, ignoring case, within the current Windows session. Background, minimized and windowless processes count; any one associated program is sufficient. Select the path again after moving a program. Newly started programs are normally detected on the next scan, about half a second later. Unknown or inaccessible process state does not activate a rule.
+
+When both kinds of conditions are configured, both must match. An inactive rule passes the keystroke through; independently configured mappings and Windows shortcut blocking still apply. Changing conditions while a key is held does not switch actions or retrigger it. A lock key used as the trigger is evaluated using its state before the press; a matched hotkey consumes that press.
+
+Each rule accepts an optional **Name / note**, up to 128 characters. Names may be empty or duplicated. They appear in the list, tooltip and conflict confirmation, and do not affect activation.
+
+Alternatively, select **Only while any of these programs is in the foreground**. Foreground and running/background modes are mutually exclusive options sharing the same list of up to 32 full EXE paths. Unknown foreground identity does not activate a rule. Lock-key requirements still apply.
+
+A single key or combination can have multiple scenarios: Num Lock on/off may open A/B, or editor/browser foreground contexts may select different actions. Foreground lists with no shared executable identity are exclusive and can reuse the key directly.
+
+Background programs can run simultaneously, and foreground/background scenarios can overlap. To keep overlapping rules, enable **explicit same-key priority** on every overlapping rule and assign different values from 0 to 999. Only the matching rule with the highest value executes; saving requires confirmation. Equal or partly implicit priorities still require conflict resolution rather than depending on list order.
+
+No matching scenario passes the keystroke through. Add any default action separately with no lock/program restrictions and an explicit lower priority, for example scenario 100 and default 0. The first down fixes the action until release; holds and mid-press changes never retrigger it. A matched single letter such as F will not type that character; the editor warns about this. Consider function keys or combinations.
+
+Global backups include names, conditions and priorities. Rules using only previous conditions retain format 1; foreground conditions or priority use format 2 of the separate conditional collection. Unconditional rules retain legacy storage. v1.0.12 refuses format 2 rather than ignoring conditions and activating unsafe actions. Export a backup before downgrading and restore your pre-upgrade configuration. The action's **When the program is already running** option remains a separate launch policy.
+
+
+### 6.4 Hotkey conflicts
+
+When saving, Simpilot checks whether the combination:
+
+- duplicates a built-in hotkey;
+- duplicates another custom hotkey; or
+- is already registered by Windows or another application.
+
+Simpilot explains the conflict and requests confirmation before replacing or attempting to take over a combination.
+
+Exact `Win+A` through `Win+Z` combinations integrate with Windows Hotkey Blocking. `Win+L` is a Windows security shortcut and cannot be configured as a Simpilot global hotkey. Secure combinations such as `Ctrl+Alt+Del` cannot be overridden by a normal desktop application.
+
+### 6.5 Keyboard mappings
+
+Open **Settings > Keyboard Mappings**. The page switch controls all saved mappings, while each list switch can pause one rule. The list's second column shows the optional purpose label for each mapping. Use **Add**, **Edit**, and **Delete** to manage rules.
+
+- A **source trigger** can be one key, one to four modifiers plus an action key, or up to three modifiers plus two action keys held at the same time. Either chord action may be pressed first.
+- A sided Ctrl, Alt, Shift, or Win key can be the source primary key by itself. It cannot then be combined with other source modifiers or a chord. When mapped to an ordinary key or shortcut, it waits for up to 250 ms; another key during that interval replays it as a normal shortcut prefix.
+- A **target output** can be one key or up to four modifiers plus one action key. Target chords are not supported.
+- Sided Ctrl, Alt, Shift, and Win keys can also be recorded or selected as single-key targets, without additional target modifiers. For example, **Left Win → Right Ctrl** holds Right Ctrl immediately and releases it when Left Win is released; holding Left Win and pressing `C` produces `Ctrl+C`. Ordinary keys can also map to modifiers, such as `Caps Lock → Left Ctrl`.
+- A modifier mapped to another modifier cannot coexist with a source shortcut containing that same source modifier. Saving rejects these conflicting rules. Existing tap behavior for modifiers mapped to ordinary keys or shortcuts is unchanged.
+- **Record Source** and **Record Target** retain scan codes, the extended-key flag, and the distinction between left and right Ctrl, Alt, Shift, and Win. Bare `Esc` is recordable in this editor; use the dialog's **Cancel** command to abandon the edit.
+- `Num Lock` can be recorded or selected from the primary-key list as a source or target. Mapping `F12` to `Num Lock` toggles its state each time you press and release `F12`. Existing target mappings recorded as `VK 0x90` work without being recorded again.
+- Choose **All applications**, **Specific applications**, or **Except specified apps**. Each rule can list up to 32 applications. Specific-app rules run when any listed app is in the foreground; exclusion rules run outside the list. Add executable names individually, browse for an EXE, or use **Add foreground app**. Names are normalized and deduplicated, and entries can be removed individually. An empty specific-app or exclusion list cannot be saved.
+- **Exact application match** is enabled by default. Turning it off applies case-insensitive prefix matching to every name in the list. Matching uses the EXE basename, including when browsing for a file; it does not distinguish paths, windows, or web pages. The same source may have different targets in different apps. Overlapping duplicate sources are reported before saving, with the editor kept open.
+- Existing single-app and global settings remain compatible. Versions v1.0.9 and earlier skip new multi-app rules instead of treating them as global. Back up `Config/` before downgrading: saving settings in an older version may discard these rules. This feature does not add switchable scenario profiles.
+- **Apply** and **Save** reject duplicate rules, ambiguous prefixes, cycles, `Win+L`, secure combinations, and out-of-range keys. At most 128 rules can be stored.
+
+An ordinary keyboard can map **Right Ctrl** to **Left Win + Left Shift + F23** to emit the Copilot
+key sequence. Windows defines F23 as `VK_F23` (`0x86`); the interface displays explicit key names
+and distinguishes main/numpad Enter and physically distinct OEM keys.
+
+Mappings are active only while Simpilot runs, and active target keys are released on shutdown. Windows UIPI, elevation boundaries, or the secure desktop may block injection; a normally running Simpilot process cannot guarantee input delivery to a higher-privilege window.
+
+#### Excluding applications
+
+Application scope offers **All applications**, **Only specified apps**, and **Except specified apps**. An exclusion list accepts up to 32 EXE basenames; matching any name disables that rule. Empty exclusion lists cannot be saved. Exclusion affects only the current rule; other matching rules can still run. Exclusion rules do not run when the foreground process cannot be identified.
+
+For the same trigger, included applications take precedence over exclusion rules, which take precedence over global rules. Existing exact and longest-prefix priorities remain for inclusion lists. Overlapping exclusion rules cannot give the same source different targets. Disabling exact matching applies basename-prefix matching to the whole list.
+
+Version 1.0.10 and earlier skip exclusion rules rather than invert them or treat them as global. Saving in an older version can remove new rules. Export a backup before downgrading; restoring the complete backup requires a version that supports its format.
+
+### 6.6 Application input methods
+
+Open **Settings > Input methods**. The feature is disabled by default. Enable its switch and select **Apply** or **Save** to begin monitoring application changes.
+
+1. Select **Add application**, then **Choose an EXE file** or **Choose a running application**.
+2. Choose **Remember last state**, **Fixed input method**, or **Leave unchanged**.
+3. A fixed rule also requires an installed input method and Chinese or English mode. English-only keyboard layouts support English mode only.
+4. Save the rule, then apply or save the Settings window.
+
+The running-application picker initially shows applications with visible windows, including minimized windows. Enable **Show background processes** to include other processes in the current session with readable program paths. Search matches executable names, window titles and full paths; the refresh button reloads the snapshot. Processes and windows using the same EXE are combined into one row, while identically named applications at different paths remain separate. The selected full path appears below the list and can be focused and copied.
+
+Choosing an application still requires confirmation in the rule editor. Cancelling either dialog leaves the draft unchanged. The rule editor's path button offers the same two sources. Inaccessible paths are omitted without requesting elevation. Window titles are not saved; rules continue to identify applications by the complete EXE path.
+
+| Behavior | When the application becomes active |
+|---|---|
+| Remember last state | Restore its last observed input method and mode; leave its current state alone on the first visit |
+| Fixed input method | Use the configured input method and mode, regardless of history |
+| Leave unchanged | Neither switch nor record its state |
+
+Applications without explicit rules also use remembered state. Matching uses the full EXE path, case-insensitively, not window titles, documents, or websites. Moving between windows of the same EXE does not reapply the rule. Switching is attempted once per application entry; manual changes remain possible afterward. Sampling occurs approximately every 200 ms, so shorter visits or changes between samples may be missed.
+
+Rules are stored in `Config/Setting.ini`. Observed history is stored independently in `Config/InputMethodHistory.ini`, survives restarts, and does not make Settings dirty. **Cancel** discards unapplied rules, not history already observed by the runtime.
+
+Use **Refresh input methods** to enumerate installed profiles again. Uninstalled profiles remain in saved rules and are shown as unavailable. Failures update inline status and `Log/Simpilot.log`, without repeated popups or continuous enforcement.
+
+Microsoft Pinyin is the initial validation target. Some third-party IMEs, elevated windows, TSF-only applications, or applications that reject switching may not support control. No target-process injection or service is used. Full/half width, punctuation, and simplified/traditional conversion are not controlled. A normally running Simpilot cannot guarantee control of higher-integrity windows.
+
+## 7. Windows hotkey blocking
+
+Open **Settings > Windows Hotkey Blocking** to select supported combinations from `Win+A` through `Win+Z`. `Win+L` is intentionally not provided.
+
+### 7.1 Effective behavior
+
+- Changes take effect after **Apply** or **Save**; restarting Windows Explorer is not required.
+- Blocking exists only while Simpilot is running and is removed on exit.
+- Simpilot does not modify Windows policy or disable Game Bar, Feedback Hub, or other system features themselves.
+- Both the left and right Windows keys are supported.
+- Only the exact `Win+letter` combination is blocked. Blocking `Win+Z` does not block `Shift+Win+Z`, `Ctrl+Win+Z`, or `Alt+Win+Z`.
+
+### 7.2 Integration with global hotkeys
+
+If an enabled built-in or unconditional custom hotkey is exactly `Win+letter`, Simpilot automatically enables and locks the matching blocking switch. Conditional hotkeys intercept only when their conditions match, without permanently locking the switch. Independent manual blocking still applies when those conditions are false.
+
+When the final hotkey using that combination is disabled, cleared, or deleted, the automatic lock is removed. A separately selected manual blocking preference remains unchanged.
+
+### 7.3 Unsupported scope
+
+Simpilot cannot block shortcuts on the Windows secure desktop, including `Ctrl+Alt+Del` and `Win+L`. The sign-in screen, other user sessions, and some Remote Desktop environments are also outside the supported scope.
+
+## 8. Everything integration
+
+### 8.1 What Everything provides
+
+Everything provides two Simpilot capabilities:
+
+1. Open or restore the Everything Search window.
+2. Locate an executable when a quick-launch item contains only a program name and normal path lookup cannot find it.
+
+Everything components remain in the separate `Everything/` directory. They are not embedded in `Simpilot.exe` and are not downloaded at runtime.
+
+### 8.2 When Everything is already running
+
+Simpilot uses `Everything64.dll` to connect to the default Everything instance. If its database is ready, Simpilot reuses it regardless of where that Everything client is installed. When opening the search window, Simpilot first attempts to restore an existing window or use the source path of the running client.
+
+Named Everything instances are not currently selected explicitly. If only a named instance is running, Simpilot may be unable to connect to its database and may start the bundled default instance.
+
+### 8.3 When Everything is not running
+
+Simpilot checks the default Everything service:
+
+- If the service is installed but stopped, Simpilot attempts to start it.
+- If the database remains unavailable, Simpilot attempts to launch `Everything/Everything.exe`.
+- If the components are missing or startup fails, Simpilot continues running, but Everything Search and database-based program discovery are unavailable.
+
+**Maintenance > Install/Repair Everything Service...** invokes the bundled Everything service setup and displays a Windows UAC prompt. Cancelling UAC does not affect other Simpilot features.
+
+### 8.4 Multiple programs with the same name
+
+When Everything returns multiple valid candidates, Simpilot displays a selection window with icons, paths, file versions, and modification times. Candidates are ordered by:
+
+1. highest file version;
+2. newest modification time when versions match; and
+3. case-insensitive full-path order when both still match.
+
+The selected result is saved in `Cache/program-cache.tsv`. It expires automatically if the target is moved or removed. To change a valid cached choice immediately, use **Choose Again...** beside the resolved path in the quick-launch menu editor.
+
+## 9. Menu icons
+
+### 9.1 Automatic icons
+
+Simpilot automatically displays icons for supported applications, files, websites, and categories. Icons for local targets are cached in `Cache/RunIcon/`. If a program does not contain a native 128×128 image, Simpilot scales the best available icon.
+
+Shell targets such as `shell:AppsFolder\<AUMID>`, `ms-settings:`, and `::{GUID}` are resolved through Windows Shell to extract their real application icons. They also appear in **Settings > Menu Icons** for custom icon assignment.
+
+An icon extraction failure does not prevent the launch item from working; the item falls back to text without an icon.
+
+### 9.2 Manually selected icons
+
+Open **Settings > Menu Icons**:
+
+1. Select a launch item.
+2. Select **Choose Icon...**.
+3. Choose an ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF image. If you choose an EXE or DLL, select an icon from that file.
+4. Select **Apply** or **Save**.
+
+Double-clicking a menu entry also opens the picker. Cancelling or closing it leaves the icon source and pending changes untouched. Images retain their transparency and aspect ratio and are converted to 128x128 ICO files. Read or save failures preserve the current icon.
+
+**Restore Automatic Icon** removes the selected custom icon. Custom icons are indexed by the complete menu label, including its access key, not by application name, path, or arguments. Google Chrome(H) and Google Chrome(O) can have separate icons; changing the launch target keeps the custom icon for the same menu label.
+
+Websites, categories, and separators do not appear in the custom-icon list. Websites and categories use automatic icons; separators have no icon.
+
+Deleting the entire `Cache/RunIcon/` directory also deletes manually selected icons. Do not treat it as disposable cache if those customizations need to be retained.
+
+## 10. Configuration, cache, and logs
+
+Simpilot creates these files as needed:
+
+```text
+Config/
+  Simpilot.ini
+  Simpilot2.ini
+  Setting.ini
+  InputMethodHistory.ini
+Cache/
+  program-cache.tsv
+  RunIcon/
+Log/
+  Simpilot.log
+```
+
+| File or directory | Purpose |
+|---|---|
+| `Config/Simpilot.ini` | Main quick-launch menu |
+| `Config/Simpilot2.ini` | Optional second menu |
+| `Config/Setting.ini` | Interface language, general settings, and rules/options owned by feature modules |
+| `Config/InputMethodHistory.ini` | Remembered application input-method states, created as needed after enabling the feature |
+| `Cache/program-cache.tsv` | Confirmed resolutions for programs configured without a path |
+| `Cache/RunIcon/` | Automatic and manually selected menu icons |
+| `Log/Simpilot.log` | Startup, menu, Everything, hotkey, and error diagnostics |
+
+Menu configuration uses UTF-8. Most users should edit it through Settings; direct edits should be made with a UTF-8-capable text editor.
+
+`program-cache.tsv` can be deleted after Simpilot exits; unresolved programs are searched again when needed. Simpilot keeps one `Simpilot.log` file and removes entries older than 90 days during startup.
+
+Use the built-in global backup or folder migration described below. For a manual backup, exit Simpilot and copy the entire application directory, or retain `Config/`, `Cache/program-cache.tsv`, `Cache/RunIcon/`, and your custom `Language.lng`. Keep `Backups/` as well if you want to retain earlier recovery packages.
+
+### Global backup, restore, and migration
+
+Use **Settings > General > Settings backup and migration** to view the configuration directory, **Export all settings**, **Import backup**, or **Migrate old folder**. A `.simpilot-backup` file includes saved module settings, both menus, menu icons, input-method history, program selections, and the external language pack. Unsaved drafts can be applied first or left out of the export.
+
+Import restores the entire managed configuration. Managed files absent from the backup, including a second menu, are removed. Before restoring, Simpilot saves the current configuration in `Backups/`, then restarts to load the restored settings. A failed restore rolls back; the next startup recovers interrupted operations. Invalid formats, checksums, or rules are reported instead of silently dropping settings. Automatic backups remain until you remove them.
+
+Starting in a directory with no configuration offers a fresh setup, migration from an old folder, or backup import. Versions 1.0.8, 1.0.9, and 1.0.10 can migrate directly without first gaining an export button. The source folder is unchanged. Other versions are checked against supported file formats.
+
+Portable storage is unchanged. Updating program files in the same folder keeps settings; extracting into a new folder does not automatically discover the previous folder. Unreadable or damaged settings are retained and reported, rather than overwritten by defaults.
+
+Backups exclude application binaries, Everything components, logs, and external programs or scripts referenced by menus. After moving between folders or computers, check relative paths, unavailable applications, and missing input methods. Simpilot does not install or download these dependencies. The current backup format supports up to 128 MiB and 8192 files.
+
+## 11. Troubleshooting
+
+### 11.1 No window appears after launch
+
+This is normally expected because Simpilot starts in the notification area. Check the taskbar and hidden-icons area.
+
+If no tray icon appears:
+
+1. Confirm that the complete archive was extracted.
+2. Confirm that the program directory is writable and `Everything/` remains present.
+3. If Windows Explorer has just restarted, wait briefly for the icon to return.
+4. Run `Simpilot.exe` again.
+5. Check `Log/Simpilot.log`.
+
+### 11.2 An item is missing from the quick-launch menu
+
+Simpilot hides launch targets that do not exist or cannot be resolved. Check:
+
+1. whether the target path exists;
+2. whether a relative path is correct relative to the configuration directory;
+3. whether a program name can be found in Windows system directories, `PATH`, or Everything;
+4. whether the Everything database is available; and
+5. whether `Simpilot.ini` is valid UTF-8 configuration.
+
+After correcting the entry, wait for automatic reload or select **Maintenance > Reload Menu**. If reloading fails, the last valid menu remains active and the error is written to the log.
+
+### 11.3 A global hotkey does not respond
+
+1. Confirm that the hotkey is recorded and its switch is enabled.
+2. Select **Apply** or **Save**.
+3. Ensure no hotkey recorder is active.
+4. Check for a conflict with another application.
+5. Try a combination that is not protected by Windows.
+6. Check `Log/Simpilot.log` for registration errors.
+
+### 11.4 A Windows shortcut still runs
+
+1. Confirm that the matching switch is enabled and applied.
+2. Confirm that you pressed the exact `Win+letter` combination without Ctrl, Alt, or Shift.
+3. Confirm that Simpilot is still running.
+4. Remember that `Win+L` and secure-desktop combinations are unsupported.
+5. The sign-in screen, other user sessions, and some remote sessions are outside the guaranteed scope.
+
+This feature does not require an Explorer restart or a Windows policy change.
+
+### 11.5 Everything Search does not open
+
+1. Confirm that `Everything/Everything.exe` and `Everything/Everything64.dll` exist.
+2. Select **Maintenance > Open Everything** from the tray menu.
+3. If needed, select **Install/Repair Everything Service...** and approve UAC.
+4. If using a separate Everything installation, confirm that the default instance is running.
+5. Review the Everything status and errors in `Log/Simpilot.log`.
+
+### 11.6 A menu icon does not update
+
+Open the quick-launch menu again. If the icon is still stale, exit Simpilot, remove only the affected automatic icon cache, and restart. Do not delete all of `Cache/RunIcon/` unless losing manually selected icons is acceptable.
+
+### 11.7 Settings or menus cannot be saved
+
+1. Confirm that the program directory and `Config/` are writable.
+2. Check whether another program is modifying the configuration.
+3. Correct any invalid name, empty target, or malformed website reported by the editor.
+4. Review `Log/Simpilot.log`.
+
+### 11.8 An application's input method does not change
+
+1. Confirm that the feature is enabled and applied, and that the rule matches the actual full EXE path.
+2. Check that the rule is not **Leave unchanged**. Remembered state does not switch on a first visit without history.
+3. Refresh input methods and check profile availability and supported modes.
+4. Leave the application and return; another window of the same EXE does not reapply the rule.
+5. Check inline status and `Log/Simpilot.log`. Elevated windows or incompatible IMEs may reject control.
+
+## 12. Frequently asked questions
+
+### Is Simpilot installed or portable?
+
+It is portable. Extract the complete archive and run it; configuration, cache, and logs remain in the application directory.
+
+### Why does only a tray icon appear?
+
+The tray and global hotkeys are Simpilot's primary entry points. Left-click opens the quick-launch menu; right-click opens settings and maintenance.
+
+### What is the difference between a menu access key and a global hotkey?
+
+A menu access key works only after a quick-launch menu is open. A global hotkey can trigger an action from another standard desktop application while Simpilot is running.
+
+### Does Simpilot modify Windows shortcut policy?
+
+No. Windows hotkey blocking intercepts selected combinations in real time only while Simpilot is running. Enabling startup writes a current-user startup entry, and manually repairing the Everything service requests administrator privileges for that service operation.
+
+### Can `Win+L` be blocked or reassigned?
+
+No. `Win+L` is a Windows security shortcut and is not offered for blocking or global-hotkey takeover.
+
+### If `Win+Z` is blocked, does `Shift+Win+Z` still work?
+
+Yes. Manual blocking matches only the exact `Win+Z` combination. Combinations that also include Ctrl, Alt, or Shift remain available to Windows or applications.
+
+### What happens if my own Everything installation is already running?
+
+If its default-instance database is available, Simpilot reuses it and prefers its existing client when opening the search window. Everything does not need to be installed in the Simpilot directory.
+
+### Can Simpilot run without Everything?
+
+Yes. Targets with explicit paths, Windows system programs, and programs found through `PATH` continue to work. Everything Search and database-dependent discovery of pathless programs are unavailable.
+
+### Why does a program selection window appear?
+
+Everything found more than one file with the requested name, so Simpilot cannot determine the intended path automatically. The selection is cached and can later be changed with **Choose Again...** in the menu editor.
+
+### Can I manually assign an icon to a website or category?
+
+Not currently. Manual icons apply to launch items that resolve to local files. Websites and categories use automatic icons.
+
+### Can a custom global hotkey open a website directly?
+
+Not currently. Custom global hotkeys can open applications, folders, and files. Websites can be added to a quick-launch menu.
+
+### How do I preserve settings during an update?
+
+Exit Simpilot and back up the original directory. Retain `Config/`, and retain `Cache/RunIcon/` when manually selected icons are used. Keep the new `Simpilot.exe` and bundled `Everything/` components together. Also retain `Language.lng` if an additional language is installed.
+
+### Can cache and log files be deleted?
+
+After Simpilot exits, `Cache/program-cache.tsv` and `Log/Simpilot.log` can be deleted and will be recreated when needed. Deleting `Cache/RunIcon/` rebuilds automatic icons but also removes manually selected icons.
+
+## 13. Uninstall Simpilot
+
+Simpilot has no Control Panel uninstall entry.
+
+1. Open **Settings > General**, disable startup after Windows sign-in, and select **Apply**.
+2. If the bundled Everything service was installed through Simpilot, uninstall it from an administrator PowerShell or Command Prompt opened in the Simpilot directory:
+
+   ```powershell
+   .\Everything\Everything.exe -uninstall-service
+   ```
+
+   Do not perform this step for a separate Everything service that you want to keep.
+3. Right-click the tray icon and select **Exit**.
+4. Delete the Simpilot directory.
+
+Deleting the directory also removes personal configuration, manually selected icons, cache data, and logs. Back up anything that should be retained first.
+
+## 14. Collect diagnostic information
+
+Start with:
+
+```text
+Log/Simpilot.log
+```
+
+When reporting a problem, include:
+
+- the Simpilot version shown in About;
+- the Windows version;
+- the action performed before the problem;
+- whether it can be reproduced consistently;
+- relevant screenshots; and
+- log entries near the time of the problem.
+
+Logs can contain program paths and configured targets. Remove personal directory names, user names, and sensitive file names before sharing them publicly.
+
+Report problems and suggestions through [GitHub Issues](https://github.com/wonly211/Simpilot/issues).

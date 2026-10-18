@@ -1,0 +1,135 @@
+<p align="center">
+  <img src="assets/simpilot-icon.png" width="128" height="128" alt="简驭 | Simpilot icon">
+</p>
+
+<h1 align="center">简驭 | Simpilot</h1>
+
+<p align="center">
+  <a href="README.md">简体中文</a> |
+  <strong>English</strong>
+</p>
+
+<p align="center">
+  Bring everyday shortcuts and frequent actions together in one tray icon and a set of global hotkeys.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4" alt="Windows 10 and 11">
+  <img src="https://img.shields.io/badge/Architecture-x64-5C6BC0" alt="x64">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/wonly211/Simpilot" alt="License"></a>
+</p>
+
+简驭 | Simpilot is a lightweight quick launcher and global hotkey manager for Windows. Instead of digging through nested folders or repeatedly searching the taskbar for a window, use the tray menu or familiar key combinations to launch apps, open folders and files, visit websites, or bring up Everything Search.
+
+It is designed for office users, developers, content creators, and productivity enthusiasts who want to reduce mouse travel, organize scattered shortcuts, and keep frequent actions close at hand.
+
+## Why Simpilot
+
+| Capability | What It Gives You |
+|---|---|
+| Hierarchical quick-launch menus | Organize apps, folders, files, and websites around the way you work |
+| Global hotkeys | Trigger frequent actions directly from any standard desktop application |
+| Physical keyboard mappings | Remap a key, shortcut, or two-action chord to a key or shortcut, globally or for selected applications |
+| Application input methods | Choose an input method and Chinese/English mode per executable path, or remember its last state; disabled by default |
+| Windows shortcut takeover | Block selected `Win+letter` combinations while Simpilot is running and give custom actions priority |
+| Everything integration | Open or restore the search window with one action and locate programs whose full paths were not specified |
+| Menu icons and themes | Extract clear icons automatically or select them manually; follow the system theme or choose light or dark mode |
+| Portable and localized | Extract the complete archive and run it immediately; settings remain local, with 简体中文, 繁體中文, and English built in, plus optional `Language.lng` language packs |
+
+Simpilot is built with native C++20 and Win32. Its core features require no account or cloud service, and shortcut blocking does not modify Windows system policies. When Simpilot exits, its registered hotkeys and real-time shortcut blocking are removed automatically.
+
+## Get Started in Three Steps
+
+1. The rebuilt repository has no official release assets yet. [Build from source](#build-from-source) to create the portable ZIP; the next official version tag will publish after validation.
+2. Extract the complete archive to a fixed directory writable by the current user. Keep the `Everything/` directory structure intact.
+3. Run `Simpilot.exe`. Left-click the tray icon or press the backtick key to open the quick-launch menu. Right-click the tray icon for settings and maintenance.
+
+Simpilot is a tray application and does not show a conventional main window after launch. If the icon is not visible, check the hidden-icons area of the taskbar.
+
+> Local builds are not digitally signed. For future official releases, If Windows SmartScreen reports an unknown publisher on first launch, verify that the file came from an official release in this repository and compare it with the included `.sha256` file.
+
+## Common Workflows
+
+- Use one hierarchical menu to organize work applications, project directories, frequently used documents, and websites.
+- Assign convenient global hotkeys to meetings, screenshots, terminals, editors, or reference folders.
+- Give combinations such as `Win+S` or `Win+G` to your own actions and restore normal Windows behavior automatically when Simpilot exits.
+- Bring an existing application window to the foreground with the same hotkey instead of launching duplicate instances.
+- Create a second menu alongside the main menu to keep work and personal shortcuts separate.
+- Bring up Everything directly. When several versions of the same program are found, choose the path you actually want.
+
+## Feature Overview
+
+- Left-clicking the tray icon shows only the quick-launch menu. Right-clicking shows only settings, language, Everything maintenance, About, and Exit.
+- Visually edit the main and second menus, including categories, separators, ordering, hierarchy, and menu access keys.
+- Custom hotkeys can open applications, folders, or files. Application actions support arguments, a working directory, administrator privileges, existing-process behavior, and initial window state.
+- Built-in hotkeys are available for the main menu, second menu, Settings window, and Everything Search. Each can be recorded, cleared, enabled, or paused independently.
+- Physical-key mappings distinguish left and right modifiers and support single keys, shortcuts, and one-level chords. A sided Ctrl, Alt, Shift, or Win key can also be used alone as the source. Add or edit a rule by recording it or selecting keys including F1-F24, then apply it globally or to a process scope. For example, map an ordinary keyboard's Right Ctrl to `Left Win + Left Shift + F23` to emit the Copilot key sequence.
+- Supported `Win+A` through `Win+Z` combinations can be blocked in real time. `Win+L` cannot be overridden because of Windows security restrictions.
+- Menu configuration changes are monitored automatically. If a reload fails, the last valid menu remains active.
+- The tray icon is restored automatically when Windows Explorer restarts.
+- Transparent 128x128 icon caches are generated automatically. Import ICO, PNG, JPG/JPEG, BMP, GIF, or TIFF images, or select icons from EXE or DLL files.
+- Simpilot uses the default Everything instance and the official SDK. If Everything is unavailable, Simpilot still starts normally. The menu editor can show or reselect resolved paths for programs configured without a full path.
+- Enable **Settings > Input methods** to use fixed, remembered, or unmanaged input-method states per application. History survives restarts. Microsoft Pinyin is the initial validation target; some input methods and elevated windows may reject switching.
+- Per-Monitor V2 DPI keeps menus clear across displays with different scaling settings.
+- Logs are stored in `Log/Simpilot.log`; entries older than 90 days are removed at startup.
+
+## User Documentation
+
+For installation, menu editing, hotkey recording, Windows shortcut blocking, Everything integration, backup and migration, and troubleshooting, see:
+
+**[Simpilot User Manual](docs/user/en-US/User-Manual.md)**
+
+Additional user-facing material is available from the **[user documentation index](docs/README.md)**.
+
+**[Simpilot Wiki](https://github.com/wonly211/Simpilot/wiki)** provides task-oriented guides for setup, menus, hotkeys, Everything, language packs, and troubleshooting.
+
+For problems, check the troubleshooting and FAQ sections first, then report the issue through [GitHub Issues](https://github.com/wonly211/Simpilot/issues). Review the log before posting and avoid exposing personal directory or file names.
+
+## System Requirements
+
+- Windows 10 or Windows 11
+- An x64 processor and operating system
+- A program directory writable by the current user
+
+Simpilot is distributed as a portable application without an installer. Runtime settings, caches, and logs remain in the program directory for straightforward backup and migration.
+
+<details>
+<summary><strong>Runtime Directory</strong></summary>
+
+```text
+Config/
+  Simpilot.ini
+  Simpilot2.ini
+  Setting.ini
+  InputMethodHistory.ini
+Cache/
+  program-cache.tsv
+  RunIcon/
+Log/
+  Simpilot.log
+```
+
+`Simpilot.ini` and the optional `Simpilot2.ini` are the quick-launch menu data sources; `Setting.ini` stores the display language and application settings. When application input methods are enabled, `InputMethodHistory.ini` stores remembered states as needed. Configuration is saved atomically in UTF-8, so most users do not need to edit it manually.
+
+</details>
+
+## Build from source
+
+Use Windows 10/11 x64, Visual Studio 2022 with Desktop development with C++ and the Windows SDK, CMake 3.25+, PowerShell 7, Python 3.10+, and Git. Python uses only its standard library for offline documentation/sync checks. Required dependencies are bundled with the source.
+
+```powershell
+cmake --preset vs2022-x64
+cmake --build --preset release --parallel 4
+ctest --preset release --parallel 1
+cmake --build --preset package-release --parallel 4
+```
+
+Find the ZIP and `.sha256` in `build/vs2022-x64/`. Extract the entire package before running it. `pwsh -NoProfile -File tools/ci.ps1` executes all nine configurations locally in sequence, so local elapsed time differs from the parallel CI.
+
+See [repository synchronization and documentation checks](docs/repository-sync.md). Historical release notes remain for compatibility reference; old tags and assets are not restored in the rebuilt repository.
+
+## Open-Source License and Third-Party Components
+
+Simpilot is open source under the [GNU General Public License v3.0](LICENSE).
+
+The release package includes Everything runtime components. See [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) for complete third-party license notices. Keyboard capture, hotkey handling, and physical-key mapping are independently implemented by Simpilot from publicly observable remapping behavior; no external keyboard-manager source is included. Everything components remain in the separate `Everything/` directory; they are not embedded in `Simpilot.exe` or downloaded at runtime.

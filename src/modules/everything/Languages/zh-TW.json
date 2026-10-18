@@ -1,0 +1,11 @@
+{
+  "locale": "zh-TW",
+  "strings": {
+    "ui.open_everything": "開啟 Everything",
+    "ui.everything_unavailable": "無法開啟 Everything 搜尋。請確認 Everything 元件完整，並查看 Log\\Simpilot.log 以瞭解詳細資訊。",
+    "ui.repair_everything": "安裝/修復 Everything 服務...",
+    "ui.repair_everything_success": "Everything 服務已就緒。",
+    "ui.repair_everything_failed": "Everything 服務安裝或修復未完成。請查看 Log\\Simpilot.log 以瞭解詳細資訊。",
+    "settings.open_everything_search": "Everything 搜尋"
+  }
+}

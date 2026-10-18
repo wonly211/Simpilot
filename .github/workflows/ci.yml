@@ -1,0 +1,181 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: Run the complete uncached matrix instead of reusing main artifacts
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || (github.ref_type == 'tag' && github.ref || github.sha) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  prepare:
+    name: Prepare validation
+    runs-on: windows-2022
+    timeout-minutes: 25
+    outputs:
+      plan: ${{ steps.prepare.outputs.plan }}
+      matrix: ${{ steps.prepare.outputs.matrix }}
+      sha: ${{ steps.prepare.outputs.sha }}
+      mode: ${{ steps.prepare.outputs.mode }}
+      source_run: ${{ steps.prepare.outputs.source_run }}
+      source_artifact: ${{ steps.prepare.outputs.source_artifact }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+          submodules: false
+      - name: Validate policy and generate matrix
+        id: prepare
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_FORCE_REBUILD: ${{ inputs.force_rebuild || false }}
+        run: ./tools/ci.ps1 -Stage Prepare
+      - name: Upload preparation diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: preparation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/ci/plan.json
+            build/ci/documentation.json
+            build/ci-preflight/CMakeFiles/CMakeConfigureLog.yaml
+          retention-days: 14
+
+  build:
+    name: Build / ${{ matrix.id }}
+    needs: prepare
+    if: needs.prepare.outputs.mode == 'build'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 9
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - name: Check out validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+          submodules: false
+      - name: Build, test and check installation
+        shell: pwsh
+        env:
+          CI_PLAN: ${{ needs.prepare.outputs.plan }}
+          CI_VARIANT: ${{ matrix.id }}
+        run: ./tools/ci.ps1 -Stage Build -Variant $env:CI_VARIANT
+      - name: Upload candidate and diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ci-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.id }}
+          path: build/ci/results/${{ matrix.id }}/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  windows-release:
+    name: Windows x64 Release
+    needs: [prepare, build]
+    if: always()
+    runs-on: windows-2022
+    timeout-minutes: 15
+    outputs:
+      source_run: ${{ steps.collect.outputs.source_run }}
+      source_attempt: ${{ steps.collect.outputs.source_attempt }}
+      source_artifact: ${{ steps.collect.outputs.source_artifact }}
+    steps:
+      - name: Check out validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha || github.sha }}
+          persist-credentials: false
+          submodules: false
+      - name: Download all matrix attempts
+        if: needs.prepare.outputs.mode == 'build'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: ci-${{ github.run_id }}-*
+          path: build/ci/incoming
+          github-token: ${{ github.token }}
+          run-id: ${{ github.run_id }}
+      - name: Download trusted main validation
+        if: needs.prepare.outputs.mode == 'reuse'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.prepare.outputs.source_artifact }}
+          path: build/ci/reused
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.prepare.outputs.source_run }}
+      - name: Verify complete evidence and package
+        id: collect
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_PLAN: ${{ needs.prepare.outputs.plan }}
+          CI_PREPARE_RESULT: ${{ needs.prepare.result }}
+          CI_BUILD_RESULT: ${{ needs.build.result }}
+        run: ./tools/ci.ps1 -Stage Collect
+      - name: Upload fully validated release artifact
+        if: success() && needs.prepare.outputs.mode == 'build'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: validated-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/ci/validated/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  publish:
+    name: Publish release
+    needs: [prepare, windows-release]
+    if: ${{ !cancelled() && needs.prepare.result == 'success' && needs.windows-release.result == 'success' && github.event_name == 'push' && github.ref_type == 'tag' }}
+    runs-on: windows-2022
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    concurrency:
+      group: simpilot-release-publication
+      cancel-in-progress: false
+    steps:
+      - name: Check out release notes and verifier
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+          submodules: false
+      - name: Download verified artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.windows-release.outputs.source_artifact }}
+          path: build/ci/publish
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.windows-release.outputs.source_run }}
+      - name: Resume draft, verify attachments and publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_PLAN: ${{ needs.prepare.outputs.plan }}
+          CI_SOURCE_RUN: ${{ needs.windows-release.outputs.source_run }}
+          CI_SOURCE_ATTEMPT: ${{ needs.windows-release.outputs.source_attempt }}
+        run: ./tools/ci.ps1 -Stage Publish

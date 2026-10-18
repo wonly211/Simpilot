@@ -1,0 +1,11 @@
+{
+  "locale": "en-US",
+  "strings": {
+    "ui.open_everything": "Open Everything",
+    "ui.everything_unavailable": "Everything Search could not be opened. Verify the Everything components and see Log\\Simpilot.log for details.",
+    "ui.repair_everything": "Install/repair Everything service...",
+    "ui.repair_everything_success": "The Everything service is ready.",
+    "ui.repair_everything_failed": "The Everything service was not installed or repaired. See Log\\Simpilot.log for details.",
+    "settings.open_everything_search": "Everything Search"
+  }
+}
