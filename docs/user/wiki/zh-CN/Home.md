@@ -6,7 +6,9 @@
 
 ## 从这里开始
 
-第一次使用请阅读[快速开始](快速开始)，完成下载、解压和首次启动。简驭是便携式程序，不提供传统主窗口；启动后会常驻 Windows 通知区域。
+新仓库尚无正式发布附件，请按[仓库 README](https://github.com/wonly211/Simpilot#从源码构建)从源码构建。下一次正式版本标签验证通过后将自动发布。
+
+第一次使用请阅读[快速开始](快速开始)，完成构建或下载、解压和首次启动。简驭是便携式程序，不提供传统主窗口；启动后会常驻 Windows 通知区域。
 
 - 左键单击托盘图标：打开快捷启动菜单。
 - 右键单击托盘图标：打开设置、语言、Everything 维护、关于和退出等管理操作。
@@ -37,7 +39,7 @@
 ## 常用资源
 
 - [用户手册与技术文档](https://github.com/wonly211/Simpilot/tree/main/docs)：完整功能说明和技术事实来源。
-- [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest)：下载最新正式版本。
+- [GitHub Releases](https://github.com/wonly211/Simpilot/releases)：后续正式版本的发布包与校验文件。
 - [问题反馈](https://github.com/wonly211/Simpilot/issues)：提交可复现的问题或建议。
 
 遇到问题时，请先查看程序目录中的 `Log/Simpilot.log`。提交日志前请确认其中不含不希望公开的个人路径或文件名。

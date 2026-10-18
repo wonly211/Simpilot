@@ -6,7 +6,9 @@ Simpilot is a lightweight quick launcher and global hotkey manager for Windows. 
 
 ## Start here
 
-Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the first time. Simpilot is a portable tray application: after it starts, it stays in the Windows notification area instead of opening a conventional main window.
+The rebuilt repository has no official release assets yet. Build from source using the [repository README](https://github.com/wonly211/Simpilot/blob/main/README.en-US.md#build-from-source). The next official version tag will publish automatically after validation succeeds.
+
+Read [Quick Start](Quick-Start) to build or download, extract, and run Simpilot for the first time. Simpilot is a portable tray application: after it starts, it stays in the Windows notification area instead of opening a conventional main window.
 
 - Left-click the tray icon to open the quick-launch menu.
 - Right-click the tray icon for settings, language, Everything maintenance, About, and Exit.
@@ -42,7 +44,7 @@ Read [Quick Start](Quick-Start) to download, extract, and run Simpilot for the f
 
 - [English user manual](https://github.com/wonly211/Simpilot/blob/main/docs/user/en-US/User-Manual.md)
 - [Documentation in the repository](https://github.com/wonly211/Simpilot/tree/main/docs)
-- [Latest release](https://github.com/wonly211/Simpilot/releases/latest)
+- [Releases](https://github.com/wonly211/Simpilot/releases): future official packages and checksums.
 - [Report an issue](https://github.com/wonly211/Simpilot/issues)
 
 When reporting a problem, check `Log/Simpilot.log` first. Review it before sharing because it can contain personal paths or file names.

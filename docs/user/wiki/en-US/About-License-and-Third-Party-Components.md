@@ -7,7 +7,7 @@ Simpilot is a lightweight quick launcher and global hotkey manager for Windows. 
 ## Help and feedback
 
 - [Project home](https://github.com/wonly211/Simpilot): source code, documentation, and development updates.
-- [Latest release](https://github.com/wonly211/Simpilot/releases/latest): official packages and checksums.
+- [Releases](https://github.com/wonly211/Simpilot/releases): the rebuilt repository has no official assets yet; use the source-build steps on the project home for now. Future official packages and checksums will appear here.
 - [Report an issue](https://github.com/wonly211/Simpilot/issues): reproducible defects, feature requests, and translation feedback.
 
 When reporting a problem, include the Simpilot version, Windows version, reproduction steps, expected behavior, and actual behavior. `Log/Simpilot.log` can help diagnose an issue, but remove usernames, personal paths, filenames, and other sensitive details before sharing it.
