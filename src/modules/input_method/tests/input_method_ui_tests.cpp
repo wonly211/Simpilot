@@ -61,9 +61,14 @@ void page_tests() {
         [&]() -> const std::vector<Profile>& { return backend.catalog; },
         [&] { ++backend.enumerations; }, [] { return Status{}; }});
     int changes = 0;
-    page->create({GetModuleHandleW(nullptr), host.window, 96,
+    const auto host_dpi = GetDpiForWindow(host.window);
+    require(host_dpi != 0, "settings test host has no DPI");
+    page->create({GetModuleHandleW(nullptr), host.window, host_dpi,
         static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)), localization, [&] { ++changes; }});
-    page->layout({0, 0, 650, 440}, 96, static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
+    // Match the default 650x440 DIP page to the host's native scrollbar metrics.
+    // check_page above separately covers parameterized 96/144/192 DPI layouts.
+    page->layout({0, 0, MulDiv(650, host_dpi, 96), MulDiv(440, host_dpi, 96)},
+        host_dpi, static_cast<HFONT>(GetStockObject(DEFAULT_GUI_FONT)));
     page->show(true);
     const auto window = FindWindowExW(host.window, nullptr, L"Simpilot.InputMethodSettingsPage", nullptr);
     const auto list = GetDlgItem(window, 6);

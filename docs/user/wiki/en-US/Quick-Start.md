@@ -14,7 +14,7 @@ This guide gets Simpilot running and opens your first quick-launch menu.
 
 ## Download and extract
 
-1. Download the latest `Simpilot-*-win-x64.zip` from [GitHub Releases](https://github.com/wonly211/Simpilot/releases/latest).
+1. After an official version is published, download `Simpilot-*-win-x64.zip` from [GitHub Releases](https://github.com/wonly211/Simpilot/releases).
 2. Extract the **entire** archive to a fixed location, such as a personal software folder or a data drive.
 3. Keep `Simpilot.exe` and the `Everything/` folder in their original relative locations. Do not copy the executable by itself.
 4. Run `Simpilot.exe`.
