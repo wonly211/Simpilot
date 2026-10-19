@@ -70,6 +70,43 @@ Must-Reject { Assert-CiJobs $selected $jobs } 'new job without report'
 $retry.status = 'failure'
 Must-Reject { Assert-CiRecords $plan ($records + $retry) 2 } 'new failure hiding behind old success'
 
+# GitHub carries successful jobs forward with new IDs and attempt numbers, but
+# leaves their execution timestamps, runner and steps unchanged.
+$originalJob = [pscustomobject]@{
+    id = 10; name = 'Build / full'; run_id = 123; head_sha = $plan.sha
+    run_attempt = 1; status = 'completed'; conclusion = 'success'; runner_id = 42
+    created_at = '2026-10-19T00:00:00Z'; started_at = '2026-10-19T00:00:02Z'; completed_at = '2026-10-19T00:06:00Z'
+    steps = @([pscustomobject]@{ name = 'Build and test'; number = 1; status = 'completed'; conclusion = 'success'
+        started_at = '2026-10-19T00:00:03Z'; completed_at = '2026-10-19T00:05:59Z' })
+}
+$retained = Copy-Value $originalJob
+$retained.id = 20; $retained.run_attempt = 2; $retained.created_at = '2026-10-19T00:10:00Z'
+Assert-CiJobs @($records[0]) @($originalJob, $retained)
+$third = Copy-Value $retained; $third.id = 30; $third.run_attempt = 3; $third.created_at = '2026-10-19T00:20:00Z'
+Assert-CiJobs @($records[0]) @($originalJob, $retained, $third)
+Must-Reject { Assert-CiJobs @($records[0]) @($retained) } 'missing original retained job'
+Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $retained, $retained) } 'duplicate job attempt'
+foreach ($status in @('failure', 'cancelled', 'skipped')) {
+    $badJob = Copy-Value $retained; $badJob.conclusion = $status
+    Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } "retained job $status"
+}
+foreach ($field in @('run_id', 'head_sha', 'runner_id', 'started_at', 'completed_at')) {
+    $badJob = Copy-Value $retained; $badJob.$field = 'different'
+    Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } "new execution $field without report"
+    $badJob = Copy-Value $retained; $badJob.PSObject.Properties.Remove($field)
+    Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } "missing retained $field"
+}
+$badJob = Copy-Value $retained; $badJob.steps[0].completed_at = '2026-10-19T00:05:58Z'
+Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } 'changed step execution'
+$badJob = Copy-Value $retained; $badJob.steps = @()
+Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } 'missing retained steps'
+$badJob = Copy-Value $retained; $badJob.created_at = $originalJob.created_at
+Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob) } 'job created before prior execution completed'
+$badJob = Copy-Value $retained; $badJob.started_at = '2026-10-19T00:10:02Z'
+Must-Reject { Assert-CiJobs @($records[0]) @($originalJob, $badJob, $third) } 'intermediate execution hidden by later copy'
+$newRecord = Copy-Value $records[0]; $newRecord.attempt = 2
+Assert-CiJobs @($newRecord) @($originalJob, $badJob)
+
 $workflow = [IO.File]::ReadAllText((Join-Path $repoRoot '.github/workflows/ci.yml'))
 Assert-WorkflowPolicy $workflow
 foreach ($mutation in @(

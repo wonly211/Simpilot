@@ -94,14 +94,53 @@ function Assert-CiRecords {
     return $selected
 }
 
+function Assert-CiJobEvidence {
+    param([object[]]$Jobs, [string]$Name, [int]$Attempt)
+    $history = @($Jobs | Where-Object name -EQ $Name | Sort-Object run_attempt)
+    $original = @($history | Where-Object run_attempt -EQ $Attempt)
+    if ($original.Count -ne 1 -or @($history | Group-Object run_attempt | Where-Object Count -GT 1).Count) {
+        throw "Missing or ambiguous GitHub job evidence: $Name, attempt $Attempt"
+    }
+    Assert-Equal $original[0].conclusion 'success' "Job $Name"
+    foreach ($job in @($history | Where-Object run_attempt -GT $Attempt)) {
+        Assert-Equal $job.conclusion 'success' "Latest job $Name"
+        # Failed-jobs reruns copy retained successes into the new attempt with
+        # new job IDs. Only identical execution evidence may keep an old report;
+        # a newly executed job still requires its own result, even if successful.
+        foreach ($field in @('run_id', 'head_sha', 'runner_id', 'started_at', 'completed_at')) {
+            if (-not $original[0].PSObject.Properties[$field] -or -not $original[0].$field -or
+                -not $job.PSObject.Properties[$field] -or -not $job.$field) {
+                throw "Missing retained-job identity: $Name/$field"
+            }
+            if ($field -in @('started_at', 'completed_at')) {
+                Assert-Equal ([DateTimeOffset]$job.$field) ([DateTimeOffset]$original[0].$field) "Retained job $Name/$field"
+            } else {
+                Assert-Equal $job.$field $original[0].$field "Retained job $Name/$field"
+            }
+        }
+        Assert-Equal $job.status 'completed' 'Retained job status'
+        Assert-Equal $original[0].status 'completed' 'Original job status'
+        if (-not $job.created_at -or [DateTimeOffset]$job.created_at -lt [DateTimeOffset]$original[0].completed_at) {
+            throw "Job was executed again without a matching report: $Name"
+        }
+        if (-not @($original[0].steps).Count -or -not @($job.steps).Count) {
+            throw "Missing retained-job steps: $Name"
+        }
+        $stepEvidence = @(foreach ($execution in @($original[0], $job)) {
+            @(foreach ($step in $execution.steps) {
+                [ordered]@{ name = $step.name; number = $step.number; status = $step.status; conclusion = $step.conclusion
+                    started_at = if ($step.started_at) { ([DateTimeOffset]$step.started_at).ToUniversalTime().ToString('o') } else { $null }
+                    completed_at = if ($step.completed_at) { ([DateTimeOffset]$step.completed_at).ToUniversalTime().ToString('o') } else { $null } }
+            }) | ConvertTo-Json -Depth 5 -Compress
+        })
+        Assert-Equal $stepEvidence[1] $stepEvidence[0] "Retained job steps: $Name"
+    }
+}
+
 function Assert-CiJobs {
     param([object[]]$Records, [object[]]$Jobs)
     foreach ($record in $Records) {
-        $jobsForVariant = @($Jobs | Where-Object name -EQ "Build / $($record.variant)" | Sort-Object run_attempt -Descending)
-        if (-not $jobsForVariant.Count) { throw "Missing GitHub job: $($record.variant)" }
-        $job = $jobsForVariant[0]
-        Assert-Equal $job.conclusion 'success' "Job $($job.name)"
-        Assert-Equal $job.run_attempt $record.attempt 'Job/result attempt'
+        Assert-CiJobEvidence $Jobs "Build / $($record.variant)" $record.attempt
     }
 }
 

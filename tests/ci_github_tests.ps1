@@ -34,6 +34,17 @@ Must-Reject { Assert-CiPublicationSource $rerun $plan 1 ($finalJobs + $newAggreg
 Assert-CiPublicationSource $rerun $plan 2 ($finalJobs + $newAggregate)
 $externalRetry = Copy-Value $run; $externalRetry.run_attempt = 2
 Must-Reject { Assert-CiPublicationSource $externalRetry $plan 1 $finalJobs } 'external main attempt changed'
+$retainedFinal = [pscustomobject]@{
+    name = 'Windows x64 Release'; run_attempt = 1; conclusion = 'success'; status = 'completed'
+    run_id = $rerun.id; head_sha = $plan.sha; runner_id = 42
+    created_at = '2026-10-19T00:00:00Z'; started_at = '2026-10-19T00:00:02Z'; completed_at = '2026-10-19T00:00:20Z'
+    steps = @([pscustomobject]@{ name = 'Verify complete evidence and package'; number = 1; status = 'completed'
+        conclusion = 'success'; started_at = '2026-10-19T00:00:03Z'; completed_at = '2026-10-19T00:00:19Z' })
+}
+$retainedCopy = Copy-Value $retainedFinal; $retainedCopy.run_attempt = 2; $retainedCopy.created_at = '2026-10-19T00:05:00Z'
+Assert-CiPublicationSource $rerun $plan 1 @($retainedFinal, $retainedCopy)
+$retainedCopy.steps[0].conclusion = 'failure'
+Must-Reject { Assert-CiPublicationSource $rerun $plan 1 @($retainedFinal, $retainedCopy) } 'modified retained aggregate'
 $script:validationChecks = 0; $script:digestBad = $false
 $temporary = Join-Path ([IO.Path]::GetTempPath()) ('simpilot-github-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temporary | Out-Null

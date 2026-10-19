@@ -86,10 +86,7 @@ function Assert-CiPublicationSource {
         Assert-CiTrustedRun $Run $Plan
         Assert-Equal $Run.run_attempt $SourceAttempt 'External source attempt'
     }
-    $aggregate = @($Jobs | Where-Object name -EQ 'Windows x64 Release' | Sort-Object run_attempt -Descending)
-    if (-not $aggregate.Count) { throw 'Source final check is missing.' }
-    Assert-Equal $aggregate[0].conclusion 'success' 'Source final check'
-    Assert-Equal $aggregate[0].run_attempt $SourceAttempt 'Source final check attempt'
+    Assert-CiJobEvidence $Jobs 'Windows x64 Release' $SourceAttempt
 }
 
 function Receive-CiArtifact {
